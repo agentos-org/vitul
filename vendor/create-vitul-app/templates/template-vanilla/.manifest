@@ -1,0 +1,7 @@
+devUrl = {% if v1 %}../src{% endif %}
+frontendDist = ../src
+withGlobalTauri = true
+
+[files]
+tauri.svg = src/assets/tauri.svg
+styles.css = src/styles.css

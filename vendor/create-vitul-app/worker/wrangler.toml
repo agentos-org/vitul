@@ -1,0 +1,16 @@
+# Copyright 2019-2022 Tauri Programme within The Commons Conservancy
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
+
+name = "create-tauri-app"
+main = "index.js"
+compatibility_date = "2025-05-05"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true

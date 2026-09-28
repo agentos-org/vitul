@@ -424,11 +424,12 @@ pub fn generate_allowed_commands(
     println!("cargo:rerun-if-changed={}", config_file_path.display());
   }
 
-  if let Ok(env) = std::env::var("TAURI_CONFIG") {
+  if let Ok(env) = std::env::var("VITUL_CONFIG").or_else(|_| std::env::var("TAURI_CONFIG")) {
     let merge_config: serde_json::Value = serde_json::from_str(&env)?;
     json_patch::merge(&mut config, &merge_config);
   }
 
+  println!("cargo:rerun-if-env-changed=VITUL_CONFIG");
   println!("cargo:rerun-if-env-changed=TAURI_CONFIG");
 
   // Set working directory to where `tauri.config.json` is, so that relative paths in it are parsed correctly.

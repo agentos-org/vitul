@@ -38,7 +38,7 @@
 
   function echo() {
     invoke('echo', {
-      message: 'Tauri JSON request!'
+      message: 'Vitul system IPC request!'
     })
       .then(onMessage)
       .catch(onMessage)

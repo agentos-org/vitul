@@ -36,7 +36,7 @@
  * });
  * ```
  *
- * This package is also accessible with `window.__TAURI__.mocks` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `tauri.conf.json` is set to `true`.
+ * This package is also accessible with `window.__TAURI__.mocks` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `vitul.conf.json` is set to `true`.
  *
  * @module
  */

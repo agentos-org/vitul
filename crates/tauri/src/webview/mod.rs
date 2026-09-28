@@ -364,7 +364,7 @@ async fn create_window(app: tauri::AppHandle) {
     }
   }
 
-  /// Initializes a webview builder from a [`WindowConfig`] from tauri.conf.json.
+  /// Initializes a webview builder from a [`WindowConfig`] from vitul.conf.json.
   /// Keep in mind that you can't create 2 webviews with the same `label` so make sure
   /// that the initial webview was closed or change the label of the new [`WebviewBuilder`].
   ///
@@ -470,7 +470,7 @@ tauri::Builder::default()
 
     let webview_builder = WebviewBuilder::new("core", WebviewUrl::App("index.html".into()))
       .on_web_resource_request(|request, response| {
-        if request.uri().scheme_str() == Some("tauri") {
+        if request.uri().scheme_str() == Some("vitul") {
           // if we have a CSP header, Tauri is loading an HTML file
           //  for this example, let's dynamically change the CSP
           if let Some(csp) = response.headers_mut().get_mut("Content-Security-Policy") {
@@ -523,7 +523,7 @@ tauri::Builder::default()
     let webview_builder = WebviewBuilder::new("core", WebviewUrl::App("index.html".into()))
       .on_navigation(|url| {
         // allow the production URL or localhost on dev
-        url.scheme() == "tauri" || (cfg!(dev) && url.host_str() == Some("localhost"))
+        url.scheme() == "vitul" || (cfg!(dev) && url.host_str() == Some("localhost"))
       });
 
     let webview = window.add_child(webview_builder, tauri::LogicalPosition::new(0, 0), window.inner_size().unwrap())?;
@@ -2742,10 +2742,10 @@ mod tests {
     let webview = test_webview_window().webview;
 
     #[cfg(all(not(windows), not(target_os = "android")))]
-    assert!(webview.is_local_url(&Url::parse("tauri://localhost/").unwrap()));
+    assert!(webview.is_local_url(&Url::parse("vitul://localhost/").unwrap()));
 
     #[cfg(any(windows, target_os = "android"))]
-    assert!(webview.is_local_url(&Url::parse("https://tauri.localhost/").unwrap()));
+    assert!(webview.is_local_url(&Url::parse("https://vitul.localhost/").unwrap()));
   }
 
   // On Windows/Android, custom protocols are served as `https://<name>.localhost/`.
@@ -2822,7 +2822,7 @@ mod tests {
         cmd: "any_custom_command".into(),
         callback: crate::ipc::CallbackFn(0),
         error: crate::ipc::CallbackFn(1),
-        url: "tauri://localhost".parse().unwrap(),
+        url: "vitul://localhost".parse().unwrap(),
         body: crate::ipc::InvokeBody::default(),
         headers: Default::default(),
         invoke_key: INVOKE_KEY.to_string(),

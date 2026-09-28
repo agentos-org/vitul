@@ -11,14 +11,14 @@
     "windows": [
       {
         "label": "Main",
-        "title": "Tauri - Main",
+        "title": "Vitul - Main",
         "tabbingIdentifier": "Main",
         "width": 800,
         "height": 600
       },
       {
         "label": "Secondary",
-        "title": "Tauri - Secondary",
+        "title": "Vitul - Secondary",
         "tabbingIdentifier": "Secondary",
         "width": 600,
         "height": 400

@@ -256,7 +256,7 @@ impl<T: UserEvent, R: Runtime<T>> PendingWebview<T, R> {
         navigation_handler: None,
         new_window_handler: None,
         document_title_changed_handler: None,
-        url: "tauri://localhost".to_string(),
+        url: "vitul://localhost".to_string(),
         #[cfg(target_os = "android")]
         on_webview_created: None,
         web_resource_request_handler: None,

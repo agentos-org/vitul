@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Tauri",
+        "title": "Vitul",
         "width": 800,
         "height": 600,
         "visible": false

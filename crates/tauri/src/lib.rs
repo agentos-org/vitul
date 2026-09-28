@@ -28,7 +28,7 @@
 //! - **test**: Enables the [`mod@test`] module exposing unit test helpers.
 //! - **objc-exception**: This feature flag is no-op since 2.3.0.
 //! - **linux-libxdo**: Enables linking to libxdo which enables Cut, Copy, Paste and SelectAll menu items to work on Linux.
-//! - **isolation**: Enables the isolation pattern. Enabled by default if the `app > security > pattern > use` config option is set to `isolation` on the `tauri.conf.json` file.
+//! - **isolation**: Enables the isolation pattern. Enabled by default if the `app > security > pattern > use` config option is set to `isolation` on the `vitul.conf.json` file.
 //! - **custom-protocol**: Feature managed by the Tauri CLI. When enabled, Tauri assumes a production environment instead of a development one.
 //! - **devtools**: Enables the developer tools (Web inspector) and [`window::Window#method.open_devtools`]. Enabled by default on debug builds.
 //!   On macOS it uses private APIs, so you can't enable it if your app will be published to the App Store.
@@ -36,11 +36,11 @@
 //! - **native-tls-vendored**: Compile and statically link to a vendored copy of OpenSSL.
 //! - **rustls-tls**: Provides TLS support to connect over HTTPS using rustls.
 //! - **process-relaunch-dangerous-allow-symlink-macos**: Allows the [`process::current_binary`] function to allow symlinks on macOS (this is dangerous, see the Security section in the documentation website).
-//! - **tray-icon**: Enables application tray icon APIs. Enabled by default if the `trayIcon` config is defined on the `tauri.conf.json` file.
-//! - **macos-private-api**: Enables features only available in **macOS**'s private APIs, currently the `transparent` window functionality and the `fullScreenEnabled` preference setting to `true`. Enabled by default if the `tauri > macosPrivateApi` config flag is set to `true` on the `tauri.conf.json` file.
+//! - **tray-icon**: Enables application tray icon APIs. Enabled by default if the `trayIcon` config is defined on the `vitul.conf.json` file.
+//! - **macos-private-api**: Enables features only available in **macOS**'s private APIs, currently the `transparent` window functionality and the `fullScreenEnabled` preference setting to `true`. Enabled by default if the `tauri > macosPrivateApi` config flag is set to `true` on the `vitul.conf.json` file.
 //! - **webview-data-url**: Enables usage of data URLs on the webview.
 //! - **compression** *(enabled by default)*: Enables asset compression. You should only disable this if you want faster compile times in release builds - it produces larger binaries.
-//! - **config-json5**: Adds support to JSON5 format for `tauri.conf.json`.
+//! - **config-json5**: Adds support to JSON5 format for `vitul.conf.json`.
 //! - **config-toml**: Adds support to TOML format for the configuration `Tauri.toml`.
 //! - **image-ico**: Adds support to parse `.ico` image, see [`image::Image`].
 //! - **image-png**: Adds support to parse `.png` image, see [`image::Image`].
@@ -51,7 +51,7 @@
 //! ## Cargo allowlist features
 //!
 //! The following are a list of [Cargo features](https://doc.rust-lang.org/stable/cargo/reference/manifest.html#the-features-section) that enables commands for Tauri's API package.
-//! These features are automatically enabled by the Tauri CLI based on the `allowlist` configuration under `tauri.conf.json`.
+//! These features are automatically enabled by the Tauri CLI based on the `allowlist` configuration under `vitul.conf.json`.
 //!
 //! ### Protocol allowlist
 //!
@@ -279,7 +279,7 @@ impl<R: runtime::RuntimeHandle<EventLoopMessage>> RuntimeHandle for R {}
 
 /// Reads the config file at compile time and generates a [`Context`] based on its content.
 ///
-/// The default config file path is a `tauri.conf.json` file inside the Cargo manifest directory of
+/// The default config file path is a `vitul.conf.json` file inside the Cargo manifest directory of
 /// the crate being built.
 ///
 /// # Custom Config Path
@@ -423,7 +423,7 @@ impl<R: Runtime> Context<R> {
   /// ```rust,no_run
   /// use tauri::utils::config::AppDirectoriesOverride;
   ///
-  /// let mut context = tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json");
+  /// let mut context = tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json");
   ///
   /// if let Ok(data_dir) = std::env::var("MY_APP_DATA_DIR") {
   ///   context.config_mut().app.app_directories_override =
@@ -671,7 +671,7 @@ pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
   ///   .manage(DbConnection { db: Default::default() })
   ///   .invoke_handler(tauri::generate_handler![connect, storage_insert])
   ///   // on an actual app, remove the string argument
-  ///   .run(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .run(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while running tauri application");
   /// ```
   ///
@@ -709,7 +709,7 @@ pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
   ///   })
   ///   .invoke_handler(tauri::generate_handler![int_command, string_command])
   ///   // on an actual app, remove the string argument
-  ///   .run(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .run(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while running tauri application");
   /// ```
   fn manage<T>(&self, state: T) -> bool
@@ -798,7 +798,7 @@ pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
   /// Adds a capability to the app.
   ///
   /// Note that by default every capability file in the `src-tauri/capabilities` folder
-  /// are automatically enabled unless specific capabilities are configured in [`tauri.conf.json > app > security > capabilities`],
+  /// are automatically enabled unless specific capabilities are configured in [`vitul.conf.json > app > security > capabilities`],
   /// so you should use a different director for the runtime-added capabilities or use [tauri_build::Attributes::capabilities_path_pattern].
   ///
   /// # Examples
@@ -835,7 +835,7 @@ pub trait Manager<R: Runtime>: sealed::ManagerBase<R> {
   /// tauri_build::try_build(attributes).unwrap();
   /// ```
   ///
-  /// [`tauri.conf.json > app > security > capabilities`]: https://tauri.app/reference/config/#capabilities
+  /// [`vitul.conf.json > app > security > capabilities`]: https://tauri.app/reference/config/#capabilities
   /// [tauri_build::Attributes::capabilities_path_pattern]: https://docs.rs/tauri-build/2/tauri_build/struct.Attributes.html#method.capabilities_path_pattern
   #[cfg(feature = "dynamic-acl")]
   fn add_capability(&self, capability: impl RuntimeCapability) -> Result<()> {

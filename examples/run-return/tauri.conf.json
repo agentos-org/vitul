@@ -9,7 +9,7 @@
   "app": {
     "windows": [
       {
-        "title": "Welcome to Tauri!",
+        "title": "Welcome to Vitul!",
         "width": 800,
         "height": 600,
         "resizable": true,

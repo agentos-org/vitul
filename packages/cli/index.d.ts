@@ -7,3 +7,5 @@
 export declare function logError(error: string): void
 
 export declare function run(args: Array<string>, binName: string | undefined | null, callback: ((err: Error | null, arg: boolean) => any)): void
+
+export declare function runVitul(args: Array<string>, callback: ((err: Error | null, arg: boolean) => any)): void

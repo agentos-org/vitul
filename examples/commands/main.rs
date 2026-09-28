@@ -231,7 +231,7 @@ fn main() {
   tauri::Builder::default()
     .manage(MyState {
       value: 0,
-      label: "Tauri!".into(),
+      label: "Vitul!".into(),
     })
     .invoke_handler(tauri::generate_handler![
       borrow_cmd,

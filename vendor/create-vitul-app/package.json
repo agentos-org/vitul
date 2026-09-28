@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "3.8.1"
+  },
+  "packageManager": "pnpm@12.3.4"
+}

@@ -224,7 +224,7 @@ async fn create_window(app: tauri::AppHandle) {
     }
   }
 
-  /// Initializes a window builder from a [`WindowConfig`] from tauri.conf.json.
+  /// Initializes a window builder from a [`WindowConfig`] from vitul.conf.json.
   /// Keep in mind that you can't create 2 windows with the same `label` so make sure
   /// that the initial window was closed or change the label of the new [`WindowBuilder`].
   ///

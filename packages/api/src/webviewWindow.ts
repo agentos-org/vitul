@@ -24,7 +24,7 @@
  * Unlike {@link Webview | child webviews}, this does **not** require the `unstable`
  * Cargo feature.
  *
- * This package is also accessible with `window.__TAURI__.webviewWindow` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `tauri.conf.json` is set to `true`.
+ * This package is also accessible with `window.__TAURI__.webviewWindow` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `vitul.conf.json` is set to `true`.
  *
  * @remarks Creating a webview window requires the
  * `core:webview:allow-create-webview-window` permission, which is not included in

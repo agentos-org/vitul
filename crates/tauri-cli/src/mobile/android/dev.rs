@@ -40,7 +40,7 @@ use std::{env::set_current_dir, net::Ipv4Addr, path::PathBuf};
 #[derive(Debug, Clone, Parser)]
 #[clap(
   about = "Run your app in development mode on Android",
-  long_about = "Run your app in development mode on Android with hot-reloading for the Rust code. It makes use of the `build.devUrl` property from your `tauri.conf.json` file. It also runs your `build.beforeDevCommand` which usually starts your frontend devServer."
+  long_about = "Run your app in development mode on Android with hot-reloading for the Rust code. It makes use of the `build.devUrl` property from your `vitul.conf.json` file. It also runs your `build.beforeDevCommand` which usually starts your frontend devServer."
 )]
 pub struct Options {
   /// List of cargo features to activate
@@ -54,7 +54,7 @@ pub struct Options {
   /// Configurations are merged in the order they are provided, which means a particular value overwrites previous values when a config key-value pair conflicts.
   ///
   /// Note that a platform-specific file is looked up and merged with the default file by default
-  /// (tauri.macos.conf.json, tauri.linux.conf.json, tauri.windows.conf.json, tauri.android.conf.json and tauri.ios.conf.json)
+  /// (vitul.macos.conf.json, vitul.linux.conf.json, vitul.windows.conf.json, vitul.android.conf.json and vitul.ios.conf.json)
   /// but you can use this for more specific use cases such as different build flavors.
   #[clap(short, long)]
   pub config: Vec<ConfigValue>,
@@ -89,7 +89,7 @@ pub struct Options {
   /// it is your responsibility to set up your development server to listen on this address
   /// by using 0.0.0.0 as host for instance.
   ///
-  /// When this is set or when running on an iOS device the CLI sets the `TAURI_DEV_HOST`
+  /// When this is set or when running on an iOS device the CLI sets the `VITUL_DEV_HOST`
   /// environment variable so you can check this on your framework's configuration to expose the development server
   /// on the public network address.
   #[clap(long, default_value_t, default_missing_value(""), num_args(0..=1))]

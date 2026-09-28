@@ -1,0 +1,9 @@
+[build]
+target = "./index.html"
+
+[watch]
+ignore = ["./src-vitul"]
+
+[serve]
+port = 1420
+open = false

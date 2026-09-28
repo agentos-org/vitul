@@ -146,7 +146,7 @@
   let cursorY = $state<number | null>(null)
   let cursorIcon = $state<CursorIcon>('default')
   let cursorIgnoreEvents = $state(false)
-  let windowTitle = $state('Awesome Tauri Example!')
+  let windowTitle = $state('Vitul Example')
 
   let theme = $state<Theme | 'auto'>('auto')
 

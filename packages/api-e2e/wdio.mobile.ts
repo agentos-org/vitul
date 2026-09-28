@@ -19,10 +19,10 @@ export type MobilePlatform = 'android' | 'ios'
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(dirname, '..', '..')
 const appDir = path.join(repoRoot, 'examples', 'api')
-const tauriDir = path.join(appDir, 'src-tauri')
+const runtimeDir = path.join(appDir, 'src-vitul')
 
-/** `identifier` in examples/api's tauri.conf.json. */
-const appId = 'com.tauri.api'
+/** `identifier` in examples/api's vitul.conf.json. */
+const appId = 'com.vitul.api'
 
 /** Where Appium looks for drivers; they are devDependencies of this package. */
 process.env.APPIUM_HOME ??= dirname
@@ -35,15 +35,15 @@ export function mobileConfig(platform: MobilePlatform): WebdriverIO.Config {
     process.env.E2E_APP_PATH
     ?? (ios
       ? path.join(
-          tauriDir,
+          runtimeDir,
           'gen',
           'apple',
           'build',
           ios.outputArch,
-          'Tauri API.app'
+          'Vitul API.app'
         )
       : path.join(
-          tauriDir,
+          runtimeDir,
           'gen',
           'android',
           'app',
@@ -111,22 +111,22 @@ export function mobileConfig(platform: MobilePlatform): WebdriverIO.Config {
       }
 
       if (!process.env.E2E_SKIP_BUILD && !process.env.E2E_APP_PATH) {
-        // `examples/api`'s `tauri` script is `node ../../packages/cli/tauri.js`,
-        // which requires the native CLI to be built (`pnpm build:cli`).
+        // `examples/api`'s `vitul` script uses the local native CLI, which
+        // requires `pnpm build:cli:debug`.
         //
-        // The generated Android Studio / Xcode project lives in `src-tauri/gen`
+        // The generated Android Studio / Xcode project lives in `src-vitul/gen`
         // (gitignored), so it is initialized on a fresh checkout. The build
         // installs the Rust target it needs itself, so init skips that.
         if (
-          !fs.existsSync(path.join(tauriDir, 'gen', ios ? 'apple' : 'android'))
+          !fs.existsSync(path.join(runtimeDir, 'gen', ios ? 'apple' : 'android'))
         ) {
-          tauriCli([platform, 'init', '--ci', '--skip-targets-install'])
+          vitulCli([platform, 'init', '--ci', '--skip-targets-install'])
         }
         // A debug build, so wry turns on webview debugging (Android
         // `setWebContentsDebuggingEnabled`, iOS `isInspectable`), which is what
         // lets Appium reach the page. Only the target that the device/emulator
         // actually runs is compiled.
-        tauriCli(
+        vitulCli(
           ios
             ? [
                 'ios',
@@ -218,16 +218,16 @@ export function mobileConfig(platform: MobilePlatform): WebdriverIO.Config {
   }
 }
 
-/** Runs `pnpm tauri <args>` in examples/api, failing loudly. */
-function tauriCli(args: string[]): void {
-  const result = spawnSync('pnpm', ['tauri', ...args], {
+/** Runs `pnpm vitul <args>` in examples/api, failing loudly. */
+function vitulCli(args: string[]): void {
+  const result = spawnSync('pnpm', ['vitul', ...args], {
     cwd: appDir,
     stdio: 'inherit',
     shell: true
   })
   if (result.status !== 0) {
     throw new Error(
-      `\`pnpm tauri ${args.join(' ')}\` failed with status ${result.status}`
+      `\`pnpm vitul ${args.join(' ')}\` failed with status ${result.status}`
     )
   }
 }
@@ -267,7 +267,7 @@ function androidCapabilities(app: string): WebdriverIO.Capabilities {
 }
 
 const androidTargets: Record<string, string> = {
-  // `ro.product.cpu.abi` -> `tauri android build --target`
+  // `ro.product.cpu.abi` -> `vitul android build --target`
   'arm64-v8a': 'aarch64',
   'armeabi-v7a': 'armv7',
   x86_64: 'x86_64',
@@ -354,7 +354,7 @@ function iosTarget(): { name: string; outputArch: string } {
   const name =
     process.env.E2E_IOS_TARGET
     ?? (process.arch === 'arm64' ? 'aarch64-sim' : 'x86_64')
-  // `tauri ios build` writes to gen/apple/build/<arch>/ (cargo-mobile2's
+  // `vitul ios build` writes to gen/apple/build/<arch>/ (cargo-mobile2's
   // `arch` for the target).
   const outputArch = name === 'aarch64-sim' ? 'arm64-sim' : name
   return { name, outputArch }

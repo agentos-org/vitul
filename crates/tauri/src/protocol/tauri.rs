@@ -157,7 +157,7 @@ async fn get_response<R: Runtime>(
   };
 
   let path = path
-    .strip_prefix("tauri://localhost")
+    .strip_prefix("vitul://localhost")
     .map(|p| p.to_string())
     // the `strip_prefix` only returns None when a request is made to `https://tauri.$P` on Windows and Android
     // where `$P` is not `localhost/*`

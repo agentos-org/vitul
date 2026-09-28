@@ -179,7 +179,7 @@ pub fn get_config(
       let _ = create_dir(src_main_dir.join("generated"));
     } else {
       log::error!(
-        "Project directory {} does not exist. Did you update the package name in `Cargo.toml` or the bundle identifier in `tauri.conf.json > identifier`? Save your changes, delete the `gen/android` folder and run `tauri android init` to recreate the Android project.",
+        "Project directory {} does not exist. Did you update the package name in `Cargo.toml` or the bundle identifier in `vitul.conf.json > identifier`? Save your changes, delete the `gen/android` folder and run `tauri android init` to recreate the Android project.",
         src_main_dir.display()
       );
       exit(1);
@@ -1178,11 +1178,11 @@ fn generate_tauri_properties(
 
       if version_code == 0 {
         crate::error::bail!(
-          "You must change the `version` in `tauri.conf.json`. The default value `0.0.0` is not allowed for Android package and must be at least `0.0.1`."
+          "You must change the `version` in `vitul.conf.json`. The default value `0.0.0` is not allowed for Android package and must be at least `0.0.1`."
         );
       } else if version_code > 2100000000 {
         crate::error::bail!(
-          "Invalid version code {}. Version code must be between 1 and 2100000000. You must change the `version` in `tauri.conf.json`.",
+          "Invalid version code {}. Version code must be between 1 and 2100000000. You must change the `version` in `vitul.conf.json`.",
           version_code
         );
       }

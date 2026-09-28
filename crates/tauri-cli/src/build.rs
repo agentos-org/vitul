@@ -22,7 +22,7 @@ use tauri_utils::platform::Target;
 #[derive(Debug, Clone, Parser)]
 #[clap(
   about = "Build your app in release mode and generate bundles and installers",
-  long_about = "Build your app in release mode and generate bundles and installers. It makes use of the `build.frontendDist` property from your `tauri.conf.json` file. It also runs your `build.beforeBuildCommand` which usually builds your frontend into `build.frontendDist`. This will also run `build.beforeBundleCommand` before generating the bundles and installers of your app."
+  long_about = "Build your app in release mode and generate bundles and installers. It makes use of the `build.frontendDist` property from your `vitul.conf.json` file. It also runs your `build.beforeBuildCommand` which usually builds your frontend into `build.frontendDist`. This will also run `build.beforeBundleCommand` before generating the bundles and installers of your app."
 )]
 pub struct Options {
   /// Binary to use to build the application, defaults to `cargo`
@@ -52,7 +52,7 @@ pub struct Options {
   /// Configurations are merged in the order they are provided, which means a particular value overwrites previous values when a config key-value pair conflicts.
   ///
   /// Note that a platform-specific file is looked up and merged with the default file by default
-  /// (tauri.macos.conf.json, tauri.linux.conf.json, tauri.windows.conf.json, tauri.android.conf.json and tauri.ios.conf.json)
+  /// (vitul.macos.conf.json, vitul.linux.conf.json, vitul.windows.conf.json, vitul.android.conf.json and vitul.ios.conf.json)
   /// but you can use this for more specific use cases such as different build flavors.
   #[clap(short, long)]
   pub config: Vec<ConfigValue>,
@@ -66,7 +66,7 @@ pub struct Options {
   /// Gatekeeper will look for stapled tickets to tell whether your app was notarized without
   /// reaching out to Apple's servers which is helpful in offline environments.
   ///
-  /// Enabling this option will also result in `tauri build` not waiting for notarization to finish
+  /// Enabling this option will also result in `vitul build` not waiting for notarization to finish
   /// which is helpful for the very first time your app is notarized as this can take multiple hours.
   /// On subsequent runs, it's recommended to disable this setting again.
   #[clap(long)]
@@ -167,7 +167,7 @@ pub fn setup(
 
   let bundle_identifier_source = config
     .find_bundle_identifier_overwriter()
-    .unwrap_or_else(|| "tauri.conf.json".into());
+    .unwrap_or_else(|| "vitul.conf.json".into());
 
   if config.identifier == "com.tauri.dev" {
     crate::error::bail!(
@@ -227,10 +227,10 @@ pub fn setup(
       .canonicalize()
       .fs_context("failed to canonicalize path", web_asset_path.to_path_buf())?
       .file_name()
-      == Some(std::ffi::OsStr::new("src-tauri"))
+      == Some(std::ffi::OsStr::new("src-vitul"))
     {
       crate::error::bail!(
-        "The configured frontendDist is the `src-tauri` folder. Please isolate your web assets on a separate folder and update `tauri.conf.json > build > frontendDist`.",
+        "The configured frontendDist is the `src-vitul` folder. Please isolate your web assets on a separate folder and update `vitul.conf.json > build > frontendDist`.",
       );
     }
 
@@ -246,7 +246,7 @@ pub fn setup(
         }
       }
 
-      for folder in &["node_modules", "src-tauri"] {
+      for folder in &["node_modules", "src-vitul"] {
         let sub_path = web_asset_canonical.join(folder);
         if sub_path.is_dir() {
           out_folders.push(folder.to_string());
@@ -256,7 +256,7 @@ pub fn setup(
 
     if !out_folders.is_empty() {
       crate::error::bail!(
-        "The configured frontendDist includes the `{:?}` {}. Please isolate your web assets on a separate folder and update `tauri.conf.json > build > frontendDist`.",
+        "The configured frontendDist includes the `{:?}` {}. Please isolate your web assets on a separate folder and update `vitul.conf.json > build > frontendDist`.",
         out_folders,
         if out_folders.len() == 1 {
           "folder"

@@ -4,6 +4,7 @@ version = "2.12.0"
 authors = ["Tauri Programme within The Commons Conservancy"]
 edition = "2024"
 rust-version = "1.90"
+autobins = false
 categories = ["gui", "web-programming"]
 license = "Apache-2.0 OR MIT"
 homepage = "https://tauri.app"
@@ -30,10 +31,6 @@ pkg-fmt = "zip"
 
 [package.metadata.binstall.overrides.x86_64-apple-darwin]
 pkg-fmt = "zip"
-
-[[bin]]
-name = "cargo-tauri"
-path = "src/main.rs"
 
 [target."cfg(any(target_os = \"linux\", target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\", target_os = \"windows\", target_os = \"macos\"))".dependencies]
 cargo-mobile2 = { version = "0.22.5", default-features = false }

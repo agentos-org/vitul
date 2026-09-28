@@ -1,24 +1,12 @@
 {
-  "name": "@tauri-apps/cli",
+  "name": "@vitul/cli",
   "version": "2.12.0",
-  "description": "Command line interface for building Tauri apps",
+  "description": "Vitul command line interface with Tauri-compatible tooling",
   "type": "commonjs",
-  "funding": {
-    "type": "opencollective",
-    "url": "https://opencollective.com/tauri"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/tauri-apps/tauri.git"
-  },
   "contributors": [
     "Tauri Programme within The Commons Conservancy"
   ],
   "license": "Apache-2.0 OR MIT",
-  "bugs": {
-    "url": "https://github.com/tauri-apps/tauri/issues"
-  },
-  "homepage": "https://github.com/tauri-apps/tauri#readme",
   "publishConfig": {
     "access": "public"
   },
@@ -50,7 +38,7 @@
     "node": ">= 10"
   },
   "bin": {
-    "tauri": "./tauri.js"
+    "vitul": "./vitul.js"
   },
   "scripts": {
     "artifacts": "napi artifacts",
@@ -62,6 +50,6 @@
     "prepack": "cp ../../crates/tauri-schema-generator/schemas/config.schema.json .",
     "version": "napi version",
     "test": "vitest run",
-    "tauri": "node ./tauri.js"
+    "vitul": "node ./vitul.js"
   }
 }

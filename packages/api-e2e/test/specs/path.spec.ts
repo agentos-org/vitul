@@ -54,7 +54,7 @@ describeApi('path', () => {
       home: await api.path.homeDir(),
       temp: await api.path.tempDir()
     }))
-    expect(dirs.appData).toContain('com.tauri.api')
+    expect(dirs.appData).toContain('com.vitul.api')
     expect(dirs.appConfig.length).toBeGreaterThan(0)
     expect(dirs.home.length).toBeGreaterThan(0)
     expect(dirs.temp.length).toBeGreaterThan(0)

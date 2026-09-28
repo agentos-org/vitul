@@ -6,7 +6,7 @@
  * Application metadata and lifecycle APIs: version and identifier, theme and dock
  * visibility, data stores and exiting the app.
  *
- * This package is also accessible with `window.__TAURI__.app` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `tauri.conf.json` is set to `true`.
+ * This package is also accessible with `window.__TAURI__.app` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `vitul.conf.json` is set to `true`.
  *
  * @remarks Only the read-only commands are enabled by `core:app:default`
  * (`allow-version`, `allow-name`, `allow-tauri-version`, `allow-identifier`,
@@ -120,7 +120,7 @@ async function getTauriVersion(): Promise<string> {
  * const identifier = await getIdentifier();
  * ```
  *
- * @returns The application identifier as configured in `tauri.conf.json`.
+ * @returns The application identifier as configured in `vitul.conf.json`.
  *
  * @since 2.4.0
  */

@@ -252,7 +252,7 @@ fn use_network_address_for_dev_url(
         .unwrap_or_else(|| *local_ip_address(force_ip_prompt));
       log::info!(
         "Replacing devUrl host with {ip}. {}.",
-        "If your frontend is not listening on that address, try configuring your development server to use the `TAURI_DEV_HOST` environment variable or 0.0.0.0 as host"
+        "If your frontend is not listening on that address, try configuring your development server to use the `VITUL_DEV_HOST` environment variable or 0.0.0.0 as host"
       );
 
       // only replace the host so the port, path, query and fragment are preserved
@@ -297,7 +297,10 @@ fn use_network_address_for_dev_url(
   };
 
   if let Some(ip) = ip {
-    unsafe { std::env::set_var("TAURI_DEV_HOST", ip.to_string()) };
+    unsafe {
+      std::env::set_var("VITUL_DEV_HOST", ip.to_string());
+      std::env::set_var("TAURI_DEV_HOST", ip.to_string());
+    }
     unsafe { std::env::set_var("TRUNK_SERVE_ADDRESS", ip.to_string()) };
     if ip.is_ipv6() {
       // in this case we can't ping the server for some reason
@@ -606,7 +609,7 @@ pub fn get_app(
   };
 
   if identifier.is_empty() {
-    log::error!("Bundle identifier set in `tauri.conf.json > identifier` cannot be empty");
+    log::error!("Bundle identifier set in `vitul.conf.json > identifier` cannot be empty");
     exit(1);
   }
 

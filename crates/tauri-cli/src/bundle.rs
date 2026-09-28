@@ -50,8 +50,8 @@ impl ValueEnum for BundleFormat {
 
 #[derive(Debug, Parser, Clone)]
 #[clap(
-  about = "Generate bundles and installers for your app (already built by `tauri build`)",
-  long_about = "Generate bundles and installers for your app (already built by `tauri build`). This run `build.beforeBundleCommand` before generating the bundles and installers of your app."
+  about = "Generate bundles and installers for your app (already built by `vitul build`)",
+  long_about = "Generate bundles and installers for your app (already built by `vitul build`). This run `build.beforeBundleCommand` before generating the bundles and installers of your app."
 )]
 pub struct Options {
   /// Builds with the debug flag
@@ -65,11 +65,11 @@ pub struct Options {
   /// Configurations are merged in the order they are provided, which means a particular value overwrites previous values when a config key-value pair conflicts.
   ///
   /// Note that a platform-specific file is looked up and merged with the default file by default
-  /// (tauri.macos.conf.json, tauri.linux.conf.json, tauri.windows.conf.json, tauri.android.conf.json and tauri.ios.conf.json)
+  /// (vitul.macos.conf.json, vitul.linux.conf.json, vitul.windows.conf.json, vitul.android.conf.json and vitul.ios.conf.json)
   /// but you can use this for more specific use cases such as different build flavors.
   #[clap(short, long)]
   pub config: Vec<ConfigValue>,
-  /// Space or comma separated list of features, should be the same features passed to `tauri build` if any.
+  /// Space or comma separated list of features, should be the same features passed to `vitul build` if any.
   #[clap(short, long, action = ArgAction::Append, num_args(0..), value_delimiter = ',')]
   pub features: Vec<String>,
   /// Target triple to build against.
@@ -87,7 +87,7 @@ pub struct Options {
   /// Gatekeeper will look for stapled tickets to tell whether your app was notarized without
   /// reaching out to Apple's servers which is helpful in offline environments.
   ///
-  /// Enabling this option will also result in `tauri build` not waiting for notarization to finish
+  /// Enabling this option will also result in `vitul build` not waiting for notarization to finish
   /// which is helpful for the very first time your app is notarized as this can take multiple hours.
   /// On subsequent runs, it's recommended to disable this setting again.
   #[clap(long)]

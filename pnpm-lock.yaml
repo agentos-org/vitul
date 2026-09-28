@@ -196,6 +196,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.2.0
         version: 7.2.0(svelte@5.56.4(@typescript-eslint/types@8.58.2))(vite@8.1.4(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0))
+      '@vitul/cli':
+        specifier: ^2
+        version: link:../../packages/cli
       '@types/sortablejs':
         specifier: ^1.15.9
         version: 1.15.9
@@ -213,6 +216,22 @@ importers:
         version: 66.7.5(vite@8.1.4(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0))
       vite:
         specifier: ^8.1.4
+        version: 8.1.4(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0)
+
+  examples/vitul-opentool:
+    dependencies:
+      '@tauri-apps/api':
+        specifier: ../../packages/api/dist
+        version: link:../../packages/api/dist
+    devDependencies:
+      '@vitul/cli':
+        specifier: ^2
+        version: link:../../packages/cli
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.16
         version: 8.1.4(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0)
 
   examples/file-associations: {}

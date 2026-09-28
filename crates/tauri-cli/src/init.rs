@@ -35,7 +35,7 @@ pub struct Options {
   /// Skip prompting for values
   #[clap(long, env = "CI")]
   ci: bool,
-  /// Force init to overwrite the src-tauri folder
+  /// Force init to overwrite the src-vitul folder
   #[clap(short, long)]
   force: bool,
   /// Enables logging
@@ -54,7 +54,7 @@ pub struct Options {
   /// Window title of your Tauri application
   #[clap(short = 'W', long)]
   window_title: Option<String>,
-  /// Web assets location, relative to <project-dir>/src-tauri
+  /// Web assets location, relative to <project-dir>/src-vitul
   #[clap(short = 'D', long)]
   frontend_dist: Option<String>,
   /// Url of your dev server
@@ -124,7 +124,7 @@ impl Options {
     })?;
 
     self.frontend_dist = self.frontend_dist.map(|s| Ok(Some(s))).unwrap_or_else(|| prompts::input(
-      r#"Where are your web assets (HTML/CSS/JS) located, relative to the "<current dir>/src-tauri/tauri.conf.json" file that will be created?"#,
+      r#"Where are your web assets (HTML/CSS/JS) located, relative to the "<current dir>/src-vitul/vitul.conf.json" file that will be created?"#,
       init_defaults.framework.as_ref().map(|f| f.frontend_dist()),
       self.ci,
       false,
@@ -285,7 +285,7 @@ pub fn command(mut options: Options) -> Result<()> {
   Ok(())
 }
 
-/// Renders the `tauri.conf.json` template.
+/// Renders the `vitul.conf.json` template.
 ///
 /// Every value in the template is interpolated inside a JSON string literal,
 /// so values are JSON-escaped to keep quotes and backslashes in user input
@@ -300,8 +300,8 @@ fn render_tauri_config(
   });
   let config = handlebars
     .render_template(TAURI_CONF_TEMPLATE, data)
-    .context("failed to render tauri.conf.json template")?;
-  serde_json::from_str(&config).context("failed to parse rendered tauri.conf.json template")
+    .context("failed to render vitul.conf.json template")?;
+  serde_json::from_str(&config).context("failed to parse rendered vitul.conf.json template")
 }
 
 /// Builds the template variables for the Tauri crate dependencies of the generated `Cargo.toml`.

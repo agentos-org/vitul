@@ -13,7 +13,7 @@
  * getCurrentWindow().listen("my-window-event", ({ event, payload }) => { });
  * ```
  *
- * This package is also accessible with `window.__TAURI__.window` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `tauri.conf.json` is set to `true`.
+ * This package is also accessible with `window.__TAURI__.window` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `vitul.conf.json` is set to `true`.
  *
  * @remarks `core:window:default` only enables the getters (sizes, positions,
  * monitors, title, theme and the `is*` queries). Creating a window and every
@@ -1454,7 +1454,7 @@ class Window {
    * macOS vibrancy materials.
    *
    * Requires the window to be transparent, so create it with `transparent: true`
-   * (or set `transparent` in `tauri.conf.json`). Give the page a transparent or
+   * (or set `transparent` in `vitul.conf.json`). Give the page a transparent or
    * translucent background as well, otherwise the effect is hidden behind your own
    * background color.
    *
@@ -2341,7 +2341,7 @@ class Window {
    * ```typescript
    * import { getCurrentWindow } from "@tauri-apps/api/window";
    * // `confirm` comes from the dialog plugin, which you have to add separately:
-   * // `pnpm tauri add dialog`
+   * // `pnpm vitul add dialog`
    * import { confirm } from '@tauri-apps/plugin-dialog';
    * const unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
    *   const confirmed = await confirm('Are you sure?');
@@ -2879,7 +2879,7 @@ interface WindowOptions {
   focusable?: boolean
   /**
    * Whether the window is transparent or not.
-   * Note that on `macOS` this requires the `macos-private-api` feature flag, enabled under `tauri.conf.json > app > macOSPrivateApi`.
+   * Note that on `macOS` this requires the `macos-private-api` feature flag, enabled under `vitul.conf.json > app > macOSPrivateApi`.
    * WARNING: Using private APIs on `macOS` prevents your application from being accepted to the `App Store`.
    *
    * On Windows, using `noRedirectionBitmap` can help avoid a white flash when creating a transparent window.

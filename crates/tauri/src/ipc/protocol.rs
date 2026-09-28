@@ -560,7 +560,7 @@ mod tests {
 
   #[test]
   fn parse_invoke_request() {
-    let context = generate_context!("test/fixture/src-tauri/tauri.conf.json", crate, test = true);
+    let context = generate_context!("test/fixture/src-tauri/vitul.conf.json", crate, test = true);
     let manager: AppManager<Wry> = AppManager::with_handlers(
       context,
       PluginStore::default(),
@@ -583,7 +583,7 @@ mod tests {
     );
 
     let cmd = "write_something";
-    let url = "tauri://localhost";
+    let url = "vitul://localhost";
     let invoke_key = "1234ahdsjkl123";
     let callback = 12378123;
     let error = 6243;
@@ -604,7 +604,7 @@ mod tests {
         HeaderName::from_str(TAURI_ERROR_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&error.to_string()).unwrap(),
       ),
-      (ORIGIN, HeaderValue::from_str("tauri://localhost").unwrap()),
+      (ORIGIN, HeaderValue::from_str("vitul://localhost").unwrap()),
     ]);
 
     let mut request = Request::builder().uri(format!("ipc://localhost/{cmd}"));
@@ -646,7 +646,7 @@ mod tests {
   #[cfg(feature = "isolation")]
   fn parse_invoke_request_isolation() {
     let context = generate_context!(
-      "test/fixture/isolation/src-tauri/tauri.conf.json",
+      "test/fixture/isolation/src-tauri/vitul.conf.json",
       crate,
       test = false
     );
@@ -702,7 +702,7 @@ mod tests {
     );
 
     let cmd = "write_something";
-    let url = "tauri://localhost";
+    let url = "vitul://localhost";
     let invoke_key = "1234ahdsjkl123";
     let callback = 12378123;
     let error = 6243;
@@ -724,7 +724,7 @@ mod tests {
         HeaderName::from_str(TAURI_ERROR_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&error.to_string()).unwrap(),
       ),
-      (ORIGIN, HeaderValue::from_str("tauri://localhost").unwrap()),
+      (ORIGIN, HeaderValue::from_str("vitul://localhost").unwrap()),
     ]);
 
     let mut request = Request::builder().uri(format!("ipc://localhost/{cmd}"));

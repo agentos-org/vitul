@@ -43,7 +43,7 @@ pub enum WindowUrl {
   /// An external URL.
   External(Url),
   /// The path portion of an app URL.
-  /// For instance, to load `tauri://localhost/users/john`,
+  /// For instance, to load `vitul://localhost/users/john`,
   /// you can simply provide `users/john` in this configuration.
   App(PathBuf),
 }

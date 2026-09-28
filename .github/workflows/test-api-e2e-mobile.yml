@@ -99,7 +99,7 @@ jobs:
       - name: build @tauri-apps/api
         run: pnpm build:api
 
-      - name: build @tauri-apps/cli
+      - name: build @vitul/cli
         # Debug profile: the suite only drives the CLI, and a debug CLI reuses the cached
         # dependencies instead of a from-scratch LTO build (5 minutes on this runner).
         run: pnpm build:cli:debug
@@ -109,8 +109,8 @@ jobs:
       - name: build the APK
         working-directory: ./examples/api
         run: |
-          pnpm tauri android init --ci --skip-targets-install
-          pnpm tauri android build --debug --apk --target $E2E_ANDROID_TARGET
+          pnpm vitul android init --ci --skip-targets-install
+          pnpm vitul android build --debug --apk --target $E2E_ANDROID_TARGET
 
       - name: run e2e tests
         uses: reactivecircus/android-emulator-runner@v2
@@ -201,7 +201,7 @@ jobs:
       - name: build @tauri-apps/api
         run: pnpm build:api
 
-      - name: build @tauri-apps/cli
+      - name: build @vitul/cli
         # Debug profile: the suite only drives the CLI, and a debug CLI reuses the cached
         # dependencies instead of a from-scratch LTO build (10 minutes on this runner).
         run: pnpm build:cli:debug
@@ -211,8 +211,8 @@ jobs:
       - name: build the simulator app
         working-directory: ./examples/api
         run: |
-          pnpm tauri ios init --ci --skip-targets-install
-          pnpm tauri ios build --debug --target aarch64-sim --no-sign
+          pnpm vitul ios init --ci --skip-targets-install
+          pnpm vitul ios build --debug --target aarch64-sim --no-sign
 
       - name: wait for the simulator
         run: xcrun simctl bootstatus "$E2E_IOS_DEVICE" -b

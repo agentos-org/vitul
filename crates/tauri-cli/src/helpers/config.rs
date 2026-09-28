@@ -147,7 +147,7 @@ fn load_config(
   tauri_dir: &Path,
 ) -> crate::Result<ConfigMetadata> {
   let (mut config, config_path) =
-    tauri_utils::config::parse::parse_value(target, tauri_dir.join("tauri.conf.json"))
+    tauri_utils::config::parse::parse_value(target, tauri_dir.join("vitul.conf.json"))
       .context("failed to parse config")?;
   let config_file_name = config_path.file_name().unwrap();
   let mut extensions = HashMap::new();
@@ -167,7 +167,10 @@ fn load_config(
     }
 
     let merge_config_str = serde_json::to_string(&merge_config).unwrap();
-    unsafe { set_var("TAURI_CONFIG", merge_config_str) };
+    unsafe {
+      set_var("VITUL_CONFIG", merge_config_str.clone());
+      set_var("TAURI_CONFIG", merge_config_str);
+    }
     merge(&mut config, &merge_config);
     extensions.insert(MERGE_CONFIG_EXTENSION_NAME.into(), merge_config);
   }
@@ -256,7 +259,10 @@ pub fn merge_config_with(
   }
 
   let merge_config_str = serde_json::to_string(&merge_config).unwrap();
-  unsafe { set_var("TAURI_CONFIG", merge_config_str) };
+  unsafe {
+    set_var("VITUL_CONFIG", merge_config_str.clone());
+    set_var("TAURI_CONFIG", merge_config_str);
+  }
 
   let mut value =
     serde_json::to_value(config.inner.clone()).context("failed to serialize config")?;

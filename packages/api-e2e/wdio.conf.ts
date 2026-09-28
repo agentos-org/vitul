@@ -23,7 +23,7 @@ const useCrabNebulaWebdriver =
 const application =
   process.env.E2E_APP_PATH
   ?? (process.platform === 'darwin'
-    ? path.join(targetDir, 'debug', 'bundle', 'macos', 'Tauri API.app')
+    ? path.join(targetDir, 'debug', 'bundle', 'macos', 'Vitul API.app')
     : process.platform === 'win32'
       ? path.join(targetDir, 'debug', 'api.exe')
       : path.join(targetDir, 'debug', 'api'))
@@ -68,8 +68,8 @@ export const config: WebdriverIO.Config = {
     }
 
     if (!process.env.E2E_SKIP_BUILD && !process.env.E2E_APP_PATH) {
-      // `examples/api`'s `tauri` script is `node ../../packages/cli/tauri.js`,
-      // which requires the native CLI to be built (`pnpm build:cli`).
+      // `examples/api`'s `vitul` script uses the local native CLI, which
+      // requires `pnpm build:cli:debug`.
       //
       // The override config does two things for this (debug, test-only) build:
       //  - enables the example's off-by-default `automation` feature, which
@@ -81,10 +81,10 @@ export const config: WebdriverIO.Config = {
       // Passed as an appDir-relative path to sidestep shell quoting.
       const overrideConfig = path.relative(
         appDir,
-        path.join(dirname, 'tauri.e2e.conf.json')
+        path.join(dirname, 'vitul.e2e.conf.json')
       )
       const buildArgs = [
-        'tauri',
+        'vitul',
         'build',
         '--debug',
         '--config',

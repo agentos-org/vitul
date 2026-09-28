@@ -4,6 +4,7 @@ packages:
   - packages/cli
   - crates/tauri-schema-worker
   - examples/api
+  - examples/vitul-opentool
   - examples/resources
   - examples/file-associations
 

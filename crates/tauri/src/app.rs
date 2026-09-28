@@ -318,7 +318,7 @@ impl<R: Runtime> AssetResolver<R> {
   /// Gets the app asset associated with the given path.
   ///
   /// By default it tries to infer your application's URL scheme in production by checking if all webviews
-  /// were configured with [`crate::webview::WebviewBuilder::use_https_scheme`] or `tauri.conf.json > app > windows > useHttpsScheme`.
+  /// were configured with [`crate::webview::WebviewBuilder::use_https_scheme`] or `vitul.conf.json > app > windows > useHttpsScheme`.
   /// If you are resolving an asset for a webview with a more dynamic configuration, see [`AssetResolver::get_for_scheme`].
   ///
   /// In production, this resolves to the embedded asset bundled in the app executable
@@ -339,7 +339,7 @@ impl<R: Runtime> AssetResolver<R> {
   ///  Same as [`AssetResolver::get`] but resolves the custom protocol scheme based on a parameter.
   ///
   /// - `use_https_scheme`: If `true` when using [`Pattern::Isolation`](crate::Pattern::Isolation),
-  ///   the csp header will contain `https://tauri.localhost` instead of `http://tauri.localhost`
+  ///   the csp header will contain `https://vitul.localhost` instead of `http://vitul.localhost`
   pub fn get_for_scheme(&self, path: String, use_https_scheme: bool) -> Option<Asset> {
     #[cfg(dev)]
     {
@@ -865,7 +865,7 @@ macro_rules! shared_app_impl {
         self.manager.tray.remove_tray_by_id(self.app_handle(), id)
       }
 
-      /// Gets the app's configuration, defined on the `tauri.conf.json` file.
+      /// Gets the app's configuration, defined on the `vitul.conf.json` file.
       pub fn config(&self) -> &Config {
         self.manager.config()
       }
@@ -1344,7 +1344,7 @@ impl<R: Runtime> App<R> {
   /// ```,no_run
   /// let mut app = tauri::Builder::default()
   ///   // on an actual app, remove the string argument
-  ///   .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while building tauri application");
   /// app.set_device_event_filter(tauri::DeviceEventFilter::Always);
   /// app.run(|_app_handle, _event| {});
@@ -1372,7 +1372,7 @@ impl<R: Runtime> App<R> {
   /// ```,no_run
   /// let app = tauri::Builder::default()
   ///   // on an actual app, remove the string argument
-  ///   .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while building tauri application");
   /// app.run(|_app_handle, event| match event {
   ///   tauri::RunEvent::ExitRequested { api, .. } => {
@@ -1408,7 +1408,7 @@ impl<R: Runtime> App<R> {
   /// ```,no_run
   /// let app = tauri::Builder::default()
   ///   // on an actual app, remove the string argument
-  ///   .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while building tauri application");
   /// let exit_code = app
   ///   .run_return(|_app_handle, event| match event {
@@ -1509,7 +1509,7 @@ impl<R: Runtime> App<R> {
   ///
   /// let mut app = tauri::Builder::default()
   ///   // on an actual app, remove the string argument
-  ///   .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while building tauri application");
   ///
   /// loop {
@@ -1548,7 +1548,7 @@ impl<R: Runtime> App<R> {
 /// ```,no_run
 /// tauri::Builder::default()
 ///   // on an actual app, remove the string argument
-///   .run(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+///   .run(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
 ///  .expect("error while running tauri application");
 /// ```
 #[allow(clippy::type_complexity)]
@@ -2021,7 +2021,7 @@ tauri::Builder::default()
   ///   .manage(DbConnection { db: Default::default() })
   ///   .invoke_handler(tauri::generate_handler![connect, storage_insert])
   ///   // on an actual app, remove the string argument
-  ///   .run(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .run(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while running tauri application");
   /// ```
   ///
@@ -2048,7 +2048,7 @@ tauri::Builder::default()
   ///   .manage(MyString("Hello, managed state!".to_string()))
   ///   .invoke_handler(tauri::generate_handler![int_command, string_command])
   ///   // on an actual app, remove the string argument
-  ///   .run(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .run(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while running tauri application");
   /// ```
   #[must_use]
@@ -2396,7 +2396,7 @@ tauri::Builder::default()
   /// ```rust,no_run
   /// tauri::Builder::default()
   ///   // on an actual app, remove the string argument
-  ///   .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+  ///   .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
   ///   .expect("error while building tauri application")
   ///   .run(|_app_handle, _event| {});
   /// ```

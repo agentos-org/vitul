@@ -116,7 +116,7 @@ pub fn command(attributes: TokenStream, item: TokenStream) -> TokenStream {
 /// Marks a function as the entry point of a mobile application.
 ///
 /// It must be applied to the function that builds and runs your Tauri application on the
-/// library target (`run()` on `src-tauri/src/lib.rs` for apps created by the Tauri CLI),
+/// library target (`run()` on `src-vitul/src/lib.rs` for apps created by the Vitul CLI),
 /// which is the function the generated Android and iOS projects call on startup.
 ///
 /// The canonical usage only applies it on mobile targets, so the same function can be called
@@ -197,12 +197,12 @@ pub fn generate_handler(item: TokenStream) -> TokenStream {
 /// ## Configuration file path
 ///
 /// A string literal as the first argument sets the path of the Tauri configuration file to read,
-/// relative to `CARGO_MANIFEST_DIR`. Defaults to `tauri.conf.json` on the crate directory.
+/// relative to `CARGO_MANIFEST_DIR`. Defaults to `vitul.conf.json` on the crate directory.
 /// Platform specific configuration files (e.g. `tauri.windows.conf.json`) that sit next to it are
 /// merged as usual.
 ///
 /// ```rust,ignore
-/// tauri::generate_context!("../tauri.conf.json");
+/// tauri::generate_context!("../vitul.conf.json");
 /// ```
 ///
 /// ## Root path
@@ -212,7 +212,7 @@ pub fn generate_handler(item: TokenStream) -> TokenStream {
 /// re-exported by another crate, or is the crate being compiled (`crate`).
 ///
 /// ```rust,ignore
-/// tauri::generate_context!("../tauri.conf.json", ::my_framework::tauri);
+/// tauri::generate_context!("../vitul.conf.json", ::my_framework::tauri);
 /// ```
 ///
 /// ## `capabilities`
@@ -246,7 +246,7 @@ pub fn generate_handler(item: TokenStream) -> TokenStream {
 /// Defaults to `false`.
 ///
 /// ```rust,ignore
-/// let context = tauri::generate_context!("../tauri.conf.json", test = true);
+/// let context = tauri::generate_context!("../vitul.conf.json", test = true);
 /// ```
 ///
 /// [`tauri::Assets`]: https://docs.rs/tauri/latest/tauri/trait.Assets.html

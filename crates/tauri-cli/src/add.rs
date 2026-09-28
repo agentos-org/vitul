@@ -250,7 +250,7 @@ fn git_ref<'a>(
 /// alone.
 fn enable_require_signed_version(tauri_dir: &Path) -> Result<()> {
   let (mut config, config_path) =
-    tauri_utils::config::parse::parse_value(Target::current(), tauri_dir.join("tauri.conf.json"))
+    tauri_utils::config::parse::parse_value(Target::current(), tauri_dir.join("vitul.conf.json"))
       .context("failed to parse config")?;
 
   if !set_require_signed_version(&mut config) {

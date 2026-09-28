@@ -89,7 +89,7 @@ pub struct Options {
   #[clap(default_value = "./app-icon.png")]
   input: PathBuf,
   /// Output directory.
-  /// Default: 'icons' directory next to the tauri.conf.json file.
+  /// Default: 'icons' directory next to the vitul.conf.json file.
   #[clap(short, long)]
   output: Option<PathBuf>,
 

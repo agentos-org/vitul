@@ -1,0 +1,21 @@
+{
+  "name": "{% package_name %}",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "vitul": "vitul"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "{% if v2 %}^2{% else %}^1{% endif %}"{% if v2 %},
+    "@tauri-apps/plugin-opener": "^2"{% endif %}
+  },
+  "devDependencies": {
+    "@vitul/cli": "^2",
+		"vite": "^8.0.16",
+    "typescript": "~6.0.3"
+  }
+}

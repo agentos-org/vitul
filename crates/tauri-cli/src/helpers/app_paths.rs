@@ -17,7 +17,7 @@ use tauri_utils::{
 };
 
 const TAURI_GITIGNORE: &[u8] = include_bytes!("../../tauri.gitignore");
-// path to the Tauri app (Rust crate) directory, usually `<project>/src-tauri/`
+// path to the Vitul app (Rust crate) directory, usually `<project>/src-vitul/`
 const ENV_TAURI_APP_PATH: &str = "TAURI_APP_PATH";
 // path to the frontend app directory, usually `<project>/`
 const ENV_TAURI_FRONTEND_PATH: &str = "TAURI_FRONTEND_PATH";
@@ -32,7 +32,7 @@ static TAURI_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 pub fn walk_builder(path: &Path) -> WalkBuilder {
   let mut builder = WalkBuilder::new(path);
-  builder.add_custom_ignore_filename(".taurignore");
+  builder.add_custom_ignore_filename(".vitulignore");
   builder.git_global(false);
   builder.parents(false);
   skip_ignored_entries(&mut builder, path, TAURI_GITIGNORE);
@@ -99,36 +99,28 @@ fn env_tauri_frontend_path() -> Option<PathBuf> {
 pub fn resolve_tauri_dir() -> Option<PathBuf> {
   let src_dir = env_tauri_app_path().or_else(|| current_dir().ok())?;
 
-  for standard_tauri_path in [src_dir.clone(), src_dir.join("src-tauri")] {
-    if standard_tauri_path
-      .join(ConfigFormat::Json.into_file_name())
-      .exists()
-      || standard_tauri_path
-        .join(ConfigFormat::Json5.into_file_name())
-        .exists()
-      || standard_tauri_path
-        .join(ConfigFormat::Toml.into_file_name())
-        .exists()
-    {
+  for standard_vitul_path in [src_dir.clone(), src_dir.join("src-vitul")] {
+    if folder_has_configuration_file(Target::current(), &standard_vitul_path) {
       log::debug!(
-        "Found Tauri project inside {} on early lookup",
-        standard_tauri_path.display()
+        "Found Vitul project inside {} on early lookup",
+        standard_vitul_path.display()
       );
-      return Some(standard_tauri_path);
+      return Some(standard_vitul_path);
     }
   }
 
-  log::debug!("resolving Tauri directory from {}", src_dir.display());
+  log::debug!("resolving Vitul directory from {}", src_dir.display());
 
   lookup(&src_dir, |path| {
-    folder_has_configuration_file(Target::Linux, path) || is_configuration_file(Target::Linux, path)
+    folder_has_configuration_file(Target::current(), path)
+      || is_configuration_file(Target::current(), path)
   })
   .map(|p| {
     if p.is_dir() {
-      log::debug!("Found Tauri project directory {}", p.display());
+      log::debug!("Found Vitul project directory {}", p.display());
       p
     } else {
-      log::debug!("Found Tauri project configuration file {}", p.display());
+      log::debug!("Found Vitul project configuration file {}", p.display());
       p.parent().unwrap().to_path_buf()
     }
   })
@@ -137,7 +129,7 @@ pub fn resolve_tauri_dir() -> Option<PathBuf> {
 pub fn resolve_dirs() -> Dirs {
   let tauri = TAURI_DIR.get_or_init(|| resolve_tauri_dir().unwrap_or_else(|| {
     let env_var_name = env_tauri_app_path().is_some().then(|| format!("`{ENV_TAURI_APP_PATH}`"));
-    panic!("Couldn't recognize the {} folder as a Tauri project. It must contain a `{}`, `{}` or `{}` file in any subfolder.",
+    panic!("Couldn't recognize the {} folder as a Vitul project. It must contain a `{}`, `{}` or `{}` file in any subfolder.",
       env_var_name.as_deref().unwrap_or("current"),
       ConfigFormat::Json.into_file_name(),
       ConfigFormat::Json5.into_file_name(),
@@ -212,7 +204,7 @@ mod tests {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     fs::create_dir_all(root.join("a/b")).unwrap();
-    fs::write(root.join("a/b/tauri.conf.json"), "").unwrap();
+    fs::write(root.join("a/b/vitul.conf.json"), "").unwrap();
     fs::write(root.join("z.json"), "").unwrap();
     fs::write(root.join("c.json"), "").unwrap();
 
@@ -234,7 +226,7 @@ mod tests {
         PathBuf::from("z.json"),
         PathBuf::from("a"),
         PathBuf::from("a/b"),
-        PathBuf::from("a/b/tauri.conf.json"),
+        PathBuf::from("a/b/vitul.conf.json"),
       ]
     );
   }

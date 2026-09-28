@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "backend": {
+    "type": "opentool",
+    "manifest": "backend/Cargo.toml",
+    "binary": "vitul-backend"
+  },
+  "agentos": {
+    "buildImage": "rust:1.90-bookworm"
+  }
+}

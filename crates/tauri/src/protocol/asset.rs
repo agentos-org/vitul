@@ -283,7 +283,7 @@ mod tests {
       .unwrap();
 
     let response =
-      crate::async_runtime::block_on(get_response(request, &scope, "http://tauri.localhost"))
+      crate::async_runtime::block_on(get_response(request, &scope, "http://vitul.localhost"))
         .unwrap();
     std::fs::remove_file(&path).unwrap();
 

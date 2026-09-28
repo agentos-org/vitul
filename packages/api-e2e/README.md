@@ -1,8 +1,10 @@
 # `@tauri-apps/api` end-to-end tests
 
 WebdriverIO suite that exercises every [`@tauri-apps/api`](../api) module against a
-**real** Tauri app — the [`examples/api`](../../examples/api) validation app — rather than
-a mocked backend, on desktop (Linux, macOS, Windows) and mobile (Android, iOS). Each module
+**real** Vitul app — the [`examples/api`](../../examples/api) validation app — rather than
+a mocked backend, on desktop (Linux, macOS, Windows) and mobile (Android, iOS). The app uses
+the Vitul project layout and includes an OpenTool business endpoint; these specs cover the
+compatible system API surface. Each module
 has its own spec file, shared by every platform, and adding coverage for a new API is
 normally just dropping in one more spec.
 
@@ -50,7 +52,7 @@ normally just dropping in one more spec.
 # from the repo root
 pnpm install
 pnpm build:api    # examples/api resolves @tauri-apps/api from packages/api/dist
-pnpm build:cli    # examples/api's `tauri` script uses the local native CLI
+pnpm build:cli:debug    # examples/api's `vitul` script uses the local Vitul CLI
 ```
 
 Platform driver dependencies:
@@ -60,8 +62,8 @@ Platform driver dependencies:
 | macOS    | `CN_API_KEY` env var (CrabNebula Cloud). The automation plugin and test-runner-backend are wired up already.                                                                                                       |
 | Linux    | `webkit2gtk-driver` package (provides `WebKitWebDriver`).                                                                                                                                                          |
 | Windows  | `msedgedriver.exe` matching your Edge version, on `PATH`. Run the suite unelevated.                                                                                                                                |
-| Android  | The usual Tauri Android setup (`ANDROID_HOME`, `NDK_HOME`, a JDK), plus a running emulator or a connected device with USB debugging. Network access the first time, for the chromedriver download.                 |
-| iOS      | macOS with Xcode and an iOS simulator runtime. `tauri ios init` installs [xcodegen](https://github.com/yonaskolb/XcodeGen) through Homebrew if missing. The first session compiles WebDriverAgent (a few minutes). |
+| Android  | The usual Android setup (`ANDROID_HOME`, `NDK_HOME`, a JDK), plus a running emulator or a connected device with USB debugging. Network access the first time, for the chromedriver download.                 |
+| iOS      | macOS with Xcode and an iOS simulator runtime. `vitul ios init` installs [xcodegen](https://github.com/yonaskolb/XcodeGen) through Homebrew if missing. The first session compiles WebDriverAgent (a few minutes). |
 
 ## Running
 
@@ -83,7 +85,7 @@ pnpm test:api-e2e:android
 pnpm test:api-e2e:ios
 ```
 
-The first run builds the app with [`tauri.e2e.conf.json`](tauri.e2e.conf.json) as a config
+The first run builds the app with [`vitul.e2e.conf.json`](vitul.e2e.conf.json) as a config
 override, which enables the example's `automation` feature; afterwards use `E2E_SKIP_BUILD=1`
 to reuse the existing binary. A binary supplied through `E2E_SKIP_BUILD` or `E2E_APP_PATH`
 must have been built with that feature whenever the CrabNebula Webdriver is in use (always
@@ -91,8 +93,8 @@ on macOS).
 
 The mobile configs ([`wdio.android.conf.ts`](wdio.android.conf.ts), [`wdio.ios.conf.ts`](wdio.ios.conf.ts),
 sharing [`wdio.mobile.ts`](wdio.mobile.ts)) initialize the example's Android/Xcode project if
-`src-tauri/gen` is missing, then run `tauri android build --debug --apk` /
-`tauri ios build --debug --target aarch64-sim --no-sign`, compiling only the Rust target the
+`src-vitul/gen` is missing, then run `vitul android build --debug --apk` /
+`vitul ios build --debug --target aarch64-sim --no-sign`, compiling only the Rust target the
 device runs (the Android one is read from the connected device through `adb`). The app must be
 a **debug** build — release builds have webview debugging off, and Appium cannot see the page.
 `E2E_SKIP_BUILD` and `E2E_APP_PATH` (an `.apk` / simulator `.app`) work as on desktop.
@@ -103,8 +105,8 @@ takes minutes on a CI runner. Appium's own release build of it for the simulator
 (from this package), then `E2E_IOS_WDA=<dir>/WebDriverAgentRunner-Runner.app`, and the driver
 installs and launches it as is (`appium:usePreinstalledWDA`).
 
-The generated Gradle and Xcode projects call back into the CLI with `pnpm tauri …` from
-`src-tauri` / `gen/apple`, which pnpm 12.0–12.3 could not resolve to the package's scripts
+The generated Gradle and Xcode projects call back into the CLI with `pnpm vitul …` from
+`src-vitul` / `gen/apple`, which pnpm 12.0–12.3 could not resolve to the package's scripts
 ([pnpm/pnpm#14645](https://github.com/pnpm/pnpm/pull/14645)); the repo's `packageManager` pins a
 fixed version, so run the suite through that pnpm (corepack) rather than an older global one.
 
@@ -113,7 +115,7 @@ fixed version, so run the suite through that pnpm (corepack) rather than an olde
 | Variable            | Purpose                                                                           |
 | ------------------- | --------------------------------------------------------------------------------- |
 | `CN_API_KEY`        | CrabNebula Cloud key. Required on macOS (and whenever `E2E_CN_WEBDRIVER=1`).      |
-| `E2E_SKIP_BUILD`    | Skip the `tauri build` step and reuse the existing binary.                        |
+| `E2E_SKIP_BUILD`    | Skip the `vitul build` step and reuse the existing binary.                        |
 | `E2E_APP_PATH`      | Absolute path to a prebuilt app/binary to test (also implies skip-build).         |
 | `E2E_SKIP`          | Comma-separated module names to skip, e.g. `E2E_SKIP=tray,menu`.                  |
 | `E2E_SKIP_WM`       | Skip window-manager-dependent tests (minimize/maximize/fullscreen/position/hide). |
@@ -149,21 +151,21 @@ Appium's own log is written to `logs/wdio-appium.log` in this package.
 
    describeApi('app', () => {
      it('reports the product name', async () => {
-       expect(await tauri((api) => api.app.getName())).toBe('Tauri API')
+       expect(await tauri((api) => api.app.getName())).toBe('Vitul API')
      })
    })
    ```
 
 2. **Grant permissions if needed.** If the API calls a command that is not allowed by
    default, add the permission to
-   [`examples/api/src-tauri/capabilities/run-app.json`](../../examples/api/src-tauri/capabilities/run-app.json).
+   [`examples/api/src-vitul/capabilities/run-app.json`](../../examples/api/src-vitul/capabilities/run-app.json).
    The default permission sets are documented under
    `crates/tauri/permissions/*/autogenerated/reference.md`.
 
 3. **Add a Rust command if needed.** If the API needs a custom backend command, add it to
-   [`examples/api/src-tauri/src/cmd.rs`](../../examples/api/src-tauri/src/cmd.rs), register it
+   [`examples/api/src-vitul/src/cmd.rs`](../../examples/api/src-vitul/src/cmd.rs), register it
    in the `generate_handler!` list in
-   [`src/lib.rs`](../../examples/api/src-tauri/src/lib.rs), add its permission, and grant it
+   [`src/lib.rs`](../../examples/api/src-vitul/src/lib.rs), add its permission, and grant it
    in `run-app.json`.
 
 4. **Handle environment-sensitive cases.** Use `itWm` (instead of `it`) for assertions that

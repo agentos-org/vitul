@@ -31,7 +31,7 @@
  * {@link WebviewWindow | `new WebviewWindow(...)`}, which creates a window with a
  * single webview.
  *
- * This package is also accessible with `window.__TAURI__.webview` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `tauri.conf.json` is set to `true`.
+ * This package is also accessible with `window.__TAURI__.webview` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `vitul.conf.json` is set to `true`.
  *
  * @remarks `core:webview:default` only enables the getters
  * (`allow-get-all-webviews`, `allow-webview-position`, `allow-webview-size` and
@@ -839,7 +839,7 @@ interface WebviewOptions {
    *
    * - URL such as `https://github.com/tauri-apps` is opened directly on a Tauri webview.
    * - data: URL such as `data:text/html,<html>...` is only supported with the `webview-data-url` Cargo feature for the `tauri` dependency.
-   * - local file path or route such as `/path/to/page.html` or `/users` is appended to the application URL (the devServer URL on development, or `tauri://localhost/` and `https://tauri.localhost/` on production).
+   * - local file path or route such as `/path/to/page.html` or `/users` is appended to the application URL (the devServer URL on development, or `vitul://localhost/` and `https://vitul.localhost/` on production).
    */
   url?: string
   /** The initial horizontal position in logical pixels, relative to the window's top-left corner. */
@@ -852,7 +852,7 @@ interface WebviewOptions {
   height: number
   /**
    * Whether the webview is transparent or not.
-   * Note that on `macOS` this requires the `macos-private-api` feature flag, enabled under `tauri.conf.json > app > macOSPrivateApi`.
+   * Note that on `macOS` this requires the `macos-private-api` feature flag, enabled under `vitul.conf.json > app > macOSPrivateApi`.
    * WARNING: Using private APIs on `macOS` prevents your application from being accepted to the `App Store`.
    */
   transparent?: boolean

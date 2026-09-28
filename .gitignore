@@ -29,6 +29,7 @@ streaming_example_test_video.mp4
 
 # examples /gen directory
 /examples/**/src-tauri/gen/
+/examples/**/src-vitul/gen/
 /bench/**/src-tauri/gen/
 
 # logs

@@ -68,9 +68,9 @@
 //! In addition to the [environment variables set by cargo] for build scripts, the following
 //! variables are read:
 //!
-//! - `TAURI_CONFIG`: a JSON string that is merged into the parsed configuration file.
-//!   Set by the Tauri CLI when the configuration is changed from the command line
-//!   (e.g. `tauri build --config`). The build script reruns when it changes.
+//! - `VITUL_CONFIG`: a JSON string that is merged into the parsed configuration file.
+//!   Set by Vitul when configuration is changed from the command line
+//!   (e.g. `vitul build --config`). Legacy `TAURI_CONFIG` is still recognized.
 //! - `TAURI_ANDROID_PROJECT_PATH`: path to the Android Studio project of the application,
 //!   set by the Tauri CLI on Android builds. When set, the Gradle files of the project are
 //!   regenerated and the Android manifest is updated with the configured file associations.
@@ -537,9 +537,9 @@ impl Attributes {
     self
   }
 
-  /// Set the path to the `tauri.conf.json` (relative to the crate's directory).
+  /// Set the path to the `vitul.conf.json` (relative to the crate's directory).
   ///
-  /// This defaults to a file called `tauri.conf.json` inside of the current working directory of
+  /// This defaults to a file called `vitul.conf.json` inside of the current working directory of
   /// the crate compiling; does not need to be set manually if that config file is in the same
   /// directory as your `Cargo.toml`.
   pub fn config_path(mut self, config_path: impl Into<PathBuf>) -> Self {
@@ -653,6 +653,7 @@ pub fn build() {
 pub fn try_build(attributes: Attributes) -> Result<()> {
   use anyhow::anyhow;
 
+  println!("cargo:rerun-if-env-changed=VITUL_CONFIG");
   println!("cargo:rerun-if-env-changed=TAURI_CONFIG");
 
   let target_os = env::var_os("CARGO_CFG_TARGET_OS").unwrap();
@@ -679,7 +680,7 @@ pub fn try_build(attributes: Attributes) -> Result<()> {
   for config_file_path in config_paths {
     println!("cargo:rerun-if-changed={}", config_file_path.display());
   }
-  if let Ok(env) = env::var("TAURI_CONFIG") {
+  if let Ok(env) = env::var("VITUL_CONFIG").or_else(|_| env::var("TAURI_CONFIG")) {
     let merge_config: serde_json::Value = serde_json::from_str(&env)?;
     json_patch::merge(&mut config, &merge_config);
   }
@@ -927,7 +928,7 @@ fn to_winres_version(v: &semver::Version) -> u64 {
 fn should_static_link_vc_runtime(config: &Config, attributes: &Attributes) -> bool {
   if let Some(value) = env::var_os("STATIC_VCRUNTIME") {
     println!(
-      "cargo:warning=STATIC_VCRUNTIME is deprecated; use build.windows.staticVCRuntime in tauri.conf.json or tauri_build::WindowsAttributes::static_vc_runtime instead."
+      "cargo:warning=STATIC_VCRUNTIME is deprecated; use build.windows.staticVCRuntime in vitul.conf.json or tauri_build::WindowsAttributes::static_vc_runtime instead."
     );
     value != "false"
   } else {

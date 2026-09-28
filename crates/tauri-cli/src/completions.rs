@@ -11,7 +11,7 @@ use std::{fs::write, path::PathBuf};
 const PKG_MANAGERS: &[&str] = &["cargo", "pnpm", "npm", "yarn", "bun", "deno"];
 
 #[derive(Debug, Clone, Parser)]
-#[clap(about = "Generate Tauri CLI shell completions for Bash, Zsh, PowerShell or Fish")]
+#[clap(about = "Generate Vitul CLI shell completions for Bash, Zsh, PowerShell or Fish")]
 pub struct Options {
   /// Shell to generate a completion script for.
   #[clap(short, long, verbatim_doc_comment)]
@@ -22,24 +22,24 @@ pub struct Options {
 }
 
 fn completions_for(shell: Shell, manager: &'static str, cmd: Command) -> Vec<u8> {
-  let tauri_bin_name = match manager {
-    "npm" | "bun" => format!("{manager} run tauri"),
-    "deno" => format!("{manager} task tauri"),
-    _ => format!("{manager} tauri"),
+  let vitul_bin_name = match manager {
+    "npm" | "bun" => format!("{manager} run vitul"),
+    "deno" => format!("{manager} task vitul"),
+    _ => format!("{manager} vitul"),
   };
-  // override the bin name inherited from how the CLI was invoked (e.g. `cargo-tauri`),
+  // Override the bin name inherited from how the CLI was invoked (e.g. `cargo-vitul`),
   // clap_complete resolves subcommands from the words of the bin name
-  let tauri = cmd.name("tauri").bin_name(tauri_bin_name);
+  let vitul = cmd.name("vitul").bin_name(vitul_bin_name);
   let mut command = if manager == "npm" || manager == "bun" {
     Command::new(manager)
       .bin_name(manager)
-      .subcommand(Command::new("run").subcommand(tauri))
+      .subcommand(Command::new("run").subcommand(vitul))
   } else if manager == "deno" {
     Command::new(manager)
       .bin_name(manager)
-      .subcommand(Command::new("task").subcommand(tauri))
+      .subcommand(Command::new("task").subcommand(vitul))
   } else {
-    Command::new(manager).bin_name(manager).subcommand(tauri)
+    Command::new(manager).bin_name(manager).subcommand(vitul)
   };
 
   let mut buf = Vec::new();
@@ -52,15 +52,14 @@ fn completions_for(shell: Shell, manager: &'static str, cmd: Command) -> Vec<u8>
 // Bash completion functions are registered per command name, so registering one for the package
 // managers (`cargo`, `npm`...) would replace their own completions; those are not registered.
 fn bash_completions(cmd: Command) -> String {
-  let mut command = cmd.name("tauri").bin_name("tauri");
+  let mut command = cmd.name("vitul").bin_name("vitul");
   let mut buf = Vec::new();
-  generate(Shell::Bash, &mut command, "tauri", &mut buf);
-  // use a function name that does not clash with other completions (clap names it `_tauri`)
-  // and also register it for the `cargo-tauri` binary
+  generate(Shell::Bash, &mut command, "vitul", &mut buf);
+  // Use a function name that does not clash with other completions.
   String::from_utf8_lossy(&buf)
-    .replace("_tauri() {", "_tauri_cli() {")
-    .replace("complete -F _tauri ", "complete -F _tauri_cli ")
-    .replace(" -o default tauri\n", " -o default tauri cargo-tauri\n")
+    .replace("_vitul() {", "_vitul_cli() {")
+    .replace("complete -F _vitul ", "complete -F _vitul_cli ")
+    .replace(" -o default vitul\n", " -o default vitul cargo-vitul\n")
 }
 
 fn get_completions(shell: Shell, cmd: Command) -> Result<String> {
@@ -116,11 +115,11 @@ mod tests {
 
   #[test]
   fn bash_completions_do_not_hijack_other_commands() {
-    for bin_name in ["cargo-tauri", "cargo tauri", "tauri"] {
+    for bin_name in ["cargo-vitul", "cargo vitul", "vitul"] {
       let completions =
         get_completions(Shell::Bash, crate::Cli::command().bin_name(bin_name)).unwrap();
-      assert!(completions.contains("_tauri_cli() {"));
-      assert!(!completions.contains("_tauri() {"));
+      assert!(completions.contains("_vitul_cli() {"));
+      assert!(!completions.contains("_vitul() {"));
       assert!(!completions.contains("_cargo"));
 
       let registrations: Vec<_> = completions
@@ -132,9 +131,9 @@ mod tests {
         assert!(
           registration
             .trim_start()
-            .starts_with("complete -F _tauri_cli ")
+            .starts_with("complete -F _vitul_cli ")
         );
-        assert!(registration.ends_with(" -o default tauri cargo-tauri"));
+        assert!(registration.ends_with(" -o default vitul cargo-vitul"));
       }
     }
   }
@@ -142,7 +141,7 @@ mod tests {
   #[test]
   fn completions_generate_for_every_shell() {
     for shell in [Shell::Zsh, Shell::Fish, Shell::PowerShell, Shell::Elvish] {
-      for bin_name in ["cargo-tauri", "cargo tauri", "tauri"] {
+      for bin_name in ["cargo-vitul", "cargo vitul", "vitul"] {
         assert!(
           !get_completions(shell, crate::Cli::command().bin_name(bin_name))
             .unwrap()

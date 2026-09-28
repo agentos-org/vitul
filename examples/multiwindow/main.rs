@@ -10,7 +10,7 @@ fn main() {
   tauri::Builder::default()
     .setup(|app| {
       WebviewWindowBuilder::new(app, "Third", tauri::WebviewUrl::default())
-        .title("Tauri - Third")
+        .title("Vitul - Third")
         .build()?;
 
       Ok(())

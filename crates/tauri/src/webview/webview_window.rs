@@ -106,7 +106,7 @@ impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
     }
   }
 
-  /// Initializes a webview window builder from a [`WindowConfig`] from tauri.conf.json.
+  /// Initializes a webview window builder from a [`WindowConfig`] from vitul.conf.json.
   /// Keep in mind that you can't create 2 windows with the same `label` so make sure
   /// that the initial window was closed or change the label of the cloned [`WindowConfig`].
   ///
@@ -215,7 +215,7 @@ impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
   ///   .setup(|app| {
   ///     let webview_window = WebviewWindowBuilder::new(app, "core", WebviewUrl::App("index.html".into()))
   ///       .on_web_resource_request(|request, response| {
-  ///         if request.uri().scheme_str() == Some("tauri") {
+  ///         if request.uri().scheme_str() == Some("vitul") {
   ///           // if we have a CSP header, Tauri is loading an HTML file
   ///           //  for this example, let's dynamically change the CSP
   ///           if let Some(csp) = response.headers_mut().get_mut("Content-Security-Policy") {
@@ -257,7 +257,7 @@ impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
   ///     let webview_window = WebviewWindowBuilder::new(app, "core", WebviewUrl::App("index.html".into()))
   ///       .on_navigation(|url| {
   ///         // allow the production URL or localhost on dev
-  ///         url.scheme() == "tauri" || (cfg!(dev) && url.host_str() == Some("localhost"))
+  ///         url.scheme() == "vitul" || (cfg!(dev) && url.host_str() == Some("localhost"))
   ///       })
   ///       .build()?;
   ///     Ok(())

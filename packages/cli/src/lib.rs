@@ -4,7 +4,7 @@
 
 #![cfg(any(target_os = "macos", target_os = "linux", windows))]
 
-use std::sync::Arc;
+use std::{ffi::OsString, sync::Arc};
 
 use napi::{
   Error, Result, Status,
@@ -17,28 +17,50 @@ pub fn run(
   bin_name: Option<String>,
   callback: Arc<ThreadsafeFunction<bool>>,
 ) -> Result<()> {
-  // we need to run in a separate thread so Node.js consumers
-  // can do work while `tauri dev` is running.
+  let args = args.into_iter().map(OsString::from).collect();
+  spawn_cli_run(callback, "Tauri compatibility CLI", move || {
+    vitul_cli::run_compat_with_args(args, bin_name)
+  })
+}
+
+#[napi_derive::napi]
+pub fn run_vitul(args: Vec<String>, callback: Arc<ThreadsafeFunction<bool>>) -> Result<()> {
+  let args = args.into_iter().map(OsString::from).collect();
+  spawn_cli_run(callback, "Vitul CLI", move || {
+    vitul_cli::run_vitul_with_args(args)
+  })
+}
+
+fn spawn_cli_run<F>(
+  callback: Arc<ThreadsafeFunction<bool>>,
+  cli_name: &'static str,
+  run: F,
+) -> Result<()>
+where
+  F: FnOnce() -> anyhow::Result<()> + Send + 'static,
+{
+  // Run outside the Node.js thread so the package manager remains responsive
+  // while Vitul or a Tauri-compatible command is running.
   std::thread::spawn(move || {
-    let res = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-      tauri_cli::try_run(args, bin_name).inspect_err(|e| eprintln!("{e:#}"))
+    let result = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+      run().inspect_err(|error| eprintln!("{error:#}"))
     })) {
-      Ok(t) => t,
+      Ok(result) => result,
       Err(_) => {
         return callback.call(
           Err(Error::new(
             Status::GenericFailure,
-            "Tauri CLI unexpected panic",
+            format!("{cli_name} unexpected panic"),
           )),
           ThreadsafeFunctionCallMode::Blocking,
         );
       }
     };
 
-    match res {
-      Ok(_) => callback.call(Ok(true), ThreadsafeFunctionCallMode::Blocking),
-      Err(e) => callback.call(
-        Err(Error::new(Status::GenericFailure, format!("{e:#}"))),
+    match result {
+      Ok(()) => callback.call(Ok(true), ThreadsafeFunctionCallMode::Blocking),
+      Err(error) => callback.call(
+        Err(Error::new(Status::GenericFailure, format!("{error:#}"))),
         ThreadsafeFunctionCallMode::Blocking,
       ),
     }

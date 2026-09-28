@@ -332,16 +332,16 @@ impl<R: Runtime> AppManager<R> {
   }
 
   /// The `tauri` custom protocol URL we use to serve the embedded assets.
-  /// Returns `tauri://localhost` or its `wry` workaround URL `http://tauri.localhost`/`https://tauri.localhost`
+  /// Returns `vitul://localhost` or its `wry` workaround URL `http://vitul.localhost`/`https://vitul.localhost`
   pub(crate) fn tauri_protocol_url(&self, https: bool) -> Cow<'_, Url> {
-    Cow::Owned(Url::parse(&crate::protocol::origin("tauri", https)).unwrap())
+    Cow::Owned(Url::parse(&crate::protocol::origin("vitul", https)).unwrap())
   }
 
   /// Get the base app URL for [`WebviewUrl::App`](tauri_utils::config::WebviewUrl::App).
   ///
   /// * In dev mode, this is the [`devUrl`](tauri_utils::config::BuildConfig::dev_url) configuration value if it exists.
   /// * In production mode, this is the [`frontendDist`](tauri_utils::config::BuildConfig::frontend_dist) configuration value if it's a [`FrontendDist::Url`](tauri_utils::config::FrontendDist::Url).
-  /// * Returns [`Self::tauri_protocol_url`] (e.g. `tauri://localhost`) otherwise.
+  /// * Returns [`Self::tauri_protocol_url`] (e.g. `vitul://localhost`) otherwise.
   pub(crate) fn get_app_url(&self, https: bool) -> Cow<'_, Url> {
     #[cfg(dev)]
     let url = self.config.build.dev_url.as_ref();
@@ -381,7 +381,7 @@ impl<R: Runtime> AppManager<R> {
       .decode_utf8_lossy()
       .to_string();
     let path = if path.is_empty() {
-      // if the url is `tauri://localhost`, we should load `index.html`
+      // if the url is `vitul://localhost`, we should load `index.html`
       "index.html".to_string()
     } else {
       // skip the leading `/`, if it starts with one.
@@ -760,7 +760,7 @@ mod test {
 
   #[test]
   fn check_get_url() {
-    let context = generate_context!("test/fixture/src-tauri/tauri.conf.json", crate, test = true);
+    let context = generate_context!("test/fixture/src-tauri/vitul.conf.json", crate, test = true);
     let manager: AppManager<Wry> = AppManager::with_handlers(
       context,
       PluginStore::default(),
@@ -787,17 +787,17 @@ mod test {
       assert_eq!(
         manager.get_app_url(false).to_string(),
         if cfg!(windows) || cfg!(target_os = "android") {
-          "http://tauri.localhost/"
+          "http://vitul.localhost/"
         } else {
-          "tauri://localhost"
+          "vitul://localhost"
         }
       );
       assert_eq!(
         manager.get_app_url(true).to_string(),
         if cfg!(windows) || cfg!(target_os = "android") {
-          "https://tauri.localhost/"
+          "https://vitul.localhost/"
         } else {
-          "tauri://localhost"
+          "vitul://localhost"
         }
       );
     }

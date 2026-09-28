@@ -126,7 +126,7 @@ impl Parse for ContextItems {
       config_file: config_file
         .unwrap_or_else(|| {
           std::env::var("CARGO_MANIFEST_DIR")
-            .map(|m| PathBuf::from(m).join("tauri.conf.json"))
+            .map(|m| PathBuf::from(m).join("vitul.conf.json"))
             .map_err(|e| e.to_string())
         })
         .map_err(|e| input.error(e))?,

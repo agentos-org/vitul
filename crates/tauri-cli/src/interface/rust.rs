@@ -346,7 +346,7 @@ fn build_ignore_matcher(dir: &Path) -> IgnoreMatcher {
 
   let custom_ignore_file = std::env::var_os("TAURI_CLI_WATCHER_IGNORE_FILENAME");
   let mut overrides = ignore::overrides::OverrideBuilder::new(dir);
-  overrides.add(".taurignore").unwrap();
+  overrides.add(".vitulignore").unwrap();
   if let Some(ignore_file) = &custom_ignore_file {
     let _ = overrides.add(&ignore_file.to_string_lossy());
   }
@@ -363,7 +363,7 @@ fn build_ignore_matcher(dir: &Path) -> IgnoreMatcher {
   {
     let path = entry.path();
     let file_name = path.file_name();
-    if file_name == Some(OsStr::new(".taurignore"))
+    if file_name == Some(OsStr::new(".vitulignore"))
       || (file_name.is_some() && file_name == custom_ignore_file.as_deref())
     {
       let mut ignore_builder = GitignoreBuilder::new(path.parent().unwrap());
@@ -386,7 +386,7 @@ fn build_ignore_matcher(dir: &Path) -> IgnoreMatcher {
 
 fn lookup<F: FnMut(FileType, PathBuf)>(dir: &Path, mut f: F) {
   let mut builder = ignore::WalkBuilder::new(dir);
-  builder.add_custom_ignore_filename(".taurignore");
+  builder.add_custom_ignore_filename(".vitulignore");
   if let Some(ignore_file) = std::env::var_os("TAURI_CLI_WATCHER_IGNORE_FILENAME") {
     builder.add_custom_ignore_filename(ignore_file);
   }

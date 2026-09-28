@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Vitul OpenTool Example</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <p class="eyebrow">A Vitul application</p>
+        <h1>Two ways to talk to native code</h1>
+        <p class="intro">
+          Use host IPC for operating-system actions and OpenTool JSON-RPC for
+          application business operations.
+        </p>
+        <p id="host-status" class="status" aria-live="polite">Detecting host…</p>
+      </header>
+
+      <section class="card" aria-labelledby="system-title">
+        <div>
+          <p class="eyebrow">System API</p>
+          <h2 id="system-title">Host IPC</h2>
+          <p>These actions go to the desktop runtime or AgentOS host.</p>
+        </div>
+        <div class="actions">
+          <button id="minimize-button" type="button">Minimize window</button>
+        </div>
+        <p id="system-message" class="result" aria-live="polite">
+          Choose an action to call the host.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="business-title">
+        <div>
+          <p class="eyebrow">Business API</p>
+          <h2 id="business-title">OpenTool</h2>
+          <p>The Rust backend handles this request through OpenTool JSON-RPC.</p>
+        </div>
+        <form id="greet-form" class="actions">
+          <label for="greet-input">Name</label>
+          <input id="greet-input" value="Vitul developer" autocomplete="name" />
+          <button type="submit">Call greet</button>
+        </form>
+        <p id="business-message" class="result" aria-live="polite">
+          The request will be sent to /opentool/call.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

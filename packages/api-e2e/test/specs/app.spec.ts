@@ -13,7 +13,7 @@ import {
 
 describeApi('app', () => {
   it('getName returns the configured product name', async () => {
-    expect(await tauri((api) => api.app.getName())).toBe('Tauri API')
+    expect(await tauri((api) => api.app.getName())).toBe('Vitul API')
   })
 
   it('getVersion returns the configured version', async () => {
@@ -27,7 +27,7 @@ describeApi('app', () => {
   })
 
   it('getIdentifier returns the bundle identifier', async () => {
-    expect(await tauri((api) => api.app.getIdentifier())).toBe('com.tauri.api')
+    expect(await tauri((api) => api.app.getIdentifier())).toBe('com.vitul.api')
   })
 
   it('defaultWindowIcon returns an image with a positive size', async () => {

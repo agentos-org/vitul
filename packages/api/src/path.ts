@@ -5,7 +5,7 @@
 /**
  * The path module provides utilities for working with file and directory paths.
  *
- * This package is also accessible with `window.__TAURI__.path` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `tauri.conf.json` is set to `true`.
+ * This package is also accessible with `window.__TAURI__.path` when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri) in `vitul.conf.json` is set to `true`.
  *
  * It is recommended to allowlist only the APIs you use for optimal bundle size and security.
  *
@@ -154,7 +154,7 @@ enum BaseDirectory {
 
 /**
  * Returns the path to the suggested directory for your app's config files.
- * Resolves to `${configDir}/${bundleIdentifier}`, where `bundleIdentifier` is the [`identifier`](https://v2.tauri.app/reference/config/#identifier) value configured in `tauri.conf.json`,
+ * Resolves to `${configDir}/${bundleIdentifier}`, where `bundleIdentifier` is the [`identifier`](https://v2.tauri.app/reference/config/#identifier) value configured in `vitul.conf.json`,
  * unless overridden with the [`app > appDirectoriesOverride`](https://v2.tauri.app/reference/config/#appdirectoriesoverride) config.
  * @example
  * ```typescript
@@ -172,7 +172,7 @@ async function appConfigDir(): Promise<string> {
 
 /**
  * Returns the path to the suggested directory for your app's data files.
- * Resolves to `${dataDir}/${bundleIdentifier}`, where `bundleIdentifier` is the [`identifier`](https://v2.tauri.app/reference/config/#identifier) value configured in `tauri.conf.json`,
+ * Resolves to `${dataDir}/${bundleIdentifier}`, where `bundleIdentifier` is the [`identifier`](https://v2.tauri.app/reference/config/#identifier) value configured in `vitul.conf.json`,
  * unless overridden with the [`app > appDirectoriesOverride`](https://v2.tauri.app/reference/config/#appdirectoriesoverride) config.
  * @example
  * ```typescript
@@ -190,7 +190,7 @@ async function appDataDir(): Promise<string> {
 
 /**
  * Returns the path to the suggested directory for your app's local data files.
- * Resolves to `${localDataDir}/${bundleIdentifier}`, where `bundleIdentifier` is the [`identifier`](https://v2.tauri.app/reference/config/#identifier) value configured in `tauri.conf.json`,
+ * Resolves to `${localDataDir}/${bundleIdentifier}`, where `bundleIdentifier` is the [`identifier`](https://v2.tauri.app/reference/config/#identifier) value configured in `vitul.conf.json`,
  * unless overridden with the [`app > appDirectoriesOverride`](https://v2.tauri.app/reference/config/#appdirectoriesoverride) config.
  * @example
  * ```typescript
@@ -208,7 +208,7 @@ async function appLocalDataDir(): Promise<string> {
 
 /**
  * Returns the path to the suggested directory for your app's cache files.
- * Resolves to `${cacheDir}/${bundleIdentifier}`, where `bundleIdentifier` is the [`identifier`](https://v2.tauri.app/reference/config/#identifier) value configured in `tauri.conf.json`,
+ * Resolves to `${cacheDir}/${bundleIdentifier}`, where `bundleIdentifier` is the [`identifier`](https://v2.tauri.app/reference/config/#identifier) value configured in `vitul.conf.json`,
  * unless overridden with the [`app > appDirectoriesOverride`](https://v2.tauri.app/reference/config/#appdirectoriesoverride) config (a single root override resolves to `${root}/caches`).
  * @example
  * ```typescript
@@ -561,7 +561,7 @@ async function resourceDir(): Promise<string> {
  * ```
  *
  * @param resourcePath The path to the resource.
- * Must follow the same syntax as defined in `tauri.conf.json > bundle > resources`, i.e. keeping subfolders and parent dir components (`../`).
+ * Must follow the same syntax as defined in `vitul.conf.json > bundle > resources`, i.e. keeping subfolders and parent dir components (`../`).
  * @returns The full path to the resource.
  *
  * @since 1.0.0

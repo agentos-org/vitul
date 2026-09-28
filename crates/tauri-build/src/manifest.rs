@@ -70,7 +70,7 @@ pub fn check(config: &Config, manifest: &mut Manifest) -> Result<()> {
     for dep in deps {
       if let Err(error) = check_features(dep, &metadata) {
         return Err(anyhow!("
-      The `{}` dependency features on the `Cargo.toml` file does not match the allowlist defined under `tauri.conf.json`.
+      The `{}` dependency features on the `Cargo.toml` file does not match the allowlist defined under `vitul.conf.json`.
       Please run `tauri dev` or `tauri build` or {}.
     ", name, error));
       }

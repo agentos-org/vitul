@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":disableDependencyDashboard"],
+  "packageRules": [
+    {
+      "matchPackageNames": ["*"],
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "groupName": "templates dependencies",
+      "matchFileNames": [
+        "templates/**/*package.json",
+        "templates/**/*Cargo.toml"
+      ],
+      "schedule": ["after 3am on Wednesday"]
+    },
+    {
+      "groupName": "napi-rs dependencies",
+      "matchPackageNames": ["napi", "napi-build", "napi-derive", "@napi-rs/cli"]
+    }
+  ]
+}

@@ -13,7 +13,7 @@ declare global {
      * The whole `@tauri-apps/api` package, exposed as a global object.
      *
      * Only defined when [`app.withGlobalTauri`](https://v2.tauri.app/reference/config/#withglobaltauri)
-     * is set to `true` in `tauri.conf.json`. It is meant for vanilla JavaScript
+     * is set to `true` in `vitul.conf.json`. It is meant for vanilla JavaScript
      * frontends that do not use a bundler:
      *
      * ```js

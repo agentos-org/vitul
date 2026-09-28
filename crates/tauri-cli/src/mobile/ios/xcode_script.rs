@@ -68,7 +68,7 @@ pub fn command(options: Options) -> Result<()> {
   let process_path = std::env::current_exe().unwrap_or_default();
 
   // `xcode-script` is ran from the `gen/apple` folder when not using NPM/yarn/pnpm/deno.
-  // so we must change working directory to the src-tauri folder to resolve the tauri dir
+  // so we must change working directory to the src-vitul folder to resolve the Vitul app dir
   // additionally, bun@<1.2 does not modify the current working directory, so it is also runs this script from `gen/apple`
   // bun@>1.2 now actually moves the CWD to the package root so we shouldn't modify CWD in that case
   // see https://bun.sh/blog/bun-v1.2#bun-run-uses-the-correct-directory

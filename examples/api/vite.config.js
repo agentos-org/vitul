@@ -6,7 +6,8 @@ import { defineConfig } from 'vite'
 import Unocss from 'unocss/vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 
-const host = process.env.TAURI_DEV_HOST
+const host = process.env.VITUL_DEV_HOST
+const backendPort = process.env.VITUL_OPENTOOL_PORT || '9627'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -22,10 +23,10 @@ export default defineConfig({
     }
   },
 
-  // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
+  // Vite options used during Vitul development and builds.
   // prevent Vite from obscuring rust errors
   clearScreen: false,
-  // tauri expects a fixed port, fail if that port is not available
+  // Vitul expects a fixed port, fail if that port is not available.
   server: {
     host: host ?? false,
     port: 1420,
@@ -37,6 +38,12 @@ export default defineConfig({
           port: 1430
         }
       : undefined,
+    proxy: {
+      '/opentool': {
+        target: `http://127.0.0.1:${backendPort}`,
+        changeOrigin: false
+      }
+    },
     fs: {
       allow: ['.', '../../packages/api/dist']
     }

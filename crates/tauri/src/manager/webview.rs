@@ -265,17 +265,17 @@ impl<R: Runtime> WebviewManager<R> {
       "null".into()
     };
 
-    if !registered_scheme_protocols.contains(&"tauri".into()) {
+    if !registered_scheme_protocols.contains(&"vitul".into()) {
       let web_resource_request_handler = pending.web_resource_request_handler.take();
       let protocol = crate::protocol::tauri::get(
         manager.manager_owned(),
         window_origin.clone(),
         web_resource_request_handler,
       );
-      pending.register_uri_scheme_protocol("tauri", move |webview_id, request, responder| {
+      pending.register_uri_scheme_protocol("vitul", move |webview_id, request, responder| {
         protocol(webview_id, request, UriSchemeResponder(responder))
       });
-      registered_scheme_protocols.push("tauri".into());
+      registered_scheme_protocols.push("vitul".into());
     }
 
     if !registered_scheme_protocols.contains(&"ipc".into()) {
@@ -469,7 +469,7 @@ impl<R: Runtime> WebviewManager<R> {
       WebviewUrl::App(path) => {
         let app_url = app_manager.get_app_url(pending.webview_attributes.use_https_scheme);
         let url = if PROXY_DEV_SERVER && is_local_network_url(&app_url) {
-          Cow::Owned(Url::parse("tauri://localhost").unwrap())
+          Cow::Owned(Url::parse("vitul://localhost").unwrap())
         } else {
           app_url
         };
@@ -489,7 +489,7 @@ impl<R: Runtime> WebviewManager<R> {
         let is_app_url = config_url.make_relative(url).is_some();
         let mut url = url.clone();
         if is_app_url && PROXY_DEV_SERVER && is_local_network_url(&url) {
-          Url::parse("tauri://localhost").unwrap()
+          Url::parse("vitul://localhost").unwrap()
         } else {
           url
         }

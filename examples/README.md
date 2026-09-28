@@ -1,5 +1,17 @@
-# Examples
+# Vitul Examples
 
-Following directories contain examples of tauri app functionality.
+Start with [vitul-opentool](vitul-opentool/README.md). It demonstrates the two
+app boundaries used by Vitul: system window control through host IPC and
+business operations through OpenTool JSON-RPC. The same example supports
+desktop WebViews and the AgentOS embedded WebView.
 
-There are different execution steps depending on the example. See each directory `README.md` for execution method.
+[api](api/README.md) is the Vitul desktop API integration fixture used by CI. It
+covers window, menu, tray, event, and other desktop API behavior; use
+vitul-opentool as the starting point for new applications.
+
+The remaining folders are focused runtime and API feature references. They are
+useful when working on a specific compatible desktop capability; new
+applications should follow the OpenTool and host API structure in
+vitul-opentool.
+
+See each directory's README for its build and run instructions.

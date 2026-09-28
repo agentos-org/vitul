@@ -11,11 +11,12 @@ members = [
   "crates/tauri-schema-generator",
   "crates/tauri-schema-worker",
   "crates/tauri-cli",
+  "crates/vitul-cli",
   "crates/tauri-bundler",
   "crates/tauri-macos-sign",
   "crates/tauri-driver",
 
-  # @tauri-apps/cli rust project
+  # Vitul npm CLI Rust project
   "packages/cli",
 
   # integration tests
@@ -31,10 +32,16 @@ members = [
   # examples
   "examples/file-associations/src-tauri",
   "examples/resources/src-tauri",
-  "examples/api/src-tauri",
-  "examples/api/src-tauri/tauri-plugin-sample",
+  "examples/api/src-vitul",
+  "examples/api/src-vitul/tauri-plugin-sample",
 ]
 resolver = "3"
+exclude = [
+  "vendor/create-vitul-app",
+  "examples/api/backend",
+  "examples/vitul-opentool/backend",
+  "examples/vitul-opentool/src-vitul",
+]
 
 [workspace.package]
 authors = ["Tauri Programme within The Commons Conservancy"]

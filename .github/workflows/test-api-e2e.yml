@@ -133,9 +133,9 @@ jobs:
         if: runner.os != 'macOS' || env.HAS_CN_API_KEY == 'true'
         run: pnpm build:api
 
-      - name: build @tauri-apps/cli
+      - name: build @vitul/cli
         if: runner.os != 'macOS' || env.HAS_CN_API_KEY == 'true'
-        # Debug profile: the suite builds the example app with `tauri build --debug` anyway, and
+        # Debug profile: the suite builds the example app with `vitul build --debug` anyway, and
         # a debug CLI reuses the cached dependencies instead of a from-scratch LTO build.
         run: pnpm build:cli:debug
 

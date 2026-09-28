@@ -38,9 +38,9 @@ impl CodegenContext {
     Self::default()
   }
 
-  /// Set the path to the `tauri.conf.json` (relative to the crate's directory).
+  /// Set the path to the `vitul.conf.json` (relative to the crate's directory).
   ///
-  /// This defaults to a file called `tauri.conf.json` inside of the current working directory of
+  /// This defaults to a file called `vitul.conf.json` inside of the current working directory of
   /// the crate compiling; does not need to be set manually if that config file is in the same
   /// directory as your `Cargo.toml`.
   #[must_use]
@@ -85,7 +85,7 @@ impl CodegenContext {
     let (config, config_parent) = tauri_codegen::get_config(
       &self
         .config_path
-        .unwrap_or_else(|| PathBuf::from("tauri.conf.json")),
+        .unwrap_or_else(|| PathBuf::from("vitul.conf.json")),
     )?;
 
     // rerun if changed

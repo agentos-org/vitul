@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 //! - Embed, hash, and compress assets, including icons for the app as well as the tray icon.
-//! - Parse `tauri.conf.json` at compile time and generate the Config struct.
+//! - Parse `vitul.conf.json` at compile time and generate the Config struct.
 
 #![doc(
   html_logo_url = "https://github.com/tauri-apps/tauri/raw/dev/.github/icon.png",
@@ -75,14 +75,14 @@ pub fn get_config(path: &Path) -> Result<(Config, PathBuf), CodegenConfigError> 
     .map(Target::from_triple)
     .unwrap_or_else(|_| Target::current());
 
-  // in the future we may want to find a way to not need the TAURI_CONFIG env var so that
+  // in the future we may want to find a way to not need the VITUL_CONFIG env var so that
   // it is impossible for the content of two separate configs to get mixed up. The chances are
   // already unlikely unless the developer goes out of their way to run the cli on a different
   // project than the target crate.
   let mut config =
     serde_json::from_value(tauri_utils::config::parse::read_from(target, &parent)?.0)?;
 
-  if let Ok(env) = std::env::var("TAURI_CONFIG") {
+  if let Ok(env) = std::env::var("VITUL_CONFIG").or_else(|_| std::env::var("TAURI_CONFIG")) {
     let merge_config: serde_json::Value =
       serde_json::from_str(&env).map_err(CodegenConfigError::FormatInline)?;
     json_patch::merge(&mut config, &merge_config);

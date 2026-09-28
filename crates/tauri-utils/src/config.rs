@@ -4,7 +4,7 @@
 
 //! The Tauri configuration used at runtime.
 //!
-//! It is pulled from a `tauri.conf.json` file and the [`Config`] struct is generated at compile time.
+//! It is pulled from a `vitul.conf.json` file and the [`Config`] struct is generated at compile time.
 //!
 //! # Stability
 //!
@@ -78,7 +78,7 @@ pub enum WebviewUrl {
   /// An external URL. Must use either the `http` or `https` schemes.
   External(Url),
   /// The path portion of an app URL.
-  /// For instance, to load `tauri://localhost/users/john`,
+  /// For instance, to load `vitul://localhost/users/john`,
   /// you can simply provide `users/john` in this configuration.
   App(PathBuf),
   /// A custom protocol url, for example, `doom://index.html`
@@ -2899,7 +2899,7 @@ impl HeaderAddition for Builder {
 ///
 /// For the helloworld example, this config translates into those response headers:
 /// ```http
-/// access-control-allow-origin:  http://tauri.localhost
+/// access-control-allow-origin:  http://vitul.localhost
 /// access-control-expose-headers: Tauri-Custom-Header
 /// content-security-policy: default-src 'self'; connect-src ipc: http://ipc.localhost; script-src 'self' 'sha256-Wjjrs6qinmnr+tOry8x8PPwI77eGpUFR3EEGZktjJNs='
 /// content-type: text/html
@@ -3960,19 +3960,19 @@ impl<'d> serde::Deserialize<'d> for PackageVersion {
             Ok(PackageVersion(
               Version::from_str(version)
                 .map_err(|_| {
-                  DeError::custom("`tauri.conf.json > version` must be a semver string")
+                  DeError::custom("`vitul.conf.json > version` must be a semver string")
                 })?
                 .to_string(),
             ))
           } else {
             Err(DeError::custom(
-              "`tauri.conf.json > version` value is not a path to a JSON object",
+              "`vitul.conf.json > version` value is not a path to a JSON object",
             ))
           }
         } else {
           Ok(PackageVersion(
             Version::from_str(value)
-              .map_err(|_| DeError::custom("`tauri.conf.json > version` must be a semver string"))?
+              .map_err(|_| DeError::custom("`vitul.conf.json > version` must be a semver string"))?
               .to_string(),
           ))
         }
@@ -4002,18 +4002,18 @@ where
 ///
 /// ## File Formats
 ///
-/// By default, the configuration is defined as a JSON file named `tauri.conf.json`.
+/// By default, the configuration is defined as a JSON file named `vitul.conf.json`.
 ///
 /// Tauri also supports JSON5 and TOML files via the `config-json5` and `config-toml` Cargo features, respectively.
-/// The JSON5 file name must be either `tauri.conf.json` or `tauri.conf.json5`.
-/// The TOML file name is `Tauri.toml`.
+/// The JSON5 file name must be either `vitul.conf.json` or `vitul.conf.json5`.
+/// The TOML file name is `Vitul.toml`.
 ///
 /// ## Platform-Specific Configuration
 ///
 /// In addition to the default configuration file, Tauri can
 /// read a platform-specific configuration from `tauri.linux.conf.json`,
 /// `tauri.windows.conf.json`, `tauri.macos.conf.json`, `tauri.android.conf.json` and `tauri.ios.conf.json`
-/// (or `Tauri.linux.toml`, `Tauri.windows.toml`, `Tauri.macos.toml`, `Tauri.android.toml` and `Tauri.ios.toml` if the `Tauri.toml` format is used),
+/// (or `Tauri.linux.toml`, `Tauri.windows.toml`, `Tauri.macos.toml`, `Tauri.android.toml` and `Tauri.ios.toml` if the `Vitul.toml` format is used),
 /// which gets merged with the main configuration object.
 ///
 /// ## Configuration Structure

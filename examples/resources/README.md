@@ -1,11 +1,13 @@
 # Resource example
 
-This example demonstrates the Tauri bundle resources functionality. The example adds `src-tauri/assets/index.js` as a resource (defined on `tauri.conf.json > bundle > resources`) and executes it using `Node.js`, locating the JavaScript file using the `tauri::App::path_resolver` APIs.
+This example demonstrates bundle resources in the Vitul desktop runtime. It
+adds `src-tauri/assets/index.js` as a resource (configured under
+`tauri.conf.json > bundle > resources`) and executes it using Node.js, locating
+the file through the compatible `tauri::App` path API.
 
 ## Running the example
 
-- Compile Tauri
-  go to root of the Tauri repo and run:
+- Build the Vitul-compatible desktop runtime from this repository:
   Linux / Mac:
 
 ```

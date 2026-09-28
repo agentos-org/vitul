@@ -22,7 +22,7 @@
 //!     builder
 //!         .invoke_handler(tauri::generate_handler![ping])
 //!         // remove the string argument to use your app's config file
-//!         .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+//!         .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
 //!         .expect("failed to build app")
 //! }
 //!
@@ -39,8 +39,8 @@
 //!             cmd: "ping".into(),
 //!             callback: tauri::ipc::CallbackFn(0),
 //!             error: tauri::ipc::CallbackFn(1),
-//!             // alternatively use "tauri://localhost"
-//!             url: "http://tauri.localhost".parse().unwrap(),
+//!             // alternatively use "vitul://localhost"
+//!             url: "http://vitul.localhost".parse().unwrap(),
 //!             body: tauri::ipc::InvokeBody::default(),
 //!             headers: Default::default(),
 //!             invoke_key: tauri::test::INVOKE_KEY.to_string(),
@@ -159,7 +159,7 @@ pub fn mock_context<R: Runtime, A: Assets<R>>(assets: A) -> crate::Context<R> {
 /// fn do_something() {
 ///   let app = tauri::test::mock_builder()
 ///     // remove the string argument to use your app's config file
-///     .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+///     .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
 ///     .unwrap();
 /// }
 /// ```
@@ -202,7 +202,7 @@ pub fn mock_app() -> App<MockRuntime> {
 ///     builder
 ///         .invoke_handler(tauri::generate_handler![ping])
 ///         // remove the string argument to use your app's config file
-///         .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+///         .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
 ///         .expect("failed to build app")
 /// }
 ///
@@ -218,9 +218,9 @@ pub fn mock_app() -> App<MockRuntime> {
 ///             callback: tauri::ipc::CallbackFn(0),
 ///             error: tauri::ipc::CallbackFn(1),
 ///             url: if cfg!(any(windows, target_os = "android")) {
-///                 "http://tauri.localhost"
+///                 "http://vitul.localhost"
 ///             } else {
-///                 "tauri://localhost"
+///                 "vitul://localhost"
 ///             }.parse().unwrap(),
 ///             body: tauri::ipc::InvokeBody::default(),
 ///             headers: Default::default(),
@@ -265,7 +265,7 @@ pub fn assert_ipc_response<
 ///     builder
 ///         .invoke_handler(tauri::generate_handler![ping])
 ///         // remove the string argument to use your app's config file
-///         .build(tauri::generate_context!("test/fixture/src-tauri/tauri.conf.json"))
+///         .build(tauri::generate_context!("test/fixture/src-tauri/vitul.conf.json"))
 ///         .expect("failed to build app")
 /// }
 ///
@@ -281,9 +281,9 @@ pub fn assert_ipc_response<
 ///             callback: tauri::ipc::CallbackFn(0),
 ///             error: tauri::ipc::CallbackFn(1),
 ///             url: if cfg!(any(windows, target_os = "android")) {
-///                 "http://tauri.localhost"
+///                 "http://vitul.localhost"
 ///             } else {
-///                 "tauri://localhost"
+///                 "vitul://localhost"
 ///             }.parse().unwrap(),
 ///             body: tauri::ipc::InvokeBody::default(),
 ///             headers: Default::default(),

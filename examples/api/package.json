@@ -7,12 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "node ../../packages/cli/tauri.js"
+    "vitul": "vitul"
   },
   "dependencies": {
     "@tauri-apps/api": "../../packages/api/dist"
   },
   "devDependencies": {
+    "@vitul/cli": "^2",
     "@iconify-json/codicon": "^1.2.49",
     "@iconify-json/ph": "^1.2.2",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",

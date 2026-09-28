@@ -1,96 +1,107 @@
-<img src=".github/splash.png" alt="Tauri" />
+# Vitul
 
-[![status](https://img.shields.io/badge/status-stable-blue.svg)](https://github.com/tauri-apps/tauri/tree/dev)
-[![License](https://img.shields.io/badge/License-MIT%20or%20Apache%202-green.svg)](https://opencollective.com/tauri)
-[![test core](https://img.shields.io/github/actions/workflow/status/tauri-apps/tauri/test-core.yml?label=test%20core&logo=github)](https://github.com/tauri-apps/tauri/actions/workflows/test-core.yml)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftauri-apps%2Ftauri.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftauri-apps%2Ftauri?ref=badge_shield)
-[![Chat Server](https://img.shields.io/badge/chat-discord-7289da.svg)](https://discord.com/invite/tauri)
-[![website](https://img.shields.io/badge/website-tauri.app-purple.svg)](https://tauri.app)
-[![https://good-labs.github.io/greater-good-affirmation/assets/images/badge.svg](https://good-labs.github.io/greater-good-affirmation/assets/images/badge.svg)](https://good-labs.github.io/greater-good-affirmation)
-[![support](https://img.shields.io/badge/sponsor-Open%20Collective-blue.svg)](https://opencollective.com/tauri)
+[简体中文](README-zh_CN.md)
 
-## Introduction
+Vitul is an OpenTool-first app development toolchain. Apps on macOS, Windows,
+Android, and iOS use their system WebView; AgentOS apps use an embedded WebView
+based on Chromium.
 
-Tauri is a framework for building tiny, blazingly fast binaries for all major operating systems. Developers can integrate any front-end framework that compiles to HTML, JS and CSS for building their user interface. The backend of the application is a rust-sourced binary with an API that the front-end can interact with.
+## Runtime targets
 
-The user interface in Tauri apps currently leverages [`tao`](https://docs.rs/tao) as a window handling library on macOS, Windows, Linux, Android and iOS. To render your application, Tauri uses [WRY](https://github.com/tauri-apps/wry), a library which provides a unified interface to the system webview, leveraging WKWebView on macOS & iOS, WebView2 on Windows, WebKitGTK on Linux and Android System WebView on Android.
+| Target | UI runtime | System APIs | App backend |
+| --- | --- | --- | --- |
+| macOS and Windows | System WebView | Host-specific IPC | OpenTool over HTTP/JSON-RPC |
+| Android and iOS | System WebView | Tauri IPC | OpenTool JSON-RPC over Tauri IPC; `streamCall` uses a Tauri Channel |
+| AgentOS | Embedded Chromium-based WebView | Host IPC bridge | OpenTool over HTTP/JSON-RPC |
 
-To learn more about the details of how all of these pieces fit together, please consult this [ARCHITECTURE.md](https://github.com/tauri-apps/tauri/blob/dev/ARCHITECTURE.md) document.
+Business operations belong in the OpenTool backend. Window controls, dialogs,
+clipboard, notifications, and other operating-system actions go through the
+host API bridge.
 
-## Getting Started
+## Coming from Tauri?
 
-If you are interested in making a tauri app, please visit the [documentation website](https://tauri.app).
+Vitul is an OpenTool-first toolchain evolved from Tauri 2. It reuses the
+compatible desktop foundation while adding its own project workflow and AgentOS
+target, and carries OpenTool business calls over Tauri IPC on mobile:
 
-The quickest way to get started is to install the [prerequisites](https://v2.tauri.app/start/prerequisites/) for your system and create a new project with [`create-tauri-app`](https://github.com/tauri-apps/create-tauri-app/#usage). For example with `npm`:
+| Area | Tauri | Vitul |
+| --- | --- | --- |
+| Foundation | Desktop app framework | OpenTool-first toolchain based on Tauri 2's compatible runtime, APIs, and configuration model |
+| Desktop UI | System WebView | Same system WebView on macOS and Windows |
+| CLI | `tauri`, `cargo tauri` | `vitul`, `cargo vitul` |
+| Desktop config path | `src-tauri/tauri.conf.json` | `src-vitul/vitul.conf.json` |
+| Frontend calls | IPC commands commonly handle host and app operations | Host IPC handles operating-system actions; OpenTool JSON-RPC handles business operations |
+| Build targets | Linux, macOS, and Windows desktop apps; Android and iOS mobile apps | macOS/Windows desktop apps, Android/iOS mobile apps, and AgentOS `.agt` apps (manifest architectures: ARM64 and x64) |
+| API and plugins | Tauri APIs and its plugin ecosystem | Compatible Rust/JavaScript APIs and supported compatible plugins; check support for the features you use |
+
+Your Rust, WebView, window, permission, and packaging experience carries over.
+For a new app, start with `vitul init`; Vitul uses its own commands and project
+files, so a Tauri project's `src-tauri` directory is not automatically treated
+as a Vitul project. Android and iOS use native WebViews and Tauri IPC; Vitul
+routes the OpenTool request format through that IPC, with stream events carried
+by a Tauri Channel. The mobile backend is linked into the app and runs in its
+native process. Mobile builds need the platform toolchains; iOS builds require
+macOS and Xcode. See [Tauri's mobile prerequisites](https://v2.tauri.app/start/prerequisites/).
+
+## Create and run an app
+
+Install the Vitul CLI from this repository, then create an OpenTool-first app:
 
 ```sh
-npm create tauri-app@latest
+cargo install --path crates/vitul-cli
+vitul init my-app
+cd my-app
+pnpm install
 ```
 
-## Features
+Choose the row for the platform where the app will run:
 
-The list of Tauri's features includes, but is not limited to:
+| Target | Commands | Runtime and build output | Requirements |
+| --- | --- | --- | --- |
+| AgentOS (ARM64 / x64) | `pnpm vitul build --target agentos-arm64` | AgentOS embedded Chromium-based WebView; v2 `.agt` manifests support ARM64 and x64, and the Shell assigns the backend a dynamic loopback port at launch. | The current Vitul packager builds ARM64 on an ARM64 Mac with Docker. |
+| Android | Dev: `pnpm vitul android dev`<br>APK: `pnpm vitul android build --apk`<br>Play Store: `pnpm vitul android build --aab` | System Android WebView; produces an `.apk` or `.aab`. The OpenTool backend runs in the app process and uses Tauri IPC. | Android Studio, Android SDK/NDK, and the Android Rust target. |
+| iOS | Dev: `pnpm vitul ios dev`<br>Build: `pnpm vitul ios build` | System WKWebView; produces an `.ipa`. The OpenTool backend runs in the app process and uses Tauri IPC. | macOS, Xcode, and the iOS Rust target. |
+| Windows | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build` | System WebView2; `.msi` and NSIS `.exe` installers by default. | Build on Windows with Rust MSVC, Node.js/pnpm, Visual Studio C++ Build Tools (“Desktop development with C++”), and WebView2 Runtime. |
+| macOS | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build` | System WebView; `.app` bundle and `.dmg` disk image by default. | Build on macOS with Rust, Node.js/pnpm, and Xcode Command Line Tools (`xcode-select --install`). |
 
-- Built-in app bundler to create app bundles in formats like `.app`, `.dmg`, `.deb`, `.rpm`, `.AppImage` and Windows installers like `.exe` (via NSIS) and `.msi` (via WiX).
-- Built-in self updater (desktop only)
-- System tray icons
-- Native notifications
-- Native WebView Protocol (tauri doesn't create a localhost http(s) server to serve the WebView contents)
-- GitHub action for streamlined CI
-- VS Code extension
+Desktop package formats can be selected with `bundle.targets` in
+`src-vitul/vitul.conf.json`. AgentOS v2 app manifests support ARM64 and x64
+installations. The current Vitul packager produces ARM64 packages. These
+commands do not build the Ubuntu 24 system image or the AgentOS Desktop host
+application; build those from their AgentOS projects.
 
-### Platforms
+## AgentOS SDKs
 
-Tauri currently supports development and distribution on the following platforms:
+AgentOS SDKs are clients for apps that call AgentOS Gateway APIs. Use them as
+language-specific package dependencies instead of copying their source into
+Vitul. Projects created by `vitul init` include the TypeScript SDK in
+`package.json`; the starter does not call it unless you add that integration:
 
-| Platform   | Versions                                                                                                        |
-| :--------- | :-------------------------------------------------------------------------------------------------------------- |
-| Windows    | 7 and above                                                                                                     |
-| macOS      | 10.15 and above                                                                                                 |
-| Linux      | webkit2gtk 4.0 for Tauri v1 (for example Ubuntu 18.04). webkit2gtk 4.1 for Tauri v2 (for example Ubuntu 22.04). |
-| iOS/iPadOS | 9 and above                                                                                                     |
-| Android    | 7 and above (currently 8 and above)                                                                             |
+| Language | Package | Useful for |
+| --- | --- | --- |
+| TypeScript | [`agentos-sdk-ts`](https://github.com/agentos-org/agentos-sdk-ts) | Vitul web frontends that call an AgentOS Gateway, locally or remotely |
+| Dart | [`agentos_sdk`](https://github.com/agentos-org/agentos-sdk-dart) | Dart-based AgentOS clients, including the AgentOS Desktop project |
+| Python | [`agentos-sdk-python`](https://gitlab.litevar.com/litevar/agentos/agentos-sdk-python) | Python services and automation that call AgentOS APIs |
 
-## Contributing
+For a Vitul frontend, import the TypeScript SDK only if the app needs AgentOS
+Gateway APIs; the default starter uses OpenTool for its business backend. The
+SDKs do not build AgentOS system images or package `.agt` apps.
 
-Before you start working on something, it's best to check if there is an existing issue first. It's also a good idea to stop by the Discord server and confirm with the team if it makes sense or if someone else is already working on it.
+## Repository layout
 
-Please make sure to read the [Contributing Guide](./.github/CONTRIBUTING.md) before making a pull request.
+- `crates/vitul-cli/` contains the Vitul project generator, development runner,
+  and AgentOS packager.
+- `crates/tauri-*` contains the compatible desktop engine. Its Cargo package and
+  Rust crate names remain compatible with the existing runtime and plugin ecosystem.
+- `packages/` contains the compatible JavaScript API (`@tauri-apps/api`) and
+  the Vitul CLI package (`@vitul/cli`).
+- `vendor/create-vitul-app/` contains the upstream-based project scaffold used
+  by `vitul init`.
 
-Thank you to everyone contributing to Tauri!
-
-### Documentation
-
-Documentation in a polyglot system is a tricky proposition. To this end, we prefer to use inline documentation in the Rust & JS source code as much as possible. Check out the hosting repository for the documentation site for further information: <https://github.com/tauri-apps/tauri-docs>
-
-## Partners
-
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="middle">
-        <a href="https://crabnebula.dev" target="_blank">
-          <img src=".github/sponsors/crabnebula.svg" alt="CrabNebula" width="283">
-        </a>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-For the complete list of sponsors please visit our [website](https://tauri.app#sponsors) and [Open Collective](https://opencollective.com/tauri).
-
-## Organization
-
-Tauri aims to be a sustainable collective based on principles that guide sustainable free and open software communities. To this end it has become a Programme within the [Commons Conservancy](https://commonsconservancy.org/), and you can contribute financially via [Open Collective](https://opencollective.com/tauri).
-
-## Licenses
-
-Code: (c) 2015 - Present - The Tauri Programme within The Commons Conservancy.
-
-MIT or MIT/Apache 2.0 where applicable.
-
-Logo: CC-BY-NC-ND
-
-- Original Tauri Logo Designs by [Alve Larsson](https://alve.io/), [Daniel Thompson-Yvetot](https://github.com/nothingismagick) and [Guillaume Chau](https://github.com/akryum)
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ftauri-apps%2Ftauri.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ftauri-apps%2Ftauri?ref=badge_large)
+Vitul keeps compatible configuration schemas, API behavior, and desktop tooling
+internally. New projects use Vitul filenames, origins, and commands; the only
+user-facing CLI names are `vitul` and `cargo vitul`. The compatible JavaScript
+API retains its `@tauri-apps/api` import path, while the CLI package is named
+`@vitul/cli`. Vitul-native features live under `crates/vitul-*`; the existing
+`crates/tauri-*` directories and Rust crate identities identify the compatibility
+engine. Copyright and license notices for inherited code remain in place.

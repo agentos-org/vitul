@@ -116,7 +116,7 @@ export interface PredefinedMenuItemOptions {
    * - `BringAllToFront`: brings all of the app's windows to the front. **macOS only**
    *   (*Windows / Linux:* unsupported).
    * - `{ About: AboutMetadata | null }`: opens an about dialog. All platforms; pass
-   *   `null` to use the values from your `tauri.conf.json`, or see
+   *   `null` to use the values from your `vitul.conf.json`, or see
    *   {@linkcode AboutMetadata} for the per-field platform support.
    *
    * @example

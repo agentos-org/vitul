@@ -185,7 +185,7 @@ fn parse_authority(authority: Authority) -> Option<(String, Option<u16>)> {
 /// Only accept requests addressed to the server itself to prevent DNS rebinding attacks.
 fn is_allowed_host(host: &str, address: &SocketAddr) -> bool {
   // `localhost` and its subdomains always resolve to the loopback interface
-  // (`tauri.localhost` is used by the dev proxy on Android and Windows)
+  // (`vitul.localhost` is used by the dev proxy on Android and Windows)
   if host == "localhost" || host.ends_with(".localhost") {
     return true;
   }
@@ -213,8 +213,8 @@ fn is_allowed_origin(origin: Option<&HeaderValue>, host: &(String, Option<u16>))
     .unwrap_or(origin_host)
     .to_ascii_lowercase();
 
-  // Tauri pages served through the dev proxy on mobile (`tauri://localhost` or `http(s)://tauri.localhost`)
-  if origin.scheme() == "tauri" || origin_host == "tauri.localhost" {
+  // Vitul pages served through the dev proxy on mobile (`vitul://localhost` or `http(s)://vitul.localhost`)
+  if origin.scheme() == "vitul" || origin_host == "vitul.localhost" {
     return true;
   }
 
@@ -307,7 +307,7 @@ mod tests {
     assert!(allowed("127.0.0.1:1430", local));
     assert!(allowed("localhost:1430", local));
     assert!(allowed("[::1]:1430", local));
-    assert!(allowed("tauri.localhost", local));
+    assert!(allowed("vitul.localhost", local));
     assert!(!allowed("evil.com:1430", local));
     assert!(!allowed("localhost.evil.com", local));
     assert!(!allowed("192.168.1.10:1430", local));
@@ -333,9 +333,9 @@ mod tests {
 
     assert!(is_allowed_origin(None, &host));
     assert!(check("http://127.0.0.1:1430"));
-    assert!(check("tauri://localhost"));
-    assert!(check("http://tauri.localhost"));
-    assert!(check("https://tauri.localhost"));
+    assert!(check("vitul://localhost"));
+    assert!(check("http://vitul.localhost"));
+    assert!(check("https://vitul.localhost"));
     assert!(!check("http://127.0.0.1:3000"));
     assert!(!check("http://evil.com"));
     assert!(!check("null"));

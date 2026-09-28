@@ -1,0 +1,22 @@
+{
+  "name": "create-tauri-app-win32-ia32-msvc",
+  "version": "0.0.0",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "main": "create-tauri-app.win32-ia32-msvc.node",
+  "files": [
+    "create-tauri-app.win32-ia32-msvc.node"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tauri-apps/create-tauri-app.git"
+  },
+  "engines": {
+    "node": ">= 10"
+  }
+}

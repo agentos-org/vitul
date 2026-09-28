@@ -30,17 +30,25 @@ pub const ENABLED_FORMATS: &[ConfigFormat] = &[
 /// The available configuration formats.
 #[derive(Debug, Copy, Clone)]
 pub enum ConfigFormat {
-  /// The default JSON (tauri.conf.json) format.
+  /// The default JSON (vitul.conf.json) format.
   Json,
-  /// The JSON5 (tauri.conf.json5) format.
+  /// The JSON5 (vitul.conf.json5) format.
   Json5,
-  /// The TOML (Tauri.toml file) format.
+  /// The TOML (Vitul.toml file) format.
   Toml,
 }
 
 impl ConfigFormat {
   /// Maps the config format to its file name.
   pub fn into_file_name(self) -> &'static str {
+    match self {
+      Self::Json => "vitul.conf.json",
+      Self::Json5 => "vitul.conf.json5",
+      Self::Toml => "Vitul.toml",
+    }
+  }
+
+  fn into_legacy_file_name(self) -> &'static str {
     match self {
       Self::Json => "tauri.conf.json",
       Self::Json5 => "tauri.conf.json5",
@@ -49,6 +57,32 @@ impl ConfigFormat {
   }
 
   fn into_platform_file_name(self, target: Target) -> &'static str {
+    match self {
+      Self::Json => match target {
+        Target::MacOS => "vitul.macos.conf.json",
+        Target::Windows => "vitul.windows.conf.json",
+        Target::Linux => "vitul.linux.conf.json",
+        Target::Android => "vitul.android.conf.json",
+        Target::Ios => "vitul.ios.conf.json",
+      },
+      Self::Json5 => match target {
+        Target::MacOS => "vitul.macos.conf.json5",
+        Target::Windows => "vitul.windows.conf.json5",
+        Target::Linux => "vitul.linux.conf.json5",
+        Target::Android => "vitul.android.conf.json5",
+        Target::Ios => "vitul.ios.conf.json5",
+      },
+      Self::Toml => match target {
+        Target::MacOS => "Vitul.macos.toml",
+        Target::Windows => "Vitul.windows.toml",
+        Target::Linux => "Vitul.linux.toml",
+        Target::Android => "Vitul.android.toml",
+        Target::Ios => "Vitul.ios.toml",
+      },
+    }
+  }
+
+  fn into_legacy_platform_file_name(self, target: Target) -> &'static str {
     match self {
       Self::Json => match target {
         Target::MacOS => "tauri.macos.conf.json",
@@ -80,7 +114,7 @@ impl ConfigFormat {
 #[non_exhaustive]
 pub enum ConfigError {
   /// Failed to parse from JSON.
-  #[error("unable to parse JSON Tauri config file at {path} because {error}")]
+  #[error("unable to parse JSON Vitul config file at {path} because {error}")]
   FormatJson {
     /// The path that failed to parse into JSON.
     path: PathBuf,
@@ -91,7 +125,7 @@ pub enum ConfigError {
 
   /// Failed to parse from JSON5.
   #[cfg(feature = "config-json5")]
-  #[error("unable to parse JSON5 Tauri config file at {path} because {error}")]
+  #[error("unable to parse JSON5 Vitul config file at {path} because {error}")]
   FormatJson5 {
     /// The path that failed to parse into JSON5.
     path: PathBuf,
@@ -102,7 +136,7 @@ pub enum ConfigError {
 
   /// Failed to parse from TOML.
   #[cfg(feature = "config-toml")]
-  #[error("unable to parse toml Tauri config file at {path} because {error}")]
+  #[error("unable to parse toml Vitul config file at {path} because {error}")]
   FormatToml {
     /// The path that failed to parse into TOML.
     path: PathBuf,
@@ -126,7 +160,7 @@ pub enum ConfigError {
   },
 
   /// A generic IO error with context of what caused it.
-  #[error("unable to read Tauri config file at {path} because {error}")]
+  #[error("unable to read Vitul config file at {path} because {error}")]
   Io {
     /// The path the IO error occurred on.
     path: PathBuf,
@@ -138,16 +172,18 @@ pub enum ConfigError {
 
 /// Determines if the given folder has a configuration file.
 pub fn folder_has_configuration_file(target: Target, folder: &Path) -> bool {
-  folder.join(ConfigFormat::Json.into_file_name()).exists()
-      || folder.join(ConfigFormat::Json5.into_file_name()).exists()
-      || folder.join(ConfigFormat::Toml.into_file_name()).exists()
-       // platform file names
-       || folder.join(ConfigFormat::Json.into_platform_file_name(target)).exists()
-      || folder.join(ConfigFormat::Json5.into_platform_file_name(target)).exists()
-      || folder.join(ConfigFormat::Toml.into_platform_file_name(target)).exists()
+  does_supported_file_name_exist(target, folder.join(ConfigFormat::Json.into_file_name()))
+    || does_supported_file_name_exist(
+      target,
+      folder.join(ConfigFormat::Json.into_platform_file_name(target)),
+    )
+    || does_supported_file_name_exist(
+      target,
+      folder.join(ConfigFormat::Json.into_legacy_platform_file_name(target)),
+    )
 }
 
-/// Determines if the given file path represents a Tauri configuration file.
+/// Determines if the given file path represents a Vitul or legacy Tauri configuration file.
 pub fn is_configuration_file(target: Target, path: &Path) -> bool {
   path
     .file_name()
@@ -155,30 +191,43 @@ pub fn is_configuration_file(target: Target, path: &Path) -> bool {
       file_name == OsStr::new(ConfigFormat::Json.into_file_name())
         || file_name == OsStr::new(ConfigFormat::Json5.into_file_name())
         || file_name == OsStr::new(ConfigFormat::Toml.into_file_name())
+        || file_name == OsStr::new(ConfigFormat::Json.into_legacy_file_name())
+        || file_name == OsStr::new(ConfigFormat::Json5.into_legacy_file_name())
+        || file_name == OsStr::new(ConfigFormat::Toml.into_legacy_file_name())
       // platform file names
       || file_name == OsStr::new(ConfigFormat::Json.into_platform_file_name(target))
         || file_name == OsStr::new(ConfigFormat::Json5.into_platform_file_name(target))
         || file_name == OsStr::new(ConfigFormat::Toml.into_platform_file_name(target))
+        || file_name == OsStr::new(ConfigFormat::Json.into_legacy_platform_file_name(target))
+        || file_name == OsStr::new(ConfigFormat::Json5.into_legacy_platform_file_name(target))
+        || file_name == OsStr::new(ConfigFormat::Toml.into_legacy_platform_file_name(target))
     })
     .unwrap_or_default()
 }
 
 /// Reads the configuration from the given root directory.
 ///
-/// It first looks for a `tauri.conf.json[5]` or `Tauri.toml` file on the given directory. The file must exist.
+/// It first looks for a `vitul.conf.json[5]` or `Vitul.toml` file on the given directory.
+/// Legacy `tauri.conf.json[5]` and `Tauri.toml` files are also recognized.
 /// Then it looks for a platform-specific configuration file:
-/// - `tauri.macos.conf.json[5]` or `Tauri.macos.toml` on macOS
-/// - `tauri.linux.conf.json[5]` or `Tauri.linux.toml` on Linux
-/// - `tauri.windows.conf.json[5]` or `Tauri.windows.toml` on Windows
-/// - `tauri.android.conf.json[5]` or `Tauri.android.toml` on Android
-/// - `tauri.ios.conf.json[5]` or `Tauri.ios.toml` on iOS
+/// - `vitul.macos.conf.json[5]` or `Vitul.macos.toml` on macOS
+/// - `vitul.linux.conf.json[5]` or `Vitul.linux.toml` on Linux
+/// - `vitul.windows.conf.json[5]` or `Vitul.windows.toml` on Windows
+/// - `vitul.android.conf.json[5]` or `Vitul.android.toml` on Android
+/// - `vitul.ios.conf.json[5]` or `Vitul.ios.toml` on iOS
 ///   Merging the configurations using [JSON Merge Patch (RFC 7396)].
 ///
 /// Returns the raw configuration and used config paths.
 ///
 /// [JSON Merge Patch (RFC 7396)]: https://datatracker.ietf.org/doc/html/rfc7396.
 pub fn read_from(target: Target, root_dir: &Path) -> Result<(Value, Vec<PathBuf>), ConfigError> {
-  let (mut config, config_file_path) = parse_value(target, root_dir.join("tauri.conf.json"))?;
+  let vitul_config_path = root_dir.join(ConfigFormat::Json.into_file_name());
+  let config_path = if has_supported_file_name_in_family(target, &vitul_config_path, false) {
+    vitul_config_path
+  } else {
+    root_dir.join(ConfigFormat::Json.into_legacy_file_name())
+  };
+  let (mut config, config_file_path) = parse_value(target, config_path)?;
   let mut config_paths = vec![config_file_path];
   if let Some((platform_config, path)) = read_platform(target, root_dir)? {
     config_paths.push(path);
@@ -195,6 +244,12 @@ pub fn read_platform(
   root_dir: &Path,
 ) -> Result<Option<(Value, PathBuf)>, ConfigError> {
   let platform_config_path = root_dir.join(ConfigFormat::Json.into_platform_file_name(target));
+  let platform_config_path =
+    if has_supported_file_name_in_family(target, &platform_config_path, false) {
+      platform_config_path
+    } else {
+      root_dir.join(ConfigFormat::Json.into_legacy_platform_file_name(target))
+    };
   if does_supported_file_name_exist(target, &platform_config_path) {
     let (platform_config, path): (Value, PathBuf) = parse_value(target, platform_config_path)?;
     Ok(Some((platform_config, path)))
@@ -209,14 +264,28 @@ pub fn read_platform(
 /// JSON with `.json`.
 pub fn does_supported_file_name_exist(target: Target, path: impl Into<PathBuf>) -> bool {
   let path = path.into();
+  has_supported_file_name_in_family(target, &path, false)
+    || has_supported_file_name_in_family(target, &path, true)
+}
+
+fn has_supported_file_name_in_family(target: Target, path: &Path, legacy: bool) -> bool {
   let source_file_name = path.file_name().unwrap();
-  let lookup_platform_config = ENABLED_FORMATS
-    .iter()
-    .any(|format| source_file_name == format.into_platform_file_name(target));
+  let lookup_platform_config = ENABLED_FORMATS.iter().any(|format| {
+    source_file_name
+      == if legacy {
+        format.into_legacy_platform_file_name(target)
+      } else {
+        format.into_platform_file_name(target)
+      }
+  });
   ENABLED_FORMATS.iter().any(|format| {
     path
-      .with_file_name(if lookup_platform_config {
+      .with_file_name(if lookup_platform_config && legacy {
+        format.into_legacy_platform_file_name(target)
+      } else if lookup_platform_config {
         format.into_platform_file_name(target)
+      } else if legacy {
+        format.into_legacy_file_name()
       } else {
         format.into_file_name()
       })
@@ -227,14 +296,14 @@ pub fn does_supported_file_name_exist(target: Target, path: impl Into<PathBuf>) 
 /// Parse the config from path, including alternative formats.
 ///
 /// Hierarchy:
-/// 1. Check if `tauri.conf.json` exists
+/// 1. Check if `vitul.conf.json` exists (falling back to legacy `tauri.conf.json`)
 ///    a. Parse it with `serde_json`
 ///    b. Parse it with `json5` if `serde_json` fails
 ///    c. Return original `serde_json` error if all above steps failed
-/// 2. Check if `tauri.conf.json5` exists
+/// 2. Check if `vitul.conf.json5` exists
 ///    a. Parse it with `json5`
 ///    b. Return error if all above steps failed
-/// 3. Check if `Tauri.toml` exists
+/// 3. Check if `Vitul.toml` exists
 ///    a. Parse it with `toml`
 ///    b. Return error if all above steps failed
 /// 4. Return error if all above steps failed
@@ -252,23 +321,57 @@ pub fn parse_value(
 
 fn do_parse<D: DeserializeOwned>(
   target: Target,
-  path: PathBuf,
+  mut path: PathBuf,
 ) -> Result<(D, PathBuf), ConfigError> {
+  if !has_supported_file_name_in_family(target, &path, false)
+    && path
+      .file_name()
+      .is_some_and(|name| name.to_string_lossy().starts_with("vitul."))
+  {
+    let legacy_path = path.with_file_name(
+      path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .replacen("vitul.", "tauri.", 1),
+    );
+    if has_supported_file_name_in_family(target, &legacy_path, true) {
+      path = legacy_path;
+    }
+  }
   let file_name = path
     .file_name()
     .map(OsStr::to_string_lossy)
     .unwrap_or_default();
-  let lookup_platform_config = ENABLED_FORMATS
-    .iter()
-    .any(|format| file_name == format.into_platform_file_name(target));
+  let legacy = file_name.starts_with("tauri.") || file_name.starts_with("Tauri.");
+  let lookup_platform_config = ENABLED_FORMATS.iter().any(|format| {
+    file_name
+      == if legacy {
+        format.into_legacy_platform_file_name(target)
+      } else {
+        format.into_platform_file_name(target)
+      }
+  });
 
   let json5 = path.with_file_name(if lookup_platform_config {
-    ConfigFormat::Json5.into_platform_file_name(target)
+    if legacy {
+      ConfigFormat::Json5.into_legacy_platform_file_name(target)
+    } else {
+      ConfigFormat::Json5.into_platform_file_name(target)
+    }
+  } else if legacy {
+    ConfigFormat::Json5.into_legacy_file_name()
   } else {
     ConfigFormat::Json5.into_file_name()
   });
   let toml = path.with_file_name(if lookup_platform_config {
-    ConfigFormat::Toml.into_platform_file_name(target)
+    if legacy {
+      ConfigFormat::Toml.into_legacy_platform_file_name(target)
+    } else {
+      ConfigFormat::Toml.into_platform_file_name(target)
+    }
+  } else if legacy {
+    ConfigFormat::Toml.into_legacy_file_name()
   } else {
     ConfigFormat::Toml.into_file_name()
   });

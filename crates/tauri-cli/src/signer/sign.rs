@@ -42,7 +42,7 @@ pub struct Options {
   /// manifest announces a different version than the one signed here, which prevents a
   /// tampered manifest from pairing a new version number with an older release.
   ///
-  /// `tauri build` sets this automatically; pass it when signing updater artifacts by hand.
+  /// `vitul build` sets this automatically; pass it when signing updater artifacts by hand.
   #[clap(long)]
   app_version: Option<String>,
   /// Sign the specified file
