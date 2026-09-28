@@ -89,7 +89,7 @@ async fn opentool_ipc(
     .body(Body::from(body))
     .map_err(|error| error.to_string())?;
   // Reuse the OpenTool HTTP router as an in-process Tower service. No socket
-  // is bound and no HTTP request is sent over the Tauri IPC transport.
+  // is bound and no HTTP request is sent over the native IPC transport.
   let response = server
     .router()
     .oneshot(request)

@@ -89,13 +89,13 @@ mod test {
             devUrl = http://localhost:1420
 
             [files]
-            tauri.svg = src/assets/tauri.svg
+            vitul.svg = src/assets/vitul.svg
             styles.css = src/styles.css
         "#;
 
         assert_eq!(Manifest::parse(manifest_file).unwrap(), {
             let mut files = HashMap::new();
-            files.insert("tauri.svg", "src/assets/tauri.svg");
+            files.insert("vitul.svg", "src/assets/vitul.svg");
             files.insert("styles.css", "src/styles.css");
 
             Manifest {
@@ -122,7 +122,7 @@ mod test {
             devUrl = http://localhost:1420
 
             [files]
-            tauri.svg = src/assets/tauri.svg
+            vitul.svg = src/assets/vitul.svg
             styles.css = src/styles.css
         "#;
 
@@ -142,13 +142,13 @@ mod test {
         beforeBuildCommand = {% pkg_manager_run_command %} build mobile
 
         [files]
-        tauri.svg = src/assets/tauri.svg
+        vitul.svg = src/assets/vitul.svg
         styles.css = src/styles.css
     "#;
 
         assert_eq!(Manifest::parse(manifest_file).unwrap(), {
             let mut files = HashMap::new();
-            files.insert("tauri.svg", "src/assets/tauri.svg");
+            files.insert("vitul.svg", "src/assets/vitul.svg");
             files.insert("styles.css", "src/styles.css");
 
             Manifest {

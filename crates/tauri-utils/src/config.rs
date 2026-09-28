@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-//! The Tauri configuration used at runtime.
+//! The Vitul desktop configuration used at runtime.
 //!
 //! It is pulled from a `vitul.conf.json` file and the [`Config`] struct is generated at compile time.
 //!
@@ -69,7 +69,7 @@ fn default_true() -> bool {
   true
 }
 
-/// An URL to open on a Tauri webview window.
+/// An URL to open on a Vitul webview window.
 #[derive(PartialEq, Eq, Debug, Clone, Serialize)]
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[serde(untagged)]
@@ -125,7 +125,7 @@ impl Default for WebviewUrl {
   }
 }
 
-/// A bundle referenced by tauri-bundler.
+/// A bundle referenced by the desktop bundler.
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[cfg_attr(feature = "schema", schemars(rename_all = "lowercase"))]
@@ -638,7 +638,7 @@ pub struct MacConfig {
   /// Setting it to `null` completely removes the `LSMinimumSystemVersion` field on the bundle's `Info.plist`
   /// and the `MACOSX_DEPLOYMENT_TARGET` environment variable.
   ///
-  /// Ignored in `tauri dev`.
+  /// Ignored in `vitul dev`.
   ///
   /// An empty string is considered an invalid value so the default value is used.
   #[serde(
@@ -664,7 +664,7 @@ pub struct MacConfig {
   pub entitlements: Option<String>,
   /// Path to a Info.plist file to merge with the default Info.plist.
   ///
-  /// Note that Tauri also looks for a `Info.plist` file in the same directory as the Tauri configuration file.
+  /// Note that Vitul also looks for an `Info.plist` file in the same directory as the Vitul configuration file.
   #[serde(alias = "info-plist")]
   pub info_plist: Option<PathBuf>,
   /// DMG-specific settings.
@@ -749,10 +749,10 @@ pub struct WixConfig {
   /// A GUID upgrade code for MSI installer. This code **_must stay the same across all of your updates_**,
   /// otherwise, Windows will treat your update as a different app and your users will have duplicate versions of your app.
   ///
-  /// By default, tauri generates this code by generating a Uuid v5 using the string `<productName>.exe.app.x64` in the DNS namespace.
-  /// You can use Tauri's CLI to generate and print this code for you, run `tauri inspect wix-upgrade-code`.
+  /// By default, Vitul generates this code by generating a Uuid v5 using the string `<productName>.exe.app.x64` in the DNS namespace.
+  /// You can use Vitul's CLI to generate and print this code for you, run `vitul inspect wix-upgrade-code`.
   ///
-  /// It is recommended that you set this value in your tauri config file to avoid accidental changes in your upgrade code
+  /// It is recommended that you set this value in your Vitul config file to avoid accidental changes in your upgrade code
   /// whenever you want to change your product name.
   #[serde(alias = "upgrade-code")]
   pub upgrade_code: Option<uuid::Uuid>,
@@ -884,7 +884,7 @@ pub struct NsisConfig {
   /// See <https://github.com/kichik/nsis/tree/9465c08046f00ccb6eda985abbdbf52c275c6c4d/Contrib/Language%20files> for the complete list of languages.
   pub languages: Option<Vec<String>>,
   /// A key-value pair where the key is the language and the
-  /// value is the path to a custom `.nsh` file that holds the translated text for tauri's custom messages.
+  /// value is the path to a custom `.nsh` file that holds the translated text for Vitul's custom messages.
   ///
   /// See <https://github.com/tauri-apps/tauri/blob/dev/crates/tauri-bundler/src/bundle/windows/nsis/languages/English.nsh> for an example `.nsh` file.
   ///
@@ -1014,7 +1014,7 @@ pub enum CustomSignCommandConfig {
   /// "%1" will be replaced with the path to the binary to be signed.
   ///
   /// This is a simpler notation for the command.
-  /// Tauri will split the string with `' '` and use the first element as the command name and the rest as arguments.
+  /// Vitul will split the string with `' '` and use the first element as the command name and the rest as arguments.
   ///
   /// If you need to use whitespace in the command or arguments, use the object notation [`Self::CommandWithOptions`].
   Command(String),
@@ -1569,7 +1569,7 @@ pub enum V1Compatible {
   V1Compatible,
 }
 
-/// Configuration for tauri-bundler.
+/// Configuration for the Vitul desktop bundler.
 ///
 /// See more: <https://v2.tauri.app/reference/config/#bundleconfig>
 #[skip_serializing_none]
@@ -1577,7 +1577,7 @@ pub enum V1Compatible {
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BundleConfig {
-  /// Whether Tauri should bundle your application or just output the executable.
+  /// Whether Vitul should bundle your application or just output the executable.
   #[serde(default)]
   pub active: bool,
   /// The bundle targets, currently supports ["deb", "rpm", "appimage", "nsis", "msi", "app", "dmg"] or "all".
@@ -1676,9 +1676,9 @@ pub struct BundleConfig {
   pub use_local_tools_dir: bool,
   /// A list of—either absolute or relative—paths to binaries to embed with your application.
   ///
-  /// Note that Tauri will look for system-specific binaries following the pattern "binary-name{-target-triple}{.system-extension}".
+  /// Note that Vitul will look for system-specific binaries following the pattern "binary-name{-target-triple}{.system-extension}".
   ///
-  /// E.g. for the external binary "my-binary", Tauri looks for:
+  /// E.g. for the external binary "my-binary", Vitul looks for:
   ///
   /// - "my-binary-x86_64-pc-windows-msvc.exe" for Windows
   /// - "my-binary-x86_64-apple-darwin" for macOS
@@ -1870,7 +1870,7 @@ pub struct WindowEffectsConfig {
   ///
   /// Generally, conflicting effects will apply the first one and ignore the rest but
   /// on macOS you can specify one Liquid Glass style and one Visual Effect material at the same time
-  /// to make Tauri fallback to the latter on macOS 15 and below.
+  /// to make Vitul fallback to the latter on macOS 15 and below.
   pub effects: Vec<WindowEffect>,
   /// Window effect state **macOS Only**. Ignored for Liquid Glass Effects.
   pub state: Option<WindowEffectState>,
@@ -1949,7 +1949,7 @@ pub struct WindowConfig {
   /// The window identifier. It must be alphanumeric.
   #[serde(default = "default_window_label")]
   pub label: String,
-  /// Whether Tauri should create this window at app startup or not.
+  /// Whether Vitul should create this window at app startup or not.
   ///
   /// When this is set to `false` you must manually grab the config object via `app.config().app.windows`
   /// and create it with [`WebviewWindowBuilder::from_config`](https://docs.rs/tauri/2/tauri/webview/struct.WebviewWindowBuilder.html#method.from_config).
@@ -2320,7 +2320,7 @@ pub struct WindowConfig {
   /// unavailable. Defaults to `false`.
   ///
   /// When this is set to `true`, the webview can only navigate to the domains listed in the
-  /// `WKAppBoundDomains` array of `src-tauri/Info.ios.plist`. Add `localhost` and every
+  /// `WKAppBoundDomains` array of `src-vitul/Info.ios.plist`. Add `localhost` and every
   /// [registrable domain](https://developer.mozilla.org/en-US/docs/Glossary/Registrable_domain)
   /// this webview loads to that array:
   ///
@@ -2337,7 +2337,7 @@ pub struct WindowConfig {
   /// ```
   ///
   /// `localhost` must be listed if any webview with this option enabled opens a local webpage,
-  /// makes any localhost call, or uses the isolation pattern, because Tauri serves the
+  /// makes any localhost call, or uses the isolation pattern, because Vitul serves the
   /// application webpage, the IPC protocol and the isolation pattern iframe from the
   /// `localhost` domain.
   ///
@@ -2481,7 +2481,7 @@ fn default_height() -> f64 {
 }
 
 fn default_title() -> String {
-  "Tauri App".to_string()
+  "Vitul App".to_string()
 }
 
 /// A Content-Security-Policy directive source list.
@@ -2623,7 +2623,7 @@ impl Display for Csp {
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
 pub enum DisabledCspModificationKind {
   /// If `true`, disables all CSP modification.
-  /// `false` is the default value and it configures Tauri to control the CSP.
+  /// `false` is the default value and it configures Vitul to control the CSP.
   Flag(bool),
   /// Disables the given list of CSP directives modifications.
   List(Vec<String>),
@@ -2780,14 +2780,14 @@ impl Display for HeaderSource {
 
 /// A trait which implements on the [`Builder`] of the http create
 ///
-/// Must add headers defined in the tauri configuration file to http responses
+/// Must add headers defined in the Vitul configuration file to http responses
 pub trait HeaderAddition {
   /// adds all headers defined on the config file, given the current HeaderConfig
   fn add_configured_headers(self, headers: Option<&HeaderConfig>) -> http::response::Builder;
 }
 
 impl HeaderAddition for Builder {
-  /// Add the headers defined in the tauri configuration file to http responses
+  /// Add the headers defined in the Vitul configuration file to http responses
   ///
   /// this is a utility function, which is used in the same way as the `.header(..)` of the rust http library
   fn add_configured_headers(mut self, headers: Option<&HeaderConfig>) -> http::response::Builder {
@@ -3057,7 +3057,7 @@ pub struct SecurityConfig {
   ///
   /// This hardens the frontend against prototype pollution: once the prototype is frozen,
   /// a script cannot add or replace properties on `Object.prototype` and thus cannot tamper
-  /// with objects it does not own, including the ones used by the Tauri API.
+  /// with objects it does not own, including the ones used by the Vitul API.
   ///
   /// The script runs before any of your frontend code, on every webview, regardless of whether
   /// the content is served by the custom protocol or by a development server.
@@ -3067,18 +3067,18 @@ pub struct SecurityConfig {
   /// application with it on before shipping.
   #[serde(default, alias = "freeze-prototype")]
   pub freeze_prototype: bool,
-  /// Disables the Tauri-injected CSP sources.
+  /// Disables the Vitul-injected CSP sources.
   ///
-  /// At compile time, Tauri parses all the frontend assets and changes the Content-Security-Policy
+  /// At compile time, Vitul parses all the frontend assets and changes the Content-Security-Policy
   /// to only allow loading of your own scripts and styles by injecting nonce and hash sources.
   /// This stricts your CSP, which may introduce issues when using along with other flexing sources.
   ///
   /// This configuration option allows both a boolean and a list of strings as value.
-  /// A boolean instructs Tauri to disable the injection for all CSP injections,
-  /// and a list of strings indicates the CSP directives that Tauri cannot inject.
+  /// A boolean instructs Vitul to disable the injection for all CSP injections,
+  /// and a list of strings indicates the CSP directives that Vitul cannot inject.
   ///
   /// **WARNING:** Only disable this if you know what you are doing and have properly configured the CSP.
-  /// Your application might be vulnerable to XSS attacks without this Tauri protection.
+  /// Your application might be vulnerable to XSS attacks without this Vitul protection.
   #[serde(default, alias = "dangerous-disable-asset-csp-modification")]
   pub dangerous_disable_asset_csp_modification: DisabledCspModificationKind,
   /// Custom protocol config.
@@ -3123,7 +3123,7 @@ pub struct SecurityConfig {
   /// ```
   #[serde(default)]
   pub capabilities: Vec<CapabilityEntry>,
-  /// The headers, which are added to every http response from tauri to the web view
+  /// The headers, which are added to every http response from Vitul to the web view
   /// This doesn't include IPC Messages and error responses
   #[serde(default)]
   pub headers: Option<HeaderConfig>,
@@ -3375,7 +3375,7 @@ pub struct AppConfig {
   /// MacOS private API configuration. Enables the transparent background API and sets the `fullScreenEnabled` preference to `true`.
   #[serde(rename = "macOSPrivateApi", alias = "macos-private-api", default)]
   pub macos_private_api: bool,
-  /// Whether we should inject the Tauri API on `window.__TAURI__` or not.
+  /// Whether we should inject the compatibility API on `window.__TAURI__` or not.
   #[serde(default, alias = "with-global-tauri")]
   pub with_global_tauri: bool,
   /// Whether the application `identifier` is used as the GTK application ID on systems that use GTK.
@@ -3401,7 +3401,7 @@ pub struct AppConfig {
   ///
   /// This is useful for portable apps that keep all of their data next to the executable,
   /// and for apps that want their app directories in a location they choose, such as `$DOCUMENT/my-app`.
-  /// Everything that resolves paths through these APIs follows the override, including Tauri itself
+  /// Everything that resolves paths through these APIs follows the override, including Vitul itself
   /// (the default webview data directory on Windows and Linux) and plugins,
   /// so the storage locations do not need to be configured one by one.
   /// The only exception is a window's `dataDirectory` config, which is not affected.
@@ -3486,14 +3486,14 @@ pub struct AppConfig {
   /// ## Platform-specific
   ///
   /// A path relative to the executable only works where the executable's directory is writable:
-  /// portable builds, `tauri dev` builds in the `target` directory and the cases listed below.
+  /// portable builds, `vitul dev` builds in the `target` directory and the cases listed below.
   /// Everywhere else every write to an app directory fails at runtime, so installed apps should use
   /// a base directory variable or an absolute path instead. Unless every distribution of the app is portable,
   /// keep relative paths out of the shared configuration and apply them to the portable build flavor only,
   /// for instance with the CLI's `--config` flag, which accepts a JSON file or an inline JSON string:
   ///
   /// ```sh
-  /// tauri build --config '{ "app": { "appDirectoriesOverride": "./app-data" } }'
+  /// vitul build --config '{ "app": { "appDirectoriesOverride": "./app-data" } }'
   /// ```
   ///
   /// - **Linux**: Relative paths only work for AppImages, where they are resolved relative to the AppImage file,
@@ -3621,7 +3621,7 @@ pub struct IosConfig {
   pub minimum_system_version: String,
   /// Path to a Info.plist file to merge with the default Info.plist.
   ///
-  /// Note that Tauri also looks for a `Info.plist` and `Info.ios.plist` file in the same directory as the Tauri configuration file.
+  /// Note that Vitul also looks for `Info.plist` and `Info.ios.plist` files in the same directory as the Vitul configuration file.
   #[serde(alias = "info-plist")]
   pub info_plist: Option<PathBuf>,
 }
@@ -3665,7 +3665,7 @@ pub struct AndroidConfig {
   ///   `tauri.properties` and increment it by 1 for every build.
   /// - If `false` or not set, it falls back to `version_code` or semver-derived logic.
   ///
-  /// Note that to use this feature, you should remove `/tauri.properties` from `src-tauri/gen/android/app/.gitignore` so the current versionCode is committed to the repository.
+  /// Note that to use this feature, you should remove `/tauri.properties` from `src-vitul/gen/android/app/.gitignore` so the current versionCode is committed to the repository.
   #[serde(alias = "auto-increment-version-code", default)]
   pub auto_increment_version_code: bool,
 
@@ -3715,7 +3715,7 @@ impl std::fmt::Display for FrontendDist {
   }
 }
 
-/// Describes the shell command to run before `tauri dev`.
+/// Describes the shell command to run before `vitul dev`.
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", untagged)]
@@ -3728,7 +3728,7 @@ pub enum BeforeDevCommand {
     script: String,
     /// The current working directory.
     cwd: Option<String>,
-    /// Whether `tauri dev` should wait for the command to finish or not. Defaults to `false`.
+    /// Whether `vitul dev` should wait for the command to finish or not. Defaults to `false`.
     #[serde(default)]
     wait: bool,
   },
@@ -3837,16 +3837,16 @@ pub struct BuildConfig {
   /// Most modern JavaScript bundlers like [Vite](https://vite.dev/guide/) provides a way to start a dev server by default.
   ///
   /// If you don't have a dev server or don't want to use one, ignore this option and use [`frontendDist`](BuildConfig::frontend_dist)
-  /// and point to a web assets directory, and Tauri CLI will run its built-in dev server and provide a simple hot-reload experience.
+  /// and point to a web assets directory, and Vitul CLI will run its built-in dev server and provide a simple hot-reload experience.
   #[serde(alias = "dev-url")]
   pub dev_url: Option<Url>,
   /// The path to the application assets (usually the `dist` folder of your javascript bundler)
-  /// or a URL that could be either a custom protocol registered in the tauri app (for example: `myprotocol://`)
+  /// or a URL that could be either a custom protocol registered in the Vitul app (for example: `myprotocol://`)
   /// or a remote URL (for example: `https://site.com/app`).
   ///
   /// When a path relative to the configuration file is provided,
   /// it is read recursively and all files are embedded in the application binary.
-  /// Tauri then looks for an `index.html` and serves it as the default entry point for your application.
+  /// Vitul then looks for an `index.html` and serves it as the default entry point for your application.
   ///
   /// You can also provide a list of paths to be embedded, which allows granular control over what files are added to the binary.
   /// In this case, all files are added to the root and you must reference it that way in your HTML files.
@@ -3855,7 +3855,7 @@ pub struct BuildConfig {
   /// and the application will load that URL by default.
   #[serde(alias = "frontend-dist")]
   pub frontend_dist: Option<FrontendDist>,
-  /// A shell command to run before `tauri dev` kicks in.
+  /// A shell command to run before `vitul dev` kicks in.
   ///
   /// The `TAURI_ENV_PLATFORM`, `TAURI_ENV_ARCH`, `TAURI_ENV_FAMILY`, `TAURI_ENV_PLATFORM_VERSION`
   /// and `TAURI_ENV_TARGET_TRIPLE` environment variables are set for the command, so it can
@@ -3863,7 +3863,7 @@ pub struct BuildConfig {
   /// `TAURI_ENV_DEBUG` is set to `true` for debug builds and is not set otherwise.
   #[serde(alias = "before-dev-command")]
   pub before_dev_command: Option<BeforeDevCommand>,
-  /// A shell command to run before `tauri build` kicks in.
+  /// A shell command to run before `vitul build` kicks in.
   ///
   /// The `TAURI_ENV_PLATFORM`, `TAURI_ENV_ARCH`, `TAURI_ENV_FAMILY`, `TAURI_ENV_PLATFORM_VERSION`
   /// and `TAURI_ENV_TARGET_TRIPLE` environment variables are set for the command, so it can
@@ -3871,7 +3871,7 @@ pub struct BuildConfig {
   /// `TAURI_ENV_DEBUG` is set to `true` for debug builds and is not set otherwise.
   #[serde(alias = "before-build-command")]
   pub before_build_command: Option<HookCommand>,
-  /// A shell command to run before the bundling phase in `tauri build` kicks in.
+  /// A shell command to run before the bundling phase in `vitul build` kicks in.
   ///
   /// The `TAURI_ENV_PLATFORM`, `TAURI_ENV_ARCH`, `TAURI_ENV_FAMILY`, `TAURI_ENV_PLATFORM_VERSION`
   /// and `TAURI_ENV_TARGET_TRIPLE` environment variables are set for the command, so it can
@@ -3881,16 +3881,16 @@ pub struct BuildConfig {
   pub before_bundle_command: Option<HookCommand>,
   /// Features passed to `cargo` commands.
   pub features: Option<Vec<String>>,
-  /// Try to remove unused commands registered from plugins base on the ACL list during `tauri build`,
-  /// the way it works is that tauri-cli will read this and set the environment variables for the build script and macros,
+  /// Try to remove unused commands registered from plugins base on the ACL list during `vitul build`,
+  /// the way it works is that the Vitul CLI will read this and set the environment variables for the build script and macros,
   /// and they'll try to get all the allowed commands and remove the rest
   ///
   /// Note:
   ///   - This won't be accounting for dynamically added ACLs when you use features from the `dynamic-acl` (currently enabled by default) feature flag, so make sure to check it when using this
-  ///   - This feature requires tauri-plugin 2.1 and tauri 2.4
+  ///   - This feature requires the compatible plugin API 2.1 and desktop runtime 2.4
   #[serde(alias = "remove-unused-commands", default)]
   pub remove_unused_commands: bool,
-  /// Additional paths to watch for changes when running `tauri dev`.
+  /// Additional paths to watch for changes when running `vitul dev`.
   #[serde(
     alias = "additional-watch-folders",
     alias = "additional-watch-directories",
@@ -3990,46 +3990,46 @@ where
   Option::<PackageVersion>::deserialize(deserializer).map(|v| v.map(|v| v.0))
 }
 
-/// The Tauri configuration object.
-/// It is read from a file where you can define your frontend assets,
+/// The Vitul desktop configuration object.
+/// It is read from `src-vitul/vitul.conf.json`, where you can define your frontend assets,
 /// configure the bundler and define a tray icon.
 ///
 /// The configuration file is generated by the
-/// [`tauri init`](https://v2.tauri.app/reference/cli/#init) command that lives in
-/// your Tauri application source directory (src-tauri).
+/// `vitul init` command that lives in
+/// your application source directory (`src-vitul`).
 ///
-/// Once generated, you may modify it at will to customize your Tauri application.
+/// Once generated, you may modify it to customize your Vitul application.
 ///
 /// ## File Formats
 ///
 /// By default, the configuration is defined as a JSON file named `vitul.conf.json`.
 ///
-/// Tauri also supports JSON5 and TOML files via the `config-json5` and `config-toml` Cargo features, respectively.
+/// Vitul supports JSON5 and TOML files via the `config-json5` and `config-toml` Cargo features, respectively.
 /// The JSON5 file name must be either `vitul.conf.json` or `vitul.conf.json5`.
 /// The TOML file name is `Vitul.toml`.
 ///
 /// ## Platform-Specific Configuration
 ///
-/// In addition to the default configuration file, Tauri can
-/// read a platform-specific configuration from `tauri.linux.conf.json`,
-/// `tauri.windows.conf.json`, `tauri.macos.conf.json`, `tauri.android.conf.json` and `tauri.ios.conf.json`
-/// (or `Tauri.linux.toml`, `Tauri.windows.toml`, `Tauri.macos.toml`, `Tauri.android.toml` and `Tauri.ios.toml` if the `Vitul.toml` format is used),
+/// In addition to the default configuration file, Vitul can
+/// read a platform-specific configuration from `vitul.linux.conf.json`,
+/// `vitul.windows.conf.json`, `vitul.macos.conf.json`, `vitul.android.conf.json` and `vitul.ios.conf.json`
+/// (or `Vitul.linux.toml`, `Vitul.windows.toml`, `Vitul.macos.toml`, `Vitul.android.toml` and `Vitul.ios.toml` if the `Vitul.toml` format is used),
 /// which gets merged with the main configuration object.
 ///
 /// ## Configuration Structure
 ///
 /// The configuration is composed of the following objects:
 ///
-/// - [`app`](#appconfig): The Tauri configuration
+/// - [`app`](#appconfig): The application configuration
 /// - [`build`](#buildconfig): The build configuration
 /// - [`bundle`](#bundleconfig): The bundle configurations
 /// - [`plugins`](#pluginconfig): The plugins configuration
 ///
-/// Example tauri.config.json file:
+/// Example `vitul.conf.json` file:
 ///
 /// ```json
 /// {
-///   "productName": "tauri-app",
+///   "productName": "vitul-app",
 ///   "version": "0.1.0",
 ///   "build": {
 ///     "beforeBuildCommand": "",
@@ -4046,7 +4046,7 @@ where
 ///         "fullscreen": false,
 ///         "height": 600,
 ///         "resizable": true,
-///         "title": "Tauri App",
+///         "title": "Vitul App",
 ///         "width": 800
 ///       }
 ///     ]
@@ -4060,7 +4060,7 @@ where
 #[cfg_attr(feature = "schema", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Config {
-  /// The JSON schema for the Tauri config.
+  /// The JSON schema for the Vitul desktop config.
   #[serde(rename = "$schema")]
   pub schema: Option<String>,
   /// App name.
@@ -4085,8 +4085,8 @@ pub struct Config {
   pub product_name: Option<String>,
   /// Overrides app's main binary filename.
   ///
-  /// By default, Tauri uses the output binary from `cargo`, by setting this, we will rename that binary in `tauri-cli`'s
-  /// `tauri build` command, and target `tauri bundle` to it
+  /// By default, Vitul uses the output binary from `cargo`. When this option is set, Vitul renames that binary during
+  /// `vitul build` and targets it for `vitul bundle`.
   ///
   /// If possible, change the [`package name`] or set the [`name field`] instead,
   /// and if that's not enough and you're using nightly, consider using the [`different-binary-name`] feature instead
@@ -4101,7 +4101,7 @@ pub struct Config {
   /// App version. It is a semver version number or a path to a `package.json` file containing the `version` field.
   ///
   /// If removed the version number from `Cargo.toml` is used.
-  /// It's recommended to manage the app versioning in the Tauri config.
+  /// It's recommended to manage the app versioning in the Vitul config.
   ///
   /// ## Platform-specific
   ///
@@ -4109,19 +4109,18 @@ pub struct Config {
   ///    You can set an specific bundle version using [`bundle > macOS > bundleVersion`](MacConfig::bundle_version).
   /// - **iOS**: Translates to the bundle's CFBundleShortVersionString property and is used as the default CFBundleVersion.
   ///    You can set an specific bundle version using [`bundle > iOS > bundleVersion`](IosConfig::bundle_version).
-  ///    The `tauri ios build` CLI command has a `--build-number <number>` option that lets you append a build number to the app version.
+  ///    The `vitul ios build` CLI command has a `--build-number <number>` option that lets you append a build number to the app version.
   /// - **Android**: By default version 1.0 is used. You can set a version code using [`bundle > android > versionCode`](AndroidConfig::version_code).
   ///
   /// By default version 1.0 is used on Android.
   #[serde(deserialize_with = "version_deserializer", default)]
   pub version: Option<String>,
-  /// The application identifier in reverse domain name notation (e.g. `com.tauri.example`).
+  /// The application identifier in reverse domain name notation (e.g. `com.vitul.example`).
   /// This string must be unique across applications since it is used in system configurations like
   /// the bundle ID and path to the webview data directory.
   /// This string must contain only alphanumeric characters (A-Z, a-z, and 0-9), hyphens (-),
   /// and periods (.).
-  /// The default value `com.tauri.dev` is rejected by `tauri build` and must be changed before
-  /// building your application.
+  /// Choose a unique identifier for your application before building it.
   pub identifier: String,
   /// The App configuration.
   #[serde(default)]
@@ -4161,7 +4160,7 @@ impl Serialize for PluginConfig {
 ///
 /// This allows for a build script to output the values in a `Config` to a `TokenStream`, which can
 /// then be consumed by another crate. Useful for passing a config to both the build script and the
-/// application using tauri while only parsing it once (in the build script).
+/// application using Vitul while only parsing it once (in the build script).
 #[cfg(any(feature = "build", feature = "build-2"))]
 mod build {
   use super::*;
@@ -5016,7 +5015,7 @@ mod test {
     // get default bundle
     let d_bundle = BundleConfig::default();
 
-    // create a tauri config.
+    // create a Vitul config.
     let app = AppConfig {
       windows: vec![],
       security: SecurityConfig {

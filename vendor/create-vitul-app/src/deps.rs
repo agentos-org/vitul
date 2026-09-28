@@ -2,30 +2,14 @@ use template::Template;
 
 use crate::package_manager::PackageManager;
 use crate::utils::colors::*;
-use crate::{args::TauriVersion, internal::template};
-use std::process::{Command, Output};
+use crate::{args::DesktopTemplateVersion, internal::template};
+use std::process::Command;
 
 fn is_cli_installed(cli: &str, arg: &str) -> bool {
     Command::new(cli)
         .arg(arg)
         .output()
         .map(|o| o.status.success())
-        .unwrap_or(false)
-}
-
-fn is_tauri_cli_installed(tauri_version: TauriVersion) -> bool {
-    let check = |o: Output| match o.status.success() {
-        true => String::from_utf8_lossy(&o.stdout)
-            .split_once(' ')
-            .map(|(_, v)| v.starts_with(&tauri_version.to_string()))
-            .unwrap_or(false),
-        s => s,
-    };
-    Command::new("cargo")
-        .args(["tauri", "-V"])
-        .output()
-        .map(check)
-        .or_else(|_| Command::new("tauri").arg("-V").output().map(check))
         .unwrap_or(false)
 }
 
@@ -87,11 +71,11 @@ fn is_webview2_installed() -> bool {
     target_os = "openbsd",
     target_os = "netbsd"
 ))]
-fn is_webkit2gtk_installed(tauri_version: TauriVersion) -> bool {
+fn is_webkit2gtk_installed(template_version: DesktopTemplateVersion) -> bool {
     Command::new("pkg-config")
-        .arg(match tauri_version {
-            TauriVersion::V1 => "webkit2gtk-4.0",
-            TauriVersion::V2 => "webkit2gtk-4.1",
+        .arg(match template_version {
+            DesktopTemplateVersion::V1 => "webkit2gtk-4.0",
+            DesktopTemplateVersion::V2 => "webkit2gtk-4.1",
         })
         .output()
         .map(|o| o.status.success())
@@ -133,7 +117,7 @@ struct Dep<'a> {
 pub fn print_missing_deps(
     pkg_manager: PackageManager,
     template: Template,
-    tauri_version: TauriVersion,
+    _template_version: DesktopTemplateVersion,
 ) -> bool {
     let rustc_installed = is_cli_installed("rustc", "-V");
     let cargo_installed = is_cli_installed("cargo", "-V");
@@ -146,7 +130,7 @@ pub fn print_missing_deps(
         target_os = "netbsd"
     ))]
     let (webkit2gtk_installed, rsvg2_installed) =
-        (is_webkit2gtk_installed(tauri_version), is_rsvg2_installed());
+        (is_webkit2gtk_installed(_template_version), is_rsvg2_installed());
 
     let deps: &[Dep<'_>] = &[
         Dep {
@@ -166,15 +150,6 @@ pub fn print_missing_deps(
             instruction: format!("Visit {BLUE}{BOLD}https://www.rust-lang.org/learn/get-started#installing-rust{RESET} to install Rust"),
             exists: &|| cargo_installed,
             skip: !rustc_installed && !cargo_installed,
-        },
-        Dep {
-            name: "Tauri CLI",
-            instruction: match tauri_version {
-                TauriVersion::V1 => format!("Run `{BLUE}{BOLD}cargo install tauri-cli --version ^1.0.0 --locked{RESET}`"),
-                TauriVersion::V2 => format!("Run `{BLUE}{BOLD}cargo install tauri-cli --version ^2.0.0 --locked{RESET}`"),
-            },
-            exists: &|| is_tauri_cli_installed(tauri_version),
-            skip: pkg_manager.is_node() || !template.needs_tauri_cli(),
         },
         Dep {
             name: "Trunk",
@@ -228,9 +203,9 @@ pub fn print_missing_deps(
         ))]
         Dep {
             name: "webkit2gtk & rsvg2",
-            instruction: format!("Visit {BLUE}{BOLD}{}{RESET}", match tauri_version {
-                TauriVersion::V1 => "https://v1.tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux",
-                TauriVersion::V2 => "https://tauri.app/guides/prerequisites/#linux",
+            instruction: format!("Visit {BLUE}{BOLD}{}{RESET}", match _template_version {
+                DesktopTemplateVersion::V1 => "https://v1.tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux",
+                DesktopTemplateVersion::V2 => "https://tauri.app/guides/prerequisites/#linux",
             }),
             exists: &|| webkit2gtk_installed && rsvg2_installed,
             skip: webkit2gtk_installed || rsvg2_installed,
@@ -244,9 +219,9 @@ pub fn print_missing_deps(
         ))]
         Dep {
             name: "webkit2gtk",
-            instruction: format!("Visit {BLUE}{BOLD}{}{RESET}", match tauri_version {
-                TauriVersion::V1 => "https://v1.tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux",
-                TauriVersion::V2 => "https://tauri.app/guides/prerequisites/#linux",
+            instruction: format!("Visit {BLUE}{BOLD}{}{RESET}", match _template_version {
+                DesktopTemplateVersion::V1 => "https://v1.tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux",
+                DesktopTemplateVersion::V2 => "https://tauri.app/guides/prerequisites/#linux",
             }),
             exists: &|| webkit2gtk_installed,
             skip: !rsvg2_installed && !webkit2gtk_installed,
@@ -260,9 +235,9 @@ pub fn print_missing_deps(
         ))]
         Dep {
             name: "rsvg2",
-            instruction: format!("Visit {BLUE}{BOLD}{}{RESET}", match tauri_version {
-                TauriVersion::V1 => "https://v1.tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux",
-                TauriVersion::V2 => "https://tauri.app/guides/prerequisites/#linux",
+            instruction: format!("Visit {BLUE}{BOLD}{}{RESET}", match _template_version {
+                DesktopTemplateVersion::V1 => "https://v1.tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux",
+                DesktopTemplateVersion::V2 => "https://tauri.app/guides/prerequisites/#linux",
             }),
             exists: &|| rsvg2_installed,
             skip: !rsvg2_installed && !webkit2gtk_installed,

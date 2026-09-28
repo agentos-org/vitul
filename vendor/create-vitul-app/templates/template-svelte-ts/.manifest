@@ -9,6 +9,6 @@ frontendDist = ../build
 
 [files]
 vite.svg = static/vite.svg
-tauri.svg = static/tauri.svg
+vitul.svg = static/vitul.svg
 svelte.png = static/favicon.png
 svelte.svg = static/svelte.svg

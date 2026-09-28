@@ -7,7 +7,7 @@ use dialoguer::{Confirm, Input, Select};
 use std::{ffi::OsString, fs, process::exit};
 
 use crate::{
-    args::TauriVersion,
+    args::DesktopTemplateVersion,
     category::Category,
     deps::print_missing_deps,
     package_manager::PackageManager,
@@ -23,7 +23,7 @@ mod template;
 mod utils;
 
 pub mod internal {
-    //! Re-export of create-tauri-app internals
+    //! Re-export of create-vitul-app internals
     //!
     //! ## Warning
     //!
@@ -67,13 +67,14 @@ where
     let defaults = args::Args::default();
     let args::Args {
         skip,
-        tauri_version,
         manager,
         project_name,
         template,
         force,
         identifier,
     } = args;
+    // Vitul templates use the current desktop compatibility API.
+    let template_version = DesktopTemplateVersion::V2;
     let cwd = std::env::current_dir()?;
 
     // Project name used for the project directory name and productName in vitul.conf.json
@@ -330,17 +331,17 @@ where
         &project_name,
         &package_name,
         &identifier,
-        tauri_version,
+        template_version,
     )?;
 
     // Print post-render instructions
     println!();
     print!("Template created!");
-    let has_missing = print_missing_deps(pkg_manager, template, tauri_version);
+    let has_missing = print_missing_deps(pkg_manager, template, template_version);
     if has_missing {
-        let prereqs_url = match tauri_version {
-            TauriVersion::V1 => "https://v1.tauri.app/v1/guides/getting-started/prerequisites/",
-            TauriVersion::V2 => "https://tauri.app/start/prerequisites/",
+        let prereqs_url = match template_version {
+            DesktopTemplateVersion::V1 => "https://v1.tauri.app/v1/guides/getting-started/prerequisites/",
+            DesktopTemplateVersion::V2 => "https://tauri.app/start/prerequisites/",
         };
 
         println!("Make sure you have installed the prerequisites for your OS: {BLUE}{BOLD}{prereqs_url}{RESET}, then run:");
@@ -360,7 +361,7 @@ where
     if let Some(cmd) = pkg_manager.install_cmd() {
         println!("  {cmd}");
     }
-    if matches!(tauri_version, TauriVersion::V1) {
+    if matches!(template_version, DesktopTemplateVersion::V1) {
         println!("  {} vitul dev", pkg_manager.run_cmd());
     } else {
         println!("  {} vitul android init", pkg_manager.run_cmd());

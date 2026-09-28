@@ -9,6 +9,6 @@ frontendDist = ../dist
 
 [files]
 vite.svg = public/vite.svg
-tauri.svg = public/tauri.svg
+vitul.svg = public/vitul.svg
 solid.svg = src/assets/logo.svg
 styles.css = src/App.css

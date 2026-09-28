@@ -77,7 +77,7 @@ impl<'de> Deserialize<'de> for PermissionEntry {
 /// A grouping and boundary mechanism developers can use to isolate access to the IPC layer.
 ///
 /// It controls application windows' and webviews' fine grained access
-/// to the Tauri core, application, or plugin commands.
+/// to the Vitul core, application, or plugin commands.
 /// If a webview or its window is not matching any capability then it has no access to the IPC layer at all.
 ///
 /// This can be done to create groups of windows, based on their required system access, which can reduce

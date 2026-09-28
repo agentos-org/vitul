@@ -35,7 +35,7 @@ const SPEC: &str = r#"{
 pub type VitulOpenToolServer = OpenToolServer<ExampleTool>;
 
 /// Creates an initialized OpenTool server that can be hosted over HTTP or
-/// dispatched in-process through another transport such as Tauri IPC.
+/// dispatched in-process through another transport such as native IPC.
 pub async fn create_server(
   arguments: impl IntoIterator<Item = String>,
   host: String,

@@ -8,11 +8,11 @@ const host = process.env.VITUL_DEV_HOST;{% endif %}
 export default defineConfig(() => ({
   plugins: [react()],
 
-  // Vite options tailored for Tauri development and only applied in `vitul dev` or `vitul build`
+  // Vite options tailored for Vitul development and only applied in `vitul dev` or `vitul build`
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
-  // 2. tauri expects a fixed port, fail if that port is not available
+  // 2. Vitul expects a fixed port, fail if that port is not available
   server: {
     port: 1420,
     strictPort: true,{% if v2 %}

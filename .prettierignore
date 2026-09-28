@@ -37,4 +37,6 @@ CHANGELOG.md
 
 # examples /gen directory
 examples/**/src-tauri/gen
+examples/**/src-vitul/gen
 bench/**/src-tauri/gen
+bench/**/src-vitul/gen

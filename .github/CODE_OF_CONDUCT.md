@@ -59,8 +59,7 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-[contact@tauri.app](mailto:contact@tauri.app).
+reported to the community leaders through a [confidential Vitul issue](https://gitlab.litevar.com:90/litevar/agentos/vitul/-/issues/new?issue%5Bconfidential%5D=true).
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the

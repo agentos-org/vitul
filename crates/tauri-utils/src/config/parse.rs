@@ -48,14 +48,6 @@ impl ConfigFormat {
     }
   }
 
-  fn into_legacy_file_name(self) -> &'static str {
-    match self {
-      Self::Json => "tauri.conf.json",
-      Self::Json5 => "tauri.conf.json5",
-      Self::Toml => "Tauri.toml",
-    }
-  }
-
   fn into_platform_file_name(self, target: Target) -> &'static str {
     match self {
       Self::Json => match target {
@@ -78,32 +70,6 @@ impl ConfigFormat {
         Target::Linux => "Vitul.linux.toml",
         Target::Android => "Vitul.android.toml",
         Target::Ios => "Vitul.ios.toml",
-      },
-    }
-  }
-
-  fn into_legacy_platform_file_name(self, target: Target) -> &'static str {
-    match self {
-      Self::Json => match target {
-        Target::MacOS => "tauri.macos.conf.json",
-        Target::Windows => "tauri.windows.conf.json",
-        Target::Linux => "tauri.linux.conf.json",
-        Target::Android => "tauri.android.conf.json",
-        Target::Ios => "tauri.ios.conf.json",
-      },
-      Self::Json5 => match target {
-        Target::MacOS => "tauri.macos.conf.json5",
-        Target::Windows => "tauri.windows.conf.json5",
-        Target::Linux => "tauri.linux.conf.json5",
-        Target::Android => "tauri.android.conf.json5",
-        Target::Ios => "tauri.ios.conf.json5",
-      },
-      Self::Toml => match target {
-        Target::MacOS => "Tauri.macos.toml",
-        Target::Windows => "Tauri.windows.toml",
-        Target::Linux => "Tauri.linux.toml",
-        Target::Android => "Tauri.android.toml",
-        Target::Ios => "Tauri.ios.toml",
       },
     }
   }
@@ -177,13 +143,9 @@ pub fn folder_has_configuration_file(target: Target, folder: &Path) -> bool {
       target,
       folder.join(ConfigFormat::Json.into_platform_file_name(target)),
     )
-    || does_supported_file_name_exist(
-      target,
-      folder.join(ConfigFormat::Json.into_legacy_platform_file_name(target)),
-    )
 }
 
-/// Determines if the given file path represents a Vitul or legacy Tauri configuration file.
+/// Determines if the given file path represents a Vitul configuration file.
 pub fn is_configuration_file(target: Target, path: &Path) -> bool {
   path
     .file_name()
@@ -191,16 +153,10 @@ pub fn is_configuration_file(target: Target, path: &Path) -> bool {
       file_name == OsStr::new(ConfigFormat::Json.into_file_name())
         || file_name == OsStr::new(ConfigFormat::Json5.into_file_name())
         || file_name == OsStr::new(ConfigFormat::Toml.into_file_name())
-        || file_name == OsStr::new(ConfigFormat::Json.into_legacy_file_name())
-        || file_name == OsStr::new(ConfigFormat::Json5.into_legacy_file_name())
-        || file_name == OsStr::new(ConfigFormat::Toml.into_legacy_file_name())
       // platform file names
       || file_name == OsStr::new(ConfigFormat::Json.into_platform_file_name(target))
         || file_name == OsStr::new(ConfigFormat::Json5.into_platform_file_name(target))
         || file_name == OsStr::new(ConfigFormat::Toml.into_platform_file_name(target))
-        || file_name == OsStr::new(ConfigFormat::Json.into_legacy_platform_file_name(target))
-        || file_name == OsStr::new(ConfigFormat::Json5.into_legacy_platform_file_name(target))
-        || file_name == OsStr::new(ConfigFormat::Toml.into_legacy_platform_file_name(target))
     })
     .unwrap_or_default()
 }
@@ -208,7 +164,6 @@ pub fn is_configuration_file(target: Target, path: &Path) -> bool {
 /// Reads the configuration from the given root directory.
 ///
 /// It first looks for a `vitul.conf.json[5]` or `Vitul.toml` file on the given directory.
-/// Legacy `tauri.conf.json[5]` and `Tauri.toml` files are also recognized.
 /// Then it looks for a platform-specific configuration file:
 /// - `vitul.macos.conf.json[5]` or `Vitul.macos.toml` on macOS
 /// - `vitul.linux.conf.json[5]` or `Vitul.linux.toml` on Linux
@@ -222,12 +177,7 @@ pub fn is_configuration_file(target: Target, path: &Path) -> bool {
 /// [JSON Merge Patch (RFC 7396)]: https://datatracker.ietf.org/doc/html/rfc7396.
 pub fn read_from(target: Target, root_dir: &Path) -> Result<(Value, Vec<PathBuf>), ConfigError> {
   let vitul_config_path = root_dir.join(ConfigFormat::Json.into_file_name());
-  let config_path = if has_supported_file_name_in_family(target, &vitul_config_path, false) {
-    vitul_config_path
-  } else {
-    root_dir.join(ConfigFormat::Json.into_legacy_file_name())
-  };
-  let (mut config, config_file_path) = parse_value(target, config_path)?;
+  let (mut config, config_file_path) = parse_value(target, vitul_config_path)?;
   let mut config_paths = vec![config_file_path];
   if let Some((platform_config, path)) = read_platform(target, root_dir)? {
     config_paths.push(path);
@@ -244,12 +194,6 @@ pub fn read_platform(
   root_dir: &Path,
 ) -> Result<Option<(Value, PathBuf)>, ConfigError> {
   let platform_config_path = root_dir.join(ConfigFormat::Json.into_platform_file_name(target));
-  let platform_config_path =
-    if has_supported_file_name_in_family(target, &platform_config_path, false) {
-      platform_config_path
-    } else {
-      root_dir.join(ConfigFormat::Json.into_legacy_platform_file_name(target))
-    };
   if does_supported_file_name_exist(target, &platform_config_path) {
     let (platform_config, path): (Value, PathBuf) = parse_value(target, platform_config_path)?;
     Ok(Some((platform_config, path)))
@@ -264,28 +208,18 @@ pub fn read_platform(
 /// JSON with `.json`.
 pub fn does_supported_file_name_exist(target: Target, path: impl Into<PathBuf>) -> bool {
   let path = path.into();
-  has_supported_file_name_in_family(target, &path, false)
-    || has_supported_file_name_in_family(target, &path, true)
+  has_supported_file_name_in_family(target, &path)
 }
 
-fn has_supported_file_name_in_family(target: Target, path: &Path, legacy: bool) -> bool {
+fn has_supported_file_name_in_family(target: Target, path: &Path) -> bool {
   let source_file_name = path.file_name().unwrap();
-  let lookup_platform_config = ENABLED_FORMATS.iter().any(|format| {
-    source_file_name
-      == if legacy {
-        format.into_legacy_platform_file_name(target)
-      } else {
-        format.into_platform_file_name(target)
-      }
-  });
+  let lookup_platform_config = ENABLED_FORMATS
+    .iter()
+    .any(|format| source_file_name == format.into_platform_file_name(target));
   ENABLED_FORMATS.iter().any(|format| {
     path
-      .with_file_name(if lookup_platform_config && legacy {
-        format.into_legacy_platform_file_name(target)
-      } else if lookup_platform_config {
+      .with_file_name(if lookup_platform_config {
         format.into_platform_file_name(target)
-      } else if legacy {
-        format.into_legacy_file_name()
       } else {
         format.into_file_name()
       })
@@ -296,7 +230,7 @@ fn has_supported_file_name_in_family(target: Target, path: &Path, legacy: bool) 
 /// Parse the config from path, including alternative formats.
 ///
 /// Hierarchy:
-/// 1. Check if `vitul.conf.json` exists (falling back to legacy `tauri.conf.json`)
+/// 1. Check if `vitul.conf.json` exists
 ///    a. Parse it with `serde_json`
 ///    b. Parse it with `json5` if `serde_json` fails
 ///    c. Return original `serde_json` error if all above steps failed
@@ -321,57 +255,23 @@ pub fn parse_value(
 
 fn do_parse<D: DeserializeOwned>(
   target: Target,
-  mut path: PathBuf,
+  path: PathBuf,
 ) -> Result<(D, PathBuf), ConfigError> {
-  if !has_supported_file_name_in_family(target, &path, false)
-    && path
-      .file_name()
-      .is_some_and(|name| name.to_string_lossy().starts_with("vitul."))
-  {
-    let legacy_path = path.with_file_name(
-      path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .replacen("vitul.", "tauri.", 1),
-    );
-    if has_supported_file_name_in_family(target, &legacy_path, true) {
-      path = legacy_path;
-    }
-  }
   let file_name = path
     .file_name()
     .map(OsStr::to_string_lossy)
     .unwrap_or_default();
-  let legacy = file_name.starts_with("tauri.") || file_name.starts_with("Tauri.");
-  let lookup_platform_config = ENABLED_FORMATS.iter().any(|format| {
-    file_name
-      == if legacy {
-        format.into_legacy_platform_file_name(target)
-      } else {
-        format.into_platform_file_name(target)
-      }
-  });
+  let lookup_platform_config = ENABLED_FORMATS
+    .iter()
+    .any(|format| file_name == format.into_platform_file_name(target));
 
   let json5 = path.with_file_name(if lookup_platform_config {
-    if legacy {
-      ConfigFormat::Json5.into_legacy_platform_file_name(target)
-    } else {
-      ConfigFormat::Json5.into_platform_file_name(target)
-    }
-  } else if legacy {
-    ConfigFormat::Json5.into_legacy_file_name()
+    ConfigFormat::Json5.into_platform_file_name(target)
   } else {
     ConfigFormat::Json5.into_file_name()
   });
   let toml = path.with_file_name(if lookup_platform_config {
-    if legacy {
-      ConfigFormat::Toml.into_legacy_platform_file_name(target)
-    } else {
-      ConfigFormat::Toml.into_platform_file_name(target)
-    }
-  } else if legacy {
-    ConfigFormat::Toml.into_legacy_file_name()
+    ConfigFormat::Toml.into_platform_file_name(target)
   } else {
     ConfigFormat::Toml.into_file_name()
   });

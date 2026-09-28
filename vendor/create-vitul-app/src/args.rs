@@ -2,41 +2,30 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-use std::{ffi::OsString, fmt::Display, str::FromStr};
+use std::{ffi::OsString, fmt::Display};
 
 use pico_args::Arguments;
 
 use crate::{package_manager::PackageManager, template::Template, utils::colors::*};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
-pub enum TauriVersion {
+pub enum DesktopTemplateVersion {
     V1,
     #[default]
     V2,
 }
 
-impl TauriVersion {
-    pub fn all() -> [TauriVersion; 2] {
-        [TauriVersion::V1, TauriVersion::V2]
+impl DesktopTemplateVersion {
+    pub fn all() -> [DesktopTemplateVersion; 2] {
+        [DesktopTemplateVersion::V1, DesktopTemplateVersion::V2]
     }
 }
 
-impl Display for TauriVersion {
+impl Display for DesktopTemplateVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::V1 => write!(f, "1"),
             Self::V2 => write!(f, "2"),
-        }
-    }
-}
-
-impl FromStr for TauriVersion {
-    type Err = &'static str;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "1" => Ok(Self::V1),
-            "2" => Ok(Self::V2),
-            _ => Err("unknown Tauri version"),
         }
     }
 }
@@ -49,19 +38,17 @@ pub struct Args {
     pub identifier: Option<String>,
     pub skip: bool,
     pub force: bool,
-    pub tauri_version: TauriVersion,
 }
 
 impl Default for Args {
     fn default() -> Self {
         Self {
-            project_name: Some("tauri-app".to_string()),
-            identifier: Some("com.tauri.dev".to_string()),
+            project_name: Some("vitul-app".to_string()),
+            identifier: Some("com.vitul.app".to_string()),
             manager: Some(PackageManager::Npm),
             template: Some(Template::Vanilla),
             skip: false,
             force: false,
-            tauri_version: TauriVersion::default(),
         }
     }
 }
@@ -73,7 +60,6 @@ pub fn parse(argv: Vec<OsString>, bin_name: Option<String>) -> anyhow::Result<Ar
         let help = format!(
             r#"
 {GREEN}{name}{RESET} {version}
-{authors}
 {desc}
 
 {YELLOW}USAGE:{RESET}
@@ -88,13 +74,11 @@ pub fn parse(argv: Vec<OsString>, bin_name: Option<String>) -> anyhow::Result<Ar
                     {GREEN}--identifier <identifier>{RESET} Specify a unique identifier for your application
   {GREEN}-y{RESET}, {GREEN}--yes{RESET}                     Skip prompts and use defaults where applicable
   {GREEN}-f{RESET}, {GREEN}--force{RESET}                   Force create the directory even if it is not empty.
-                    {GREEN}--tauri-version [1 | 2]{RESET}   Bootstrap a project using the provided Tauri version. Defaults to the latest stable release.
   {GREEN}-h{RESET}, {GREEN}--help{RESET}                    Prints help information
   {GREEN}-v{RESET}, {GREEN}--version{RESET}                 Prints version information
 "#,
             name = bin_name.unwrap_or_else(|| env!("CARGO_PKG_NAME").to_string()),
             version = env!("CARGO_PKG_VERSION"),
-            authors = env!("CARGO_PKG_AUTHORS"),
             desc = env!("CARGO_PKG_DESCRIPTION"),
             managers = PackageManager::ALL
                 .iter()
@@ -116,14 +100,11 @@ pub fn parse(argv: Vec<OsString>, bin_name: Option<String>) -> anyhow::Result<Ar
         std::process::exit(0);
     }
 
-    let tauri_version: Option<TauriVersion> = pargs.opt_value_from_str("--tauri-version")?;
-
     let args = Args {
         manager: pargs.opt_value_from_str(["-m", "--manager"])?,
         template: pargs.opt_value_from_str(["-t", "--template"])?,
         skip: pargs.contains(["-y", "--yes"]),
         force: pargs.contains(["-f", "--force"]),
-        tauri_version: tauri_version.unwrap_or_default(),
         identifier: pargs.opt_value_from_str("--identifier")?,
         project_name: pargs.opt_free_from_str()?,
     };

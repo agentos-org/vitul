@@ -3,6 +3,6 @@
 # SPDX-License-Identifier: MIT
 
 contact_links:
-  - name: 💬 Discord Chat
-    url: https://discord.com/invite/tauri
-    about: Ask questions and talk to other Tauri users and the maintainers
+  - name: Vitul issue tracker
+    url: https://gitlab.litevar.com:90/litevar/agentos/vitul/-/issues
+    about: Ask questions and discuss Vitul issues with its maintainers

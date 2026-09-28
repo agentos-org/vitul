@@ -38,6 +38,29 @@ export type AgentOSHostBridge = {
   invoke<T>(method: string, payload?: Record<string, unknown>): Promise<T>;
 };
 
+function agentOSSidecarName(name: string): string {
+  if (
+    name.length === 0 ||
+    name.length > 512 ||
+    name.startsWith("/") ||
+    name.startsWith("\\") ||
+    /^[a-zA-Z]:/.test(name)
+  ) {
+    throw new Error("AgentOS sidecar must be a relative bundle.externalBin path.");
+  }
+  const parts = name.split(/[\\/]/);
+  if (parts.some((part) => part === "" || part === "." || part === "..")) {
+    throw new Error("AgentOS sidecar path cannot contain empty or traversal segments.");
+  }
+  const logicalName = parts[parts.length - 1] ?? "";
+  if (!/^[a-z][a-z0-9-]{0,31}$/.test(logicalName)) {
+    throw new Error(
+      "AgentOS sidecar names must use a lowercase basename matching [a-z][a-z0-9-]{0,31}.",
+    );
+  }
+  return logicalName;
+}
+
 declare global {
   interface Window {
     __TAURI_INTERNALS__?: unknown;
@@ -93,8 +116,51 @@ class AgentOSHostProvider implements HostProvider {
   };
 
   sidecar = {
-    spawn: async (_name: string, _args?: string[]): Promise<HostSidecar> =>
-      Promise.reject(new Error("AgentOS sidecar process management is unavailable.")),
+    spawn: async (name: string, args: string[] = []): Promise<HostSidecar> => {
+      const started = await this.bridge.invoke<{
+        processId?: unknown;
+        pid?: unknown;
+      }>("sidecar.spawn", { name: agentOSSidecarName(name), args });
+      if (
+        !started ||
+        typeof started.processId !== "string" ||
+        !/^[a-f0-9]{32}$/.test(started.processId) ||
+        typeof started.pid !== "number" ||
+        !Number.isSafeInteger(started.pid) ||
+        started.pid <= 0
+      ) {
+        throw new Error("AgentOS returned an invalid sidecar process handle.");
+      }
+
+      const processId = started.processId;
+      let stopped = false;
+      let stopping: Promise<void> | undefined;
+      return {
+        pid: started.pid,
+        kill: async () => {
+          if (stopped) return;
+          if (!stopping) {
+            const request = this.bridge
+              .invoke<{ processId?: unknown; stopped?: unknown }>("sidecar.kill", {
+                processId,
+              })
+              .then((result) => {
+                if (result?.processId !== processId || result.stopped !== true) {
+                  throw new Error("AgentOS could not confirm the sidecar stop request.");
+                }
+                stopped = true;
+              });
+            stopping = request;
+          }
+          const request = stopping;
+          try {
+            await request;
+          } finally {
+            if (stopping === request) stopping = undefined;
+          }
+        },
+      };
+    },
   };
 }
 

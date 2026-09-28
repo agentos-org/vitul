@@ -13,7 +13,7 @@ const FRONTEND_MAIN: &str = include_str!("../templates/frontend-main.ts");
 const FRONTEND_OPENTOOL: &str = include_str!("../templates/opentool.ts");
 const FRONTEND_HOST: &str = include_str!("../templates/host.ts");
 const DESKTOP_HOST: &str = include_str!("../templates/desktop-host.ts");
-const TAURI_LIB: &str = include_str!("../templates/tauri-lib.rs");
+const VITUL_LIB: &str = include_str!("../templates/vitul-lib.rs");
 const VITE_CONFIG: &str = include_str!("../templates/vite.config.ts");
 const VITUL_CONFIG: &str = include_str!("../templates/vitul.conf.json");
 const PROJECT_README: &str = include_str!("../templates/VITUL.md");
@@ -24,12 +24,12 @@ pub fn run(mut args: Vec<OsString>) -> Result<()> {
     .iter()
     .any(|arg| arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v")
   {
-    create_tauri_app::run(args, Some("vitul init".to_owned()), None);
+    create_vitul_app::run(args, Some("vitul init".to_owned()), None);
     return Ok(());
   }
 
   let project_name = project_name(&args).unwrap_or_else(|| "vitul-app".to_owned());
-  configure_tauri_version(&args)?;
+  reject_tauri_version_option(&args)?;
   if option_value(&args, "--identifier", "--identifier").is_none() {
     args.extend([
       OsString::from("--identifier"),
@@ -42,7 +42,7 @@ pub fn run(mut args: Vec<OsString>) -> Result<()> {
     bail!("the OpenTool starter currently supports the `vanilla-ts` template");
   }
 
-  create_tauri_app::run(args, Some("vitul init".to_owned()), None);
+  create_vitul_app::run(args, Some("vitul init".to_owned()), None);
   let project_root = std::env::current_dir()?.join(project_name);
   rename_generated_runtime_dir(&project_root)?;
   rename_generated_config(&project_root)?;
@@ -86,10 +86,9 @@ fn rename_generated_config(project_root: &Path) -> Result<()> {
   })
 }
 
-fn configure_tauri_version(args: &[OsString]) -> Result<()> {
-  if option_value(args, "--tauri-version", "--tauri-version").is_some_and(|version| version != "2")
-  {
-    bail!("Vitul uses the Tauri 2-compatible desktop API; `--tauri-version 1` is not supported");
+fn reject_tauri_version_option(args: &[OsString]) -> Result<()> {
+  if has_option(args, "--tauri-version", "") {
+    bail!("`--tauri-version` is not a Vitul option; `vitul init` selects the supported desktop runtime automatically");
   }
   Ok(())
 }
@@ -178,15 +177,16 @@ fn scaffold(project_root: &Path) -> Result<()> {
   write_file(project_root, "src/main.ts", FRONTEND_MAIN)?;
   write_file(project_root, "src/host.ts", FRONTEND_HOST)?;
   write_file(project_root, "src/desktop-host.ts", DESKTOP_HOST)?;
-  write_file(project_root, "src-vitul/src/lib.rs", TAURI_LIB)?;
+  write_file(project_root, "src-vitul/src/lib.rs", VITUL_LIB)?;
   write_file(project_root, "vite.config.ts", VITE_CONFIG)?;
   write_file(project_root, "vitul.conf.json", VITUL_CONFIG)?;
   write_file(project_root, "README.md", PROJECT_README)?;
   write_file(project_root, "README-zh_CN.md", PROJECT_README_ZH_CN)?;
   write_file(project_root, "VITUL.md", PROJECT_README)?;
   write_file(project_root, "VITUL-zh_CN.md", PROJECT_README_ZH_CN)?;
+  remove_unused_frontend_assets(project_root)?;
   configure_frontend_dependencies(project_root)?;
-  configure_tauri_plugins(project_root)?;
+  configure_desktop_plugins(project_root)?;
   configure_capabilities(project_root)?;
 
   let mut vitul_config_path = PathBuf::from(project_root);
@@ -195,6 +195,7 @@ fn scaffold(project_root: &Path) -> Result<()> {
     &fs::read(&vitul_config_path).context("failed to read generated desktop runtime config")?,
   )
   .context("failed to parse generated desktop runtime config")?;
+  config["$schema"] = serde_json::Value::String("https://schema.vitul.app/config/2.12.0".into());
   if let Some(title) = config
     .get_mut("app")
     .and_then(|app| app.get_mut("windows"))
@@ -214,6 +215,19 @@ fn scaffold(project_root: &Path) -> Result<()> {
     "Created OpenTool-first Vitul project at {}",
     project_root.display()
   );
+  Ok(())
+}
+
+fn remove_unused_frontend_assets(project_root: &Path) -> Result<()> {
+  for relative_path in ["src/assets/vitul.svg", "src/assets/vite.svg"] {
+    match fs::remove_file(project_root.join(relative_path)) {
+      Ok(()) => {}
+      Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+      Err(error) => {
+        return Err(error).with_context(|| format!("failed to remove {relative_path}"));
+      }
+    }
+  }
   Ok(())
 }
 
@@ -265,7 +279,7 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
   .context("failed to update generated frontend dependencies")
 }
 
-fn configure_tauri_plugins(project_root: &Path) -> Result<()> {
+fn configure_desktop_plugins(project_root: &Path) -> Result<()> {
   let path = project_root.join("src-vitul/Cargo.toml");
   let mut cargo_toml =
     fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
@@ -333,7 +347,7 @@ fn configure_capabilities(project_root: &Path) -> Result<()> {
   }
   fs::write(
     path,
-    serde_json::to_vec_pretty(&capability).context("failed to encode Tauri capability")?,
+    serde_json::to_vec_pretty(&capability).context("failed to encode Vitul capability")?,
   )
   .context("failed to configure Vitul desktop host API permissions")
 }

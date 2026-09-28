@@ -1575,8 +1575,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "create-tauri-app"
-version = "4.7.4"
+name = "create-vitul-app"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "ctrlc",
@@ -10369,7 +10369,7 @@ name = "vitul-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "create-tauri-app",
+ "create-vitul-app",
  "serde_json",
  "tauri-cli",
  "tempfile",

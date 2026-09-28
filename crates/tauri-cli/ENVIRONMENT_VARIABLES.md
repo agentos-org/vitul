@@ -1,62 +1,59 @@
-### Tauri's Environment Variables
+# Vitul Desktop Runtime Environment Variables
 
 [简体中文](ENVIRONMENT_VARIABLES-zh_CN.md)
 
-This is a documentation of all environment variables used by tauri core crates and tauri CLI.
+This page documents environment variables used by Vitul's compatible desktop runtime and CLI. Existing `TAURI_*` names are retained as compatibility interfaces; `VITUL_*` names are used for Vitul-specific settings.
 
-### Tauri CLI
+## CLI Input Variables
 
-These environment variables are inputs to the CLI which may have an equivalent CLI flag.
+These variables provide input to the CLI; some have an equivalent CLI flag. If both an environment variable and CLI flag are set, the CLI flag takes priority.
 
-> if both environment variable and CLI flag are used, the CLI flag will have priority.
-
-- `CI` — If set, the CLI will run in CI mode and won't require any user interaction.
-- `TAURI_CLI_CONFIG_DEPTH` — Number of levels to traverse and find tauri configuration file.
-- `TAURI_CLI_PORT` — Port to use for the CLI built-in dev server.
-- `TAURI_CLI_WATCHER_IGNORE_FILENAME` — Name of a `.gitignore`-style file to control which files should be watched by the CLI in `dev` command. The CLI will look for this file name in each directory.
-- `TAURI_CLI_NO_DEV_SERVER_WAIT` — Skip waiting for the frontend dev server to start before building the tauri application.
-- `TAURI_APP_PATH` — Path to the Vitul application (Rust crate) directory, usually `<project>/src-vitul`. When set, the CLI uses it instead of searching for the configuration file from the current directory.
-- `TAURI_FRONTEND_PATH` — Path to the frontend directory, usually `<project>`. When set, the CLI uses it instead of inferring the frontend directory from the Tauri application directory.
-- `VITUL_CONFIG` — JSON string with configuration values to merge into `vitul.conf.json`. Vitul sets it from the `--config` argument so that the build and code generation steps see the same merged configuration; set it yourself when compiling with `cargo` directly. The legacy `TAURI_CONFIG` name is also recognized.
-- `TAURI_LINUX_AYATANA_APPINDICATOR` — Set this var to `true` or `1` to force usage of `libayatana-appindicator` for system tray on Linux.
-- `TAURI_BUNDLER_WIX_FIPS_COMPLIANT` — Specify the bundler's WiX `FipsCompliant` option.
-- `TAURI_BUNDLER_TOOLS_GITHUB_MIRROR` - Specify a GitHub mirror to download files and tools used by tauri bundler.
-- `TAURI_BUNDLER_TOOLS_GITHUB_MIRROR_TEMPLATE` - Specify a GitHub mirror template to download files and tools used by tauri bundler, for example: `https://mirror.example.com/<owner>/<repo>/releases/download/<version>/<asset>`.
-- `TAURI_BUNDLER_DMG_IGNORE_CI` - Disable the check for `CI: true` in the `.dmg` bundler.
-- `TAURI_SKIP_SIDECAR_SIGNATURE_CHECK` - Skip signing sidecars.
-- `TAURI_SIGNING_PRIVATE_KEY` — Private key used to sign your app bundles. For the `build` and `bundle` command, can be either a string or a path to the file. For the `signer sign` command, this must be the literal key string.
-- `TAURI_SIGNING_PRIVATE_KEY_PATH` — Path to the private key file for the `signer sign` command. Mutually exclusive with `TAURI_SIGNING_PRIVATE_KEY` when using the signer command.
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — The signing private key password, see `TAURI_SIGNING_PRIVATE_KEY`.
-- `TAURI_SIGNING_RPM_KEY` — The private GPG key used to sign the RPM bundle, exported to its ASCII-armored format.
-- `TAURI_SIGNING_RPM_KEY_PASSPHRASE` — The GPG key passphrase for `TAURI_SIGNING_RPM_KEY`, if needed.
-- `TAURI_WINDOWS_SIGNTOOL_PATH` — Specify a path to `signtool.exe` used for code signing the application on Windows.
+- `CI` — Run the CLI in CI mode without user interaction.
+- `TAURI_CLI_CONFIG_DEPTH` — Number of directory levels to search for a Vitul config file.
+- `TAURI_CLI_PORT` — Port used by the built-in development server.
+- `TAURI_CLI_WATCHER_IGNORE_FILENAME` — Name of a `.gitignore`-style file that controls which files the `dev` command watches. The CLI looks for this file in each directory.
+- `TAURI_CLI_NO_DEV_SERVER_WAIT` — Skip waiting for the frontend development server before building the app.
+- `TAURI_APP_PATH` — Path to the Vitul application crate, usually `<project>/src-vitul`. When set, the CLI uses it instead of searching for a config file from the current directory.
+- `TAURI_FRONTEND_PATH` — Path to the frontend directory, usually `<project>`. When set, the CLI uses it instead of inferring the frontend directory from the Vitul app directory.
+- `VITUL_CONFIG` — JSON values to merge into `vitul.conf.json`. Vitul sets it from `--config` so build and code generation use the same merged config. You can also set it when compiling with `cargo` directly. The compatibility alias `TAURI_CONFIG` is also recognized.
+- `TAURI_LINUX_AYATANA_APPINDICATOR` — Set to `true` or `1` to force `libayatana-appindicator` for the Linux system tray.
+- `TAURI_BUNDLER_WIX_FIPS_COMPLIANT` — Set the bundler's WiX `FipsCompliant` option.
+- `TAURI_BUNDLER_TOOLS_GITHUB_MIRROR` — GitHub mirror used to download bundler tools.
+- `TAURI_BUNDLER_TOOLS_GITHUB_MIRROR_TEMPLATE` — GitHub mirror URL template, such as `https://mirror.example.com/<owner>/<repo>/releases/download/<version>/<asset>`.
+- `TAURI_BUNDLER_DMG_IGNORE_CI` — Disable the `.dmg` bundler's `CI: true` check.
+- `TAURI_SKIP_SIDECAR_SIGNATURE_CHECK` — Skip sidecar signature checks.
+- `TAURI_SIGNING_PRIVATE_KEY` — Private key used to sign app bundles. `build` and `bundle` accept a key string or file path; `signer sign` requires the key string itself.
+- `TAURI_SIGNING_PRIVATE_KEY_PATH` — Private-key file path for `signer sign`. It cannot be set together with `TAURI_SIGNING_PRIVATE_KEY` for that command.
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — Password for `TAURI_SIGNING_PRIVATE_KEY`.
+- `TAURI_SIGNING_RPM_KEY` — ASCII-armored GPG private key used to sign RPM packages.
+- `TAURI_SIGNING_RPM_KEY_PASSPHRASE` — Passphrase for `TAURI_SIGNING_RPM_KEY`, if required.
+- `TAURI_WINDOWS_SIGNTOOL_PATH` — Path to `signtool.exe` used for Windows code signing.
 - `STATIC_VCRUNTIME` — Deprecated. Set `build > windows > staticVCRuntime` in `vitul.conf.json` instead.
-- `VCTOOLS_REDIST_DIR` — Override the Visual C++ redistributable root directory used when `bundle > windows > bundleVCRuntime` is enabled. If unset, Tauri uses its bundled `vswhere.exe` to locate Visual Studio and derive this directory.
-- `APPLE_CERTIFICATE` — Base64 encoded of the `.p12` certificate for code signing. To get this value, run `openssl base64 -in MyCertificate.p12 -out MyCertificate-base64.txt`.
-- `APPLE_CERTIFICATE_PASSWORD` — The password you used to export the certificate.
-- `APPLE_ID` — The Apple ID used to notarize the application. If this environment variable is provided, `APPLE_PASSWORD` and `APPLE_TEAM_ID` must also be set. Alternatively, `APPLE_API_KEY` and `APPLE_API_ISSUER` can be used to authenticate.
-- `APPLE_PASSWORD` — The Apple password used to authenticate for application notarization. Required if `APPLE_ID` is specified. An app-specific password can be used. Alternatively to entering the password in plaintext, it may also be specified using a '@keychain:' or '@env:' prefix followed by a keychain password item name or environment variable name.
-- `APPLE_TEAM_ID`: Developer team ID. To find your Team ID, go to the [Account](https://developer.apple.com/account) page on the Apple Developer website, and check your membership details.
-- `APPLE_API_KEY` — Alternative to `APPLE_ID` and `APPLE_PASSWORD` for notarization authentication using JWT. Also an option to allow automated iOS certificate and provisioning profile management.
-  - See [creating API keys](https://developer.apple.com/documentation/appstoreconnectapi/creating_api_keys_for_app_store_connect_api) for more information.
-- `APPLE_API_ISSUER` — Issuer ID. Required if `APPLE_API_KEY` is specified.
-- `APPLE_API_KEY_PATH` - path to the API key `.p8` file. If not specified, for macOS apps the bundler searches the following directories in sequence for a private key file with the name of `AuthKey\_<api_key>.p8`: `./private_keys`, `~/private_keys`, `~/.private_keys`, and `~/.appstoreconnect/private_keys`. **For iOS this variable is required**.
-- `APPLE_SIGNING_IDENTITY` — The identity used to code sign. Overwrites `tauri.conf.json > bundle > macOS > signingIdentity`. If neither are set, it is inferred from `APPLE_CERTIFICATE` when provided.
-- `APPLE_PROVIDER_SHORT_NAME` — If your Apple ID is connected to multiple teams, you have to specify the provider short name of the team you want to use to notarize your app. Overwrites `tauri.conf.json > bundle > macOS > providerShortName`.
-- `APPLE_DEVELOPMENT_TEAM` — The team ID used to code sign on iOS. Overwrites `tauri.conf.json > bundle > iOS > developmentTeam`. Can be found in https://developer.apple.com/account#MembershipDetailsCard.
-- `TAURI_WEBVIEW_AUTOMATION` — Enables webview automation (Linux Only).
-- `TAURI_DEV_ROOT_CERTIFICATE_PATH` — Path to a PEM encoded root certificate that the application should trust when running `vitul android dev` or `vitul ios dev`. Useful when your development server is served over HTTPS with a self signed certificate.
-- `TAURI_ANDROID_PROJECT_PATH` — Path of the Android project, usually `<project>/src-vitul/gen/android`.
-- `TAURI_IOS_PROJECT_PATH` — Path of the iOS project, usually `<project>/src-vitul/gen/apple`.
+- `VCTOOLS_REDIST_DIR` — Override the Visual C++ redistributable directory used when `bundle > windows > bundleVCRuntime` is enabled.
+- `APPLE_CERTIFICATE` — Base64-encoded `.p12` certificate for code signing.
+- `APPLE_CERTIFICATE_PASSWORD` — Password used when exporting the certificate.
+- `APPLE_ID` — Apple ID used for notarization. Also set `APPLE_PASSWORD` and `APPLE_TEAM_ID`, or use `APPLE_API_KEY` and `APPLE_API_ISSUER`.
+- `APPLE_PASSWORD` — Apple password used for notarization. An app-specific password or `@keychain:` / `@env:` reference can be used.
+- `APPLE_TEAM_ID` — Developer team ID, available on the [Apple Developer account page](https://developer.apple.com/account).
+- `APPLE_API_KEY` — JWT-based alternative to `APPLE_ID` and `APPLE_PASSWORD`; it can also enable automated iOS certificate and provisioning-profile management.
+- `APPLE_API_ISSUER` — Issuer ID required when `APPLE_API_KEY` is set.
+- `APPLE_API_KEY_PATH` — Path to the API key `.p8` file. For macOS, the bundler searches standard private-key directories if unset. iOS builds require this variable.
+- `APPLE_SIGNING_IDENTITY` — Code-signing identity. Overrides `vitul.conf.json > bundle > macOS > signingIdentity`.
+- `APPLE_PROVIDER_SHORT_NAME` — Notarization team provider short name. Overrides `vitul.conf.json > bundle > macOS > providerShortName`.
+- `APPLE_DEVELOPMENT_TEAM` — iOS code-signing team ID. Overrides `vitul.conf.json > bundle > iOS > developmentTeam`.
+- `TAURI_WEBVIEW_AUTOMATION` — Enable WebView automation (Linux only).
+- `TAURI_DEV_ROOT_CERTIFICATE_PATH` — PEM root certificate trusted by the app during `vitul android dev` or `vitul ios dev`, useful with an HTTPS development server using a self-signed certificate.
+- `TAURI_ANDROID_PROJECT_PATH` — Android project path, usually `<project>/src-vitul/gen/android`.
+- `TAURI_IOS_PROJECT_PATH` — iOS project path, usually `<project>/src-vitul/gen/apple`.
 
-### Vitul CLI Hook Commands
+## Vitul CLI Hook Variables
 
-These environment variables are set for each hook command (`beforeDevCommand`, `beforeBuildCommand`, ...etc) which could be useful to conditionally build your frontend or execute a specific action.
+These variables are set for hook commands such as `beforeDevCommand` and `beforeBuildCommand`.
 
-- `TAURI_ENV_DEBUG` — `true` for the `dev` command or `build --debug`. Not set at all otherwise, so check for the presence of the variable instead of comparing it to `false`.
-- `TAURI_ENV_TARGET_TRIPLE` — Target triple the CLI is building.
-- `TAURI_ENV_ARCH` — Target arch, `x86_64`, `aarch64`...etc.
-- `TAURI_ENV_PLATFORM` — Target platform, `windows`, `darwin`, `linux`...etc.
-- `TAURI_ENV_PLATFORM_VERSION` — Build platform version
-- `TAURI_ENV_FAMILY` — Target platform family `unix` or `windows`.
-- `VITUL_DEV_HOST` — The IP address your frontend development server must listen on so the app can reach it over the network. Only set by `vitul android dev` and `vitul ios dev`, and only when `--host` is used, when running on a physical device or when `build > devUrl` points to `0.0.0.0`.
+- `TAURI_ENV_DEBUG` — `true` for `dev` or `build --debug`; unset otherwise.
+- `TAURI_ENV_TARGET_TRIPLE` — Target triple being built.
+- `TAURI_ENV_ARCH` — Target architecture.
+- `TAURI_ENV_PLATFORM` — Target platform (`windows`, `darwin`, `linux`, etc.).
+- `TAURI_ENV_PLATFORM_VERSION` — Build platform version.
+- `TAURI_ENV_FAMILY` — Target platform family (`unix` or `windows`).
+- `VITUL_DEV_HOST` — IP address the frontend development server must listen on so the app can reach it. Set by `vitul android dev` and `vitul ios dev` when `--host` is used, the app runs on a physical device, or `build > devUrl` points to `0.0.0.0`.

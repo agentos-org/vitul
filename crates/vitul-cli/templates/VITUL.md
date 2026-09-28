@@ -43,14 +43,14 @@ host IPC and requests only `native.window-control` for AgentOS. Add other
 AgentOS starts the packaged backend on a per-instance dynamic loopback port and
 serves the frontend at `/`; OpenTool RPC uses `/opentool` on that same origin.
 
-Android and iOS use Tauri IPC to call the OpenTool router embedded in the app's
+Android and iOS use native IPC to call the OpenTool router embedded in the app's
 native process. Requests keep the OpenTool JSON-RPC envelope, and `streamCall`
-events travel over a Tauri Channel. This mobile transport does not start an HTTP
+events travel over a native channel. This mobile transport does not start an HTTP
 server. The backend is linked into the mobile app from `backend/`. Desktop apps
 continue to call their separately running OpenTool backend over HTTP; the
 desktop IPC handler only supplies its endpoint.
 
-Keep business APIs in the OpenTool backend instead of adding one Tauri command
+Keep business APIs in the OpenTool backend instead of adding one native command
 per business operation.
 
 ## Sidecars
@@ -58,6 +58,14 @@ per business operation.
 Declare sidecars through the compatible `bundle.externalBin` setting in
 `src-vitul/vitul.conf.json`. Desktop builds keep the expected target-suffixed
 sidecar files. The AgentOS ARM64 builder collects the matching ARM64 Linux
-binaries into the `.agt` archive's `sidecars/` directory.
-AgentOS Shell does not expose sidecar process spawning through `HostProvider`
-yet, so use the OpenTool backend for long-running app services.
+binaries into the `.agt` archive's `sidecars/` directory. AgentOS sidecar names
+come from each configured path's basename and must match
+`[a-z][a-z0-9-]{0,31}`; for example, `binaries/worker` is exposed as `worker`.
+
+To use sidecars through the shared host API, call
+`host.sidecar.spawn("binaries/worker", ["--version"])` and later call the
+returned handle's `kill()` method. On AgentOS, add `native.sidecars` to
+`agentos.permissions` in the project-root `vitul.conf.json`; packaging fails
+when sidecars are declared without this permission request. AgentOS still asks
+the user to grant the requested host permission. Browser previews do not
+support sidecars.

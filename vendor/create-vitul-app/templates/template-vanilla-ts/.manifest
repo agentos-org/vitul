@@ -5,6 +5,6 @@ frontendDist = ../dist
 withGlobalTauri = true
 
 [files]
-tauri.svg = src/assets/tauri.svg
+vitul.svg = src/assets/vitul.svg
 vite.svg = src/assets/vite.svg
 styles.css = src/styles.css

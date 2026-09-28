@@ -8,5 +8,5 @@ devUrl = http://localhost:1420
 frontendDist = ../dist/{% package_name %}/browser
 
 [files]
-tauri.svg = src/assets/tauri.svg
+vitul.svg = src/assets/vitul.svg
 styles.css = src/app/app.component.css

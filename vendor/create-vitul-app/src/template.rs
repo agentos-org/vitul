@@ -8,7 +8,7 @@ use anyhow::Context;
 use rust_embed::Embed;
 
 use crate::{
-    args::TauriVersion,
+    args::DesktopTemplateVersion,
     manifest::Manifest,
     package_manager::PackageManager,
     utils::{self, colors::*, lte},
@@ -239,18 +239,6 @@ impl Template {
         matches!(self, Template::Sycamore | Template::Yew | Template::Leptos)
     }
 
-    pub const fn needs_tauri_cli(&self) -> bool {
-        matches!(
-            self,
-            Template::Dioxus
-                | Template::Sycamore
-                | Template::Yew
-                | Template::Leptos
-                | Template::Vanilla
-                | Template::Blazor
-        )
-    }
-
     pub const fn needs_dotnet(&self) -> bool {
         matches!(self, Template::Blazor)
     }
@@ -270,7 +258,7 @@ impl Template {
         project_name: &str,
         package_name: &str,
         identifier: &str,
-        tauri_version: TauriVersion,
+        template_version: DesktopTemplateVersion,
     ) -> anyhow::Result<()> {
         let manifest_bytes =
             EMBEDDED_TEMPLATES::get(&format!("template-{self}/{CTA_MANIFEST_FILENAME}"))
@@ -283,12 +271,12 @@ impl Template {
         let lib_name = format!("{}_lib", package_name.replace('-', "_"));
         let project_name_pascal_case = utils::to_pascal_case(project_name);
 
-        let versions = TauriVersion::all()
+        let versions = DesktopTemplateVersion::all()
             .iter()
             .map(|&v| {
                 (
                     format!("v{v}",),
-                    match v == tauri_version {
+                    match v == template_version {
                         true => "true",
                         false => "false",
                     },
@@ -366,7 +354,7 @@ impl Template {
             template_data.insert(version.as_str(), enabled.to_string());
         }
 
-        let version_flags = TauriVersion::all()
+        let version_flags = DesktopTemplateVersion::all()
             .iter()
             .map(|&v| (v, format!("v{v}")))
             .collect::<Vec<_>>();
@@ -409,7 +397,7 @@ impl Template {
 
                     // this file has a version flag and matches active version.
                     // if doesn't have any version flag, it should be rendered
-                    if for_version.map(|v| v == tauri_version).unwrap_or(true)
+                    if for_version.map(|v| v == template_version).unwrap_or(true)
                         // this file has a package manager flag and matches active package manager.
                         // if doesn't have any package manager flag, it should be rendered
                         && (flags.contains(&pkg_manager.to_string().as_str()) || flags.is_empty())

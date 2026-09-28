@@ -10,5 +10,5 @@ frontendDist = ../dist
 [files]
 preact.svg = src/assets/preact.svg
 vite.svg = public/vite.svg
-tauri.svg = public/tauri.svg
+vitul.svg = public/vitul.svg
 styles.css = src/App.css

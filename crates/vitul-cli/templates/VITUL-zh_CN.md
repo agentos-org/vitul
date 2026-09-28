@@ -26,12 +26,14 @@ Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS �
 
 `src/host.ts` 定义系统 API 边界；`src/desktop-host.ts` 将其映射到桌面和移动原生运行时，AgentOS provider 则调用宿主提供的 `window.agentos.host` 桥接接口。脚手架示例通过宿主 IPC 最小化窗口，AgentOS 仅请求 `native.window-control` 权限。只有应用确实需要时，才在 `vitul.conf.json` 中添加其他 `native.*` 权限。AgentOS 会为每个应用实例动态分配 loopback 端口来启动后端，并在同一来源下以 `/` 提供前端、以 `/opentool` 提供 OpenTool RPC。
 
-Android 和 iOS 通过 Tauri IPC 调用嵌入 App 原生进程的 OpenTool 路由。请求继续使用 OpenTool JSON-RPC 消息格式，`streamCall` 事件通过 Tauri Channel 传递；移动端不会启动 HTTP 服务。后端通过 `backend/` 链接进移动 App。桌面应用仍通过 HTTP 调用独立运行的 OpenTool 后端，桌面 IPC 处理器只向前端提供后端地址。
+Android 和 iOS 通过原生 IPC 调用嵌入 App 原生进程的 OpenTool 路由。请求继续使用 OpenTool JSON-RPC 消息格式，`streamCall` 事件通过原生事件通道传递；移动端不会启动 HTTP 服务。后端通过 `backend/` 链接进移动 App。桌面应用仍通过 HTTP 调用独立运行的 OpenTool 后端，桌面 IPC 处理器只向前端提供后端地址。
 
-业务 API 应放在 OpenTool 后端中，不要为每个业务操作额外创建一个 Tauri 命令。
+业务 API 应放在 OpenTool 后端中，不要为每个业务操作额外创建一个原生命令。
 
 ## Sidecar
 
 通过兼容的 `bundle.externalBin` 配置项声明 sidecar，配置文件位于 `src-vitul/vitul.conf.json`。桌面构建会保留带目标后缀的 sidecar 文件；AgentOS ARM64 构建器会将对应的 ARM64 Linux 二进制文件收集到 `.agt` 包的 `sidecars/` 目录中。
 
-AgentOS Shell 目前尚未通过 `HostProvider` 提供 sidecar 进程启动能力；长期运行的应用服务请使用 OpenTool 后端。
+AgentOS 中的 sidecar 逻辑名称取自配置路径的 basename，必须匹配 `[a-z][a-z0-9-]{0,31}`；例如 `binaries/worker` 对应 `worker`。通过统一宿主 API 启动 sidecar：`host.sidecar.spawn("binaries/worker", ["--version"])`，并调用返回句柄的 `kill()` 停止进程。
+
+若 AgentOS App 声明了 `bundle.externalBin`，请在项目根目录的 `vitul.conf.json` 的 `agentos.permissions` 中增加 `native.sidecars`。打包器会在 sidecar 已声明但权限未申请时中止打包；AgentOS Shell 仍会向用户请求授权。浏览器预览不支持 sidecar。

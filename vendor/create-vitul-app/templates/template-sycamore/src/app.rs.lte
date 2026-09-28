@@ -23,7 +23,7 @@ pub fn App() -> View {
     let greet = move |e: SubmitEvent| {
         e.prevent_default();
         spawn_local_scoped(async move {
-            // Learn more about Tauri commands at {% if v2 %}https://tauri.app/develop/calling-rust/{% else %}https://v1.tauri.app/v1/guides/features/command{% endif %}
+            // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
             let args = serde_wasm_bindgen::to_value(&GreetArgs {
 				name: &name.get_clone()
 			})
@@ -36,19 +36,19 @@ pub fn App() -> View {
     view! {
         main(class="container") {
             h1 {
-                "Welcome to Tauri + Sycamore"
+                "Welcome to Vitul + Sycamore"
             }
 
             div(class="row") {
-                a(href="https://tauri.app", target="_blank") {
-                    img(src="public/tauri.svg", class="logo tauri", alt="Tauri logo")
+                a(href="https://gitlab.litevar.com:90/litevar/agentos/vitul", target="_blank") {
+                    img(src="public/vitul.svg", class="logo vitul", alt="Vitul logo")
                 }
                 a(href="https://sycamore.dev", target="_blank") {
                     img(src="public/sycamore.svg", class="logo sycamore", alt="Sycamore logo")
                 }
             }
             p {
-                "Click on the Tauri and Sycamore logos to learn more."
+                "Click on the Vitul and Sycamore logos to learn more."
             }
 
             form(class="row", on:submit=greet) {

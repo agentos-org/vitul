@@ -22,7 +22,7 @@ pub fn to_valid_pkg_name(project_name: &str) -> String {
         .collect::<String>();
 
     if ret.is_empty() {
-        "tauri-app".to_string()
+        "vitul-app".to_string()
     } else {
         ret
     }

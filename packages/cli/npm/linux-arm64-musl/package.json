@@ -8,8 +8,8 @@
   "files": [
     "cli.linux-arm64-musl.node"
   ],
-  "description": "Command line interface for building Tauri apps",
-  "homepage": "https://github.com/tauri-apps/tauri#readme",
+  "description": "Vitul command line interface for building desktop apps",
+  "homepage": "https://gitlab.litevar.com:90/litevar/agentos/vitul#readme",
   "contributors": [
     "Tauri Programme within The Commons Conservancy"
   ],
@@ -19,10 +19,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tauri-apps/tauri.git"
+    "url": "git+https://gitlab.litevar.com:90/litevar/agentos/vitul.git"
   },
   "bugs": {
-    "url": "https://github.com/tauri-apps/tauri/issues"
+    "url": "https://gitlab.litevar.com:90/litevar/agentos/vitul/-/issues"
   },
   "publishConfig": {
     "access": "public"

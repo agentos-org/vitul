@@ -14,7 +14,7 @@ export class AppComponent {
   greet(event: SubmitEvent, name: string): void {
     event.preventDefault();
 
-    // Learn more about Tauri commands at {% if v2 %}https://tauri.app/develop/calling-rust/{% else %}https://v1.tauri.app/v1/guides/features/command{% endif %}
+    // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
     invoke<string>("greet", { name }).then((text) => {
       this.greetingMessage.set(text);
     });

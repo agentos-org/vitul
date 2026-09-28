@@ -9,5 +9,5 @@ frontendDist = ../dist
 withGlobalTauri = true
 
 [files]
-tauri.svg = public/tauri.svg
+vitul.svg = public/vitul.svg
 styles.css = styles.css

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 static CSS: Asset = asset!("/assets/styles.css");
-static TAURI_ICON: Asset = asset!("/assets/tauri.svg");
+static VITUL_ICON: Asset = asset!("/assets/vitul.svg");
 static DIOXUS_ICON: Asset = asset!("/assets/dioxus.png");
 
 #[wasm_bindgen]
@@ -32,7 +32,7 @@ pub fn App() -> Element {
 
         let name = name.read();
         let args = serde_wasm_bindgen::to_value(&GreetArgs { name: &*name }).unwrap();
-        // Learn more about Tauri commands at {% if v2 %}https://tauri.app/develop/calling-rust/{% else %}https://v1.tauri.app/v1/guides/features/command{% endif %}
+        // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
         let new_msg = invoke("greet", args).await.as_string().unwrap();
         greet_msg.set(new_msg);
     };
@@ -41,17 +41,17 @@ pub fn App() -> Element {
         link { rel: "stylesheet", href: CSS }
         main {
             class: "container",
-            h1 { "Welcome to Tauri + Dioxus" }
+            h1 { "Welcome to Vitul + Dioxus" }
 
             div {
                 class: "row",
                 a {
-                    href: "https://tauri.app",
+                    href: "https://gitlab.litevar.com:90/litevar/agentos/vitul",
                     target: "_blank",
                     img {
-                        src: TAURI_ICON,
-                        class: "logo tauri",
-                         alt: "Tauri logo"
+                        src: VITUL_ICON,
+                        class: "logo vitul",
+                         alt: "Vitul logo"
                     }
                 }
                 a {
@@ -64,7 +64,7 @@ pub fn App() -> Element {
                     }
                 }
             }
-            p { "Click on the Tauri and Dioxus logos to learn more." }
+            p { "Click on the Vitul and Dioxus logos to learn more." }
 
             form {
                 class: "row",

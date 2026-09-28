@@ -6,4 +6,4 @@ withGlobalTauri = true
 
 [files]
 styles.css = src/wwwroot/css/app.css
-tauri.svg = src/wwwroot/img/tauri.svg
+vitul.svg = src/wwwroot/img/vitul.svg

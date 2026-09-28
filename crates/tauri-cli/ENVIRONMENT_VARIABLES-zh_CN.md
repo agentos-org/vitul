@@ -29,7 +29,7 @@
 - `TAURI_SIGNING_RPM_KEY_PASSPHRASE`：`TAURI_SIGNING_RPM_KEY` 对应的 GPG 密码。
 - `TAURI_WINDOWS_SIGNTOOL_PATH`：用于代码签名的 `signtool.exe` 路径。
 - `STATIC_VCRUNTIME`：已弃用。请改为在 `vitul.conf.json` 中设置 `build > windows > staticVCRuntime`。
-- `VCTOOLS_REDIST_DIR`：启用 `bundle > windows > bundleVCRuntime` 时，覆盖 Visual C++ 可再发行组件的根目录。未设置时，Tauri 会使用随附的 `vswhere.exe` 定位 Visual Studio 并推导该目录。
+- `VCTOOLS_REDIST_DIR`：启用 `bundle > windows > bundleVCRuntime` 时，覆盖 Visual C++ 可再发行组件的根目录。
 - `APPLE_CERTIFICATE`：用于代码签名的 `.p12` 证书的 Base64 内容。可以运行 `openssl base64 -in MyCertificate.p12 -out MyCertificate-base64.txt` 生成。
 - `APPLE_CERTIFICATE_PASSWORD`：导出证书时设置的密码。
 - `APPLE_ID`：用于应用公证的 Apple ID。设置后还必须设置 `APPLE_PASSWORD` 和 `APPLE_TEAM_ID`；也可以改用 `APPLE_API_KEY` 和 `APPLE_API_ISSUER` 进行认证。

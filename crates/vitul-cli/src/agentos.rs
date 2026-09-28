@@ -1,6 +1,7 @@
-use anyhow::{bail, Context, Result};
-use serde_json::{json, Value};
+use anyhow::{Context, Result, bail};
+use serde_json::{Value, json};
 use std::{
+  collections::HashSet,
   env, fs,
   path::{Path, PathBuf},
   process::{Command, Output},
@@ -16,6 +17,14 @@ const DEFAULT_AGENTOS_PERMISSIONS: &[&str] = &[
   "native.clipboard",
   "native.notifications",
   "native.external-links",
+];
+const SUPPORTED_AGENTOS_PERMISSIONS: &[&str] = &[
+  "native.window-control",
+  "native.file-dialogs",
+  "native.clipboard",
+  "native.notifications",
+  "native.external-links",
+  "native.sidecars",
 ];
 
 pub fn build_arm64(project_root: &Path) -> Result<()> {
@@ -160,6 +169,15 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
   let staging = tempfile::tempdir().context("failed to create package staging directory")?;
   let staging_root = staging.path();
   let packaged_sidecars = collect_sidecars(runtime_dir, &config, staging_root)?;
+  if !packaged_sidecars.is_empty()
+    && !permissions
+      .iter()
+      .any(|permission| permission == "native.sidecars")
+  {
+    bail!(
+      "bundle.externalBin declares AgentOS sidecars; add `native.sidecars` to `agentos.permissions` in vitul.conf.json to request permission"
+    );
+  }
 
   let manifest = json!({
     "manifestVersion": 2,
@@ -252,7 +270,7 @@ fn agentos_permissions(project_root: &Path) -> Result<Vec<String>> {
     let permission = permission
       .as_str()
       .context("agentos.permissions entries must be strings")?;
-    if !DEFAULT_AGENTOS_PERMISSIONS.contains(&permission) {
+    if !SUPPORTED_AGENTOS_PERMISSIONS.contains(&permission) {
       bail!("unsupported AgentOS permission: {permission}");
     }
     if !resolved.iter().any(|existing| existing == permission) {
@@ -275,8 +293,9 @@ fn collect_sidecars(
   };
   let external_bins = external_bins
     .as_array()
-    .context("bundle.externalBin must be an array of Tauri sidecar base paths")?;
+    .context("bundle.externalBin must be an array of desktop sidecar base paths")?;
   let mut entries = Vec::with_capacity(external_bins.len());
+  let mut names = HashSet::with_capacity(external_bins.len());
   for external_bin in external_bins {
     let base = external_bin
       .as_str()
@@ -285,14 +304,23 @@ fn collect_sidecars(
     let source = PathBuf::from(format!("{}-{RUST_TARGET}", sidecar_base.display()));
     if !source.is_file() {
       bail!(
-        "AgentOS ARM64 sidecar is missing: {} (Tauri externalBin requires the target suffix `-{RUST_TARGET}`)",
+        "AgentOS ARM64 sidecar is missing: {} (bundle.externalBin entries require the target suffix `-{RUST_TARGET}`)",
         source.display()
       );
     }
     let name = sidecar_base
       .file_name()
       .and_then(|name| name.to_str())
-      .context("bundle.externalBin path has no valid filename")?;
+      .context("bundle.externalBin path has no valid filename")?
+      .to_owned();
+    if !is_agentos_sidecar_name(&name) {
+      bail!(
+        "AgentOS sidecar name `{name}` must match `^[a-z][a-z0-9-]{{0,31}}$` (use a lowercase basename without the target suffix)"
+      );
+    }
+    if !names.insert(name.clone()) {
+      bail!("bundle.externalBin contains duplicate AgentOS sidecar name `{name}`");
+    }
     let relative_entry = format!("sidecars/{name}");
     let destination = staging_root.join(&relative_entry);
     if let Some(parent) = destination.parent() {
@@ -300,9 +328,18 @@ fn collect_sidecars(
     }
     fs::copy(&source, &destination)
       .with_context(|| format!("failed to copy AgentOS sidecar from {}", source.display()))?;
-    entries.push(json!({ "name": name, "entry": relative_entry }));
+    entries.push(json!({ "name": name, "executable": relative_entry }));
   }
   Ok(entries)
+}
+
+fn is_agentos_sidecar_name(name: &str) -> bool {
+  let bytes = name.as_bytes();
+  (1..=32).contains(&bytes.len())
+    && bytes[0].is_ascii_lowercase()
+    && bytes[1..]
+      .iter()
+      .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
 }
 
 fn app_id(package_name: &str) -> String {
@@ -383,8 +420,8 @@ fn run_command(command: &mut Command, description: &str) -> Result<Output> {
 
 #[cfg(test)]
 mod tests {
-  use super::{app_id, package_app, ARCHITECTURE, RUST_TARGET};
-  use serde_json::{json, Value};
+  use super::{ARCHITECTURE, RUST_TARGET, app_id, package_app};
+  use serde_json::{Value, json};
   use std::{fs, process::Command};
   use tempfile::tempdir;
 
@@ -430,9 +467,26 @@ mod tests {
         "build": { "frontendDist": "../dist" },
         "bundle": { "externalBin": ["binaries/worker"] }
       }))
-      .expect("encode Tauri config"),
+      .expect("encode Vitul desktop config"),
     )
-    .expect("write Tauri config");
+    .expect("write Vitul desktop config");
+    fs::write(
+      root.join("vitul.conf.json"),
+      serde_json::to_vec(&json!({
+        "agentos": {
+          "permissions": [
+            "native.window-control",
+            "native.file-dialogs",
+            "native.clipboard",
+            "native.notifications",
+            "native.external-links",
+            "native.sidecars"
+          ]
+        }
+      }))
+      .expect("encode Vitul project config"),
+    )
+    .expect("write Vitul project config");
 
     package_app(root, &package_json, &vitul_config).expect("package AgentOS app");
 
@@ -481,9 +535,11 @@ mod tests {
         "native.file-dialogs",
         "native.clipboard",
         "native.notifications",
-        "native.external-links"
+        "native.external-links",
+        "native.sidecars"
       ])
     );
-    assert_eq!(manifest["sidecars"][0]["entry"], "sidecars/worker");
+    assert_eq!(manifest["sidecars"][0]["name"], "worker");
+    assert_eq!(manifest["sidecars"][0]["executable"], "sidecars/worker");
   }
 }
