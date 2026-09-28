@@ -40,7 +40,9 @@ async function getEndpoint(): Promise<string> {
     if (!window.agentos?.host && (await isTauri())) {
       return invoke<string>("opentool_endpoint");
     }
-    return new URL("/", window.location.href).toString();
+    const webShellAppRoute = /^\/apps\/([^/]+)(?:\/|$)/.exec(window.location.pathname);
+    const basePath = webShellAppRoute ? `/apps/${webShellAppRoute[1]}/` : "/";
+    return new URL(basePath, window.location.href).toString();
   })();
   return endpoint;
 }

@@ -4,8 +4,9 @@
 
 - “最小化窗口”通过宿主 IPC 调用系统功能。桌面版本由桌面运行时处理；
   AgentOS 版本调用其宿主桥接接口。
-- greet 表单通过 OpenTool JSON-RPC 向 Rust 后端发送业务请求，路由为
-  /opentool/call。
+- greet 表单通过 OpenTool JSON-RPC 向 Rust 后端发送业务请求，后端路由为
+  `/opentool/call`。AgentOS WebShell 通过 `/apps/{appId}/` 托管 App 时，客户端
+  会使用该代理前缀访问同一后端。
 - Android 和 iOS 通过 Tauri IPC 传递相同的 OpenTool 请求格式，并在 App
   进程内调用后端路由。`streamCall` 事件使用 Tauri Channel，移动端不启动
   HTTP 服务。

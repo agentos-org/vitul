@@ -42,6 +42,8 @@ host IPC and requests only `native.window-control` for AgentOS. Add other
 `native.*` permissions in `vitul.conf.json` only when your app needs them.
 AgentOS starts the packaged backend on a per-instance dynamic loopback port and
 serves the frontend at `/`; OpenTool RPC uses `/opentool` on that same origin.
+When AgentOS WebShell hosts the App at `/apps/{appId}/`, the generated client
+uses that proxy prefix to reach the same App backend.
 
 Android and iOS use native IPC to call the OpenTool router embedded in the app's
 native process. Requests keep the OpenTool JSON-RPC envelope, and `streamCall`

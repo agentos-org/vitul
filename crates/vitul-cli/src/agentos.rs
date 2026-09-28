@@ -104,8 +104,10 @@ fn build_backend(project_root: &Path, image: &str) -> Result<()> {
       "/workspace/backend",
       image,
       "sh",
-      "-lc",
-      &format!("rustup target add {RUST_TARGET} && cargo build --release --target {RUST_TARGET}"),
+      // Keep the Rust image's PATH intact; a login shell resets it and hides
+      // cargo under /usr/local/cargo/bin.
+      "-c",
+      &format!("cargo build --release --target {RUST_TARGET}"),
     ])
     .current_dir(project_root);
   run_command(&mut command, "building the AgentOS ARM64 backend in Docker")?;
@@ -206,7 +208,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
       "basePath": "/opentool"
     },
     "open": {
-      "mode": "embed",
+      "mode": "window",
       "defaultWidth": 960,
       "defaultHeight": 680
     }

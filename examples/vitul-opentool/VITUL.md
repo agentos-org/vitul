@@ -6,7 +6,8 @@ routes from the web UI:
 - The Minimize window button uses system IPC through a host provider. Desktop
   builds use the desktop runtime; AgentOS calls its host bridge.
 - The greet form sends business data to the Rust backend through OpenTool
-  JSON-RPC at /opentool/call.
+  JSON-RPC at `/opentool/call`. When AgentOS WebShell hosts the App under
+  `/apps/{appId}/`, the client uses that proxy prefix to reach the same backend.
 - Android and iOS carry the same OpenTool request format through Tauri IPC and
   call the embedded router in-process. `streamCall` events use a Tauri Channel;
   mobile apps do not start an HTTP server.

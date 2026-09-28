@@ -5,7 +5,7 @@ use axum::{
   response::{IntoResponse, Response},
   Json, Router,
 };
-use serde_json::{json, Value};
+use serde_json::json;
 use std::{env, io::Write, sync::Arc};
 use tokio::{net::TcpListener, sync::watch};
 use tower_http::{
@@ -15,7 +15,7 @@ use tower_http::{
 use vitul_backend::{create_server, VitulOpenToolServer};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_owned());
   let port = env::var("PORT")
     .unwrap_or_else(|_| "0".to_owned())
