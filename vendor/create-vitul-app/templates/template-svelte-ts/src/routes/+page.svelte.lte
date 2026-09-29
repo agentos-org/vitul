@@ -6,7 +6,7 @@
 
   async function greet(event: Event) {
     event.preventDefault();
-    // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
+    // Learn more about Vitul commands at {% if v2 %}https://github.com/agentos-org/vitul/develop/calling-rust/{% else %}https://github.com/agentos-org/vitul{% endif %}
     greetMsg = await invoke("greet", { name });
   }
 </script>
@@ -18,7 +18,7 @@
     <a href="https://vite.dev" target="_blank">
       <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
     </a>
-    <a href="https://gitlab.litevar.com:90/litevar/agentos/vitul" target="_blank">
+    <a href="https://github.com/agentos-org/vitul" target="_blank">
       <img src="/vitul.svg" class="logo vitul" alt="Vitul mark" />
     </a>
     <a href="https://svelte.dev" target="_blank">

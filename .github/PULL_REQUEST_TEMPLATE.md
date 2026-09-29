@@ -1,4 +1,4 @@
-<!-- Submit changes to the Vitul GitLab project as a merge request. -->
+<!-- Submit changes to Vitul through a GitHub pull request. -->
 
 ## Summary
 
@@ -10,4 +10,4 @@ List the relevant build or test commands you ran and summarize their results.
 
 ## Related issue
 
-Link the related Vitul GitLab issue, if one exists.
+Link the related Vitul GitHub issue, if one exists.

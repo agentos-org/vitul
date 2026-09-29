@@ -1,7 +1,8 @@
 # Vitul Contribution Guide
 
-Vitul is maintained in the [Vitul GitLab project](https://gitlab.litevar.com:90/litevar/agentos/vitul).
-Use its issue tracker for bugs and proposals, and submit changes as merge requests.
+Vitul's designated public project home, issue tracker, and contribution entry point is
+[GitHub](https://github.com/agentos-org/vitul). Report bugs and proposals there
+and submit changes as pull requests.
 Before contributing, read the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## Development setup
@@ -25,11 +26,12 @@ Node.js declared by the package you are working on.
 
 See [Architecture](../ARCHITECTURE.md) for the runtime and package boundaries.
 
-## Changes and merge requests
+## Pull requests
 
-Keep each change focused and describe its user-visible effect in the merge
+Keep each change focused and describe its user-visible effect in the pull
 request. Include the relevant build or test commands you ran and their results.
-Vitul's release process is not configured yet; see the [release notes](./RELEASING.md).
+Read the [support matrix](../docs/SUPPORT.md) before relying on a platform, and
+the [maintenance policy](../docs/MAINTENANCE.md) for review and release rules.
 
 The compatibility runtime includes code derived from other projects. Keep its
 copyright headers and license files intact, and do not attribute inherited code

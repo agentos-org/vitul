@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::{
   ffi::OsString,
   fs,
@@ -88,7 +88,9 @@ fn rename_generated_config(project_root: &Path) -> Result<()> {
 
 fn reject_tauri_version_option(args: &[OsString]) -> Result<()> {
   if has_option(args, "--tauri-version", "") {
-    bail!("`--tauri-version` is not a Vitul option; `vitul init` selects the supported desktop runtime automatically");
+    bail!(
+      "`--tauri-version` is not a Vitul option; `vitul init` selects the supported desktop runtime automatically"
+    );
   }
   Ok(())
 }
@@ -258,10 +260,7 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
     .and_then(serde_json::Value::as_object_mut)
     .context("generated package.json has no devDependencies object")?;
   dev_dependencies.remove("@tauri-apps/cli");
-  dev_dependencies.insert(
-    "@vitul/cli".to_owned(),
-    serde_json::Value::String("^2".into()),
-  );
+  dev_dependencies.remove("@vitul/cli");
   if let Some(scripts) = package
     .get_mut("scripts")
     .and_then(serde_json::Value::as_object_mut)
@@ -277,6 +276,43 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
     serde_json::to_vec_pretty(&package).context("failed to encode package.json")?,
   )
   .context("failed to update generated frontend dependencies")
+}
+
+#[cfg(test)]
+mod tests {
+  use super::configure_frontend_dependencies;
+  use serde_json::json;
+  use std::fs;
+
+  #[test]
+  fn generated_project_uses_installed_rust_cli_without_unpublished_npm_wrapper() {
+    let project = tempfile::tempdir().unwrap();
+    fs::write(
+      project.path().join("package.json"),
+      serde_json::to_vec(&json!({
+        "dependencies": {},
+        "devDependencies": {
+          "@tauri-apps/cli": "^2",
+          "@vitul/cli": "^2",
+          "vite": "^8"
+        },
+        "scripts": {
+          "tauri": "tauri"
+        }
+      }))
+      .unwrap(),
+    )
+    .unwrap();
+
+    configure_frontend_dependencies(project.path()).unwrap();
+
+    let package: serde_json::Value =
+      serde_json::from_slice(&fs::read(project.path().join("package.json")).unwrap()).unwrap();
+    assert!(package["devDependencies"].get("@tauri-apps/cli").is_none());
+    assert!(package["devDependencies"].get("@vitul/cli").is_none());
+    assert_eq!(package["scripts"]["vitul"], "vitul");
+    assert!(package["scripts"].get("tauri").is_none());
+  }
 }
 
 fn configure_desktop_plugins(project_root: &Path) -> Result<()> {
@@ -300,8 +336,7 @@ fn configure_desktop_plugins(project_root: &Path) -> Result<()> {
       cargo_toml = cargo_toml.replace(opener, &format!("{opener}\n{dependency}"));
     }
   }
-  let mobile_dependencies =
-    "[target.'cfg(any(target_os = \"android\", target_os = \"ios\"))'.dependencies]\n\
+  let mobile_dependencies = "[target.'cfg(any(target_os = \"android\", target_os = \"ios\"))'.dependencies]\n\
 vitul-backend = { package = \"vitul-backend\", path = \"../backend\" }\n\
 axum = \"0.7\"\n\
 futures-util = \"0.3\"\n\

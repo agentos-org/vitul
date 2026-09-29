@@ -8,7 +8,7 @@ it in an embedded WebView based on Chromium.
 
 ## Commands
 
-- `pnpm install` installs the frontend, host API, Vitul CLI, and AgentOS TypeScript SDK dependencies.
+- `pnpm install` installs the frontend, host API, and AgentOS TypeScript SDK dependencies. Install the Rust CLI separately; project scripts use its `vitul` executable from `PATH`.
 - `pnpm vitul dev` builds and starts the OpenTool backend on an OS-assigned loopback
   port, then starts the Vitul desktop app.
 - `pnpm vitul build` builds a desktop app through the compatible CLI.

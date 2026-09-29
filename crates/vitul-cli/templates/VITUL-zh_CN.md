@@ -6,7 +6,7 @@ Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS �
 
 ## 命令
 
-- `pnpm install`：安装前端、宿主 API、Vitul CLI 和 AgentOS TypeScript SDK 依赖。
+- `pnpm install`：安装前端、宿主 API 和 AgentOS TypeScript SDK 依赖。Rust CLI 需单独安装；项目脚本会调用 `PATH` 中的 `vitul` 命令。
 - `pnpm vitul dev`：构建并启动 OpenTool 后端，使用操作系统分配的 loopback 端口，然后启动 Vitul 桌面应用。
 - `pnpm vitul build`：通过兼容 CLI 构建桌面应用。
 - `pnpm vitul android dev` 和 `pnpm vitul ios dev`：通过兼容移动 CLI 在设备或模拟器上运行应用。

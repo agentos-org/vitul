@@ -8,7 +8,7 @@ function App() {
   const [name, setName] = useState("");
 
   async function greet() {
-    // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
+    // Learn more about Vitul commands at {% if v2 %}https://github.com/agentos-org/vitul/develop/calling-rust/{% else %}https://github.com/agentos-org/vitul{% endif %}
     setGreetMsg(await invoke("greet", { name }));
   }
 
@@ -20,7 +20,7 @@ function App() {
         <a href="https://vite.dev" target="_blank">
           <img src="/vite.svg" className="logo vite" alt="Vite logo" />
         </a>
-        <a href="https://gitlab.litevar.com:90/litevar/agentos/vitul" target="_blank">
+        <a href="https://github.com/agentos-org/vitul" target="_blank">
           <img src="/vitul.svg" className="logo vitul" alt="Vitul logo" />
         </a>
         <a href="https://react.dev" target="_blank">

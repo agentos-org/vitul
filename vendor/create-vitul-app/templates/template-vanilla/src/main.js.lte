@@ -4,7 +4,7 @@ let greetInputEl;
 let greetMsgEl;
 
 async function greet() {
-  // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
+  // Learn more about Vitul commands at {% if v2 %}https://github.com/agentos-org/vitul/develop/calling-rust/{% else %}https://github.com/agentos-org/vitul{% endif %}
   greetMsgEl.textContent = await invoke("greet", { name: greetInputEl.value });
 }
 

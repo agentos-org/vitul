@@ -1,6 +1,7 @@
 [package]
 name = "vitul-cli"
 version = "0.1.0"
+description = "Vitul's OpenTool-first application CLI, derived from Tauri 2 tooling."
 edition = "2024"
 publish = false
 

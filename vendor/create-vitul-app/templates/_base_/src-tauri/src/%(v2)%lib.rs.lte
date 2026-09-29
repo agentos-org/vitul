@@ -1,4 +1,4 @@
-// Learn more about Vitul commands at https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/
+// Learn more about Vitul commands at https://github.com/agentos-org/vitul/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)

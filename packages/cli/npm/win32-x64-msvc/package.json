@@ -9,7 +9,7 @@
     "cli.win32-x64-msvc.node"
   ],
   "description": "Vitul command line interface for building desktop apps",
-  "homepage": "https://gitlab.litevar.com:90/litevar/agentos/vitul#readme",
+  "homepage": "https://github.com/agentos-org/vitul#readme",
   "contributors": [
     "Tauri Programme within The Commons Conservancy"
   ],
@@ -19,10 +19,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://gitlab.litevar.com:90/litevar/agentos/vitul.git"
+    "url": "git+https://github.com/agentos-org/vitul.git"
   },
   "bugs": {
-    "url": "https://gitlab.litevar.com:90/litevar/agentos/vitul/-/issues"
+    "url": "https://github.com/agentos-org/vitul/issues"
   },
   "publishConfig": {
     "access": "public"

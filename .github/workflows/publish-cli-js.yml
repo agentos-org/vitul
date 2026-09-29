@@ -252,7 +252,7 @@ jobs:
           shell: sh
           run: |
             set -e
-            node tauri.js --help
+            node vitul.js --help
             ls -la
 
   publish:

@@ -33,7 +33,7 @@ pub fn App() -> impl IntoView {
             }
 
             let args = serde_wasm_bindgen::to_value(&GreetArgs { name: &name }).unwrap();
-            // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
+            // Learn more about Vitul commands at {% if v2 %}https://github.com/agentos-org/vitul/develop/calling-rust/{% else %}https://github.com/agentos-org/vitul{% endif %}
             let new_msg = invoke("greet", args).await.as_string().unwrap();
             set_greet_msg.set(new_msg);
         });
@@ -44,7 +44,7 @@ pub fn App() -> impl IntoView {
             <h1>"Welcome to Vitul + Leptos"</h1>
 
             <div class="row">
-                <a href="https://gitlab.litevar.com:90/litevar/agentos/vitul" target="_blank">
+                <a href="https://github.com/agentos-org/vitul" target="_blank">
                     <img src="public/vitul.svg" class="logo vitul" alt="Vitul logo"/>
                 </a>
                 <a href="https://docs.rs/leptos/" target="_blank">

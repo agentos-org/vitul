@@ -45,8 +45,8 @@ exclude = [
 
 [workspace.package]
 authors = ["Tauri Programme within The Commons Conservancy"]
-homepage = "https://gitlab.litevar.com:90/litevar/agentos/vitul"
-repository = "https://gitlab.litevar.com:90/litevar/agentos/vitul"
+homepage = "https://github.com/agentos-org/vitul"
+repository = "https://github.com/agentos-org/vitul"
 categories = ["gui", "web-programming"]
 license = "Apache-2.0 OR MIT"
 edition = "2024"

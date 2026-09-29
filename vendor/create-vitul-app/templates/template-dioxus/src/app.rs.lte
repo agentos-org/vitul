@@ -32,7 +32,7 @@ pub fn App() -> Element {
 
         let name = name.read();
         let args = serde_wasm_bindgen::to_value(&GreetArgs { name: &*name }).unwrap();
-        // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
+        // Learn more about Vitul commands at {% if v2 %}https://github.com/agentos-org/vitul/develop/calling-rust/{% else %}https://github.com/agentos-org/vitul{% endif %}
         let new_msg = invoke("greet", args).await.as_string().unwrap();
         greet_msg.set(new_msg);
     };
@@ -46,7 +46,7 @@ pub fn App() -> Element {
             div {
                 class: "row",
                 a {
-                    href: "https://gitlab.litevar.com:90/litevar/agentos/vitul",
+                    href: "https://github.com/agentos-org/vitul",
                     target: "_blank",
                     img {
                         src: VITUL_ICON,

@@ -3,7 +3,7 @@ DataLicense: CC0-1.0
 PackageName: vitul
 DataFormat: SPDXRef-1
 PackageSupplier: Organization: The Tauri Programme in the Commons Conservancy
-PackageHomePage: https://gitlab.litevar.com:90/litevar/agentos/vitul
+PackageHomePage: https://github.com/agentos-org/vitul
 PackageLicenseDeclared: Apache-2.0
 PackageLicenseDeclared: MIT
 PackageCopyrightText: 2019-2025, The Tauri Programme in the Commons Conservancy
@@ -14,5 +14,5 @@ PackageComment: <text>The package includes the following libraries; see
 Relationship information.
                 </text>
 Created: 2019-05-20T09:00:00Z
-PackageDownloadLocation: git+https://gitlab.litevar.com:90/litevar/agentos/vitul.git
+PackageDownloadLocation: git+https://github.com/agentos-org/vitul.git
 Creator: Person: Daniel Thompson-Yvetot

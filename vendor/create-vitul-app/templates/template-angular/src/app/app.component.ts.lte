@@ -14,7 +14,7 @@ export class AppComponent {
   greet(event: SubmitEvent, name: string): void {
     event.preventDefault();
 
-    // Learn more about Vitul commands at {% if v2 %}https://gitlab.litevar.com:90/litevar/agentos/vitul/develop/calling-rust/{% else %}https://gitlab.litevar.com:90/litevar/agentos/vitul{% endif %}
+    // Learn more about Vitul commands at {% if v2 %}https://github.com/agentos-org/vitul/develop/calling-rust/{% else %}https://github.com/agentos-org/vitul{% endif %}
     invoke<string>("greet", { name }).then((text) => {
       this.greetingMessage.set(text);
     });

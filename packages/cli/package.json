@@ -1,7 +1,7 @@
 {
   "name": "@vitul/cli",
   "version": "2.12.0",
-  "description": "Vitul command line interface with Tauri-compatible tooling",
+  "description": "Vitul CLI for OpenTool-first apps, derived from Tauri 2 tooling",
   "type": "commonjs",
   "contributors": [
     "Tauri Programme within The Commons Conservancy"

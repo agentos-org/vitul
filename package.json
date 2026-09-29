@@ -1,6 +1,7 @@
 {
   "name": "vitul-workspace",
   "version": "0.0.0",
+  "description": "OpenTool-first app development toolchain derived from Tauri 2.",
   "license": "Apache-2.0 OR MIT",
   "private": true,
   "contributors": [
@@ -8,7 +9,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://gitlab.litevar.com:90/litevar/agentos/vitul.git"
+    "url": "https://github.com/agentos-org/vitul.git"
   },
   "scripts": {
     "format": "prettier --write .",

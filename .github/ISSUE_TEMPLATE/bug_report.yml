@@ -12,7 +12,7 @@ body:
     attributes:
       value: |
         ## First of all
-        1. Please search the [Vitul issue tracker](https://gitlab.litevar.com:90/litevar/agentos/vitul/-/issues) first.
+        1. Please search the [Vitul issue tracker](https://github.com/agentos-org/vitul/issues) first.
         2. Make sure `rustc`, Vitul, and the packages involved are up to date.
         3. Confirm the issue is reproducible with Vitul and include the relevant platform.
         4. Remember to follow our community guidelines and be friendly.

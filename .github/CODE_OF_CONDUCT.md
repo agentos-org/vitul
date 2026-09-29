@@ -59,8 +59,10 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders through a [confidential Vitul issue](https://gitlab.litevar.com:90/litevar/agentos/vitul/-/issues/new?issue%5Bconfidential%5D=true).
-All complaints will be reviewed and investigated promptly and fairly.
+reported privately to the project maintainer, [@LiteVar](https://github.com/LiteVar),
+using a private contact method published on the maintainer's GitHub profile or
+in the repository's About section. Do not report conduct concerns in a public
+issue. All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.

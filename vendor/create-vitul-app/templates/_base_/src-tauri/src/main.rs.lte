@@ -3,7 +3,7 @@
 
 {% if v2 %}fn main() {
     {% lib_name %}::run()
-}{% else %}// Learn more about Vitul commands at https://gitlab.litevar.com:90/litevar/agentos/vitul
+}{% else %}// Learn more about Vitul commands at https://github.com/agentos-org/vitul
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)

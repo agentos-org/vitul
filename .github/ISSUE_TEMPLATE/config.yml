@@ -4,5 +4,5 @@
 
 contact_links:
   - name: Vitul issue tracker
-    url: https://gitlab.litevar.com:90/litevar/agentos/vitul/-/issues
+    url: https://github.com/agentos-org/vitul/issues
     about: Ask questions and discuss Vitul issues with its maintainers

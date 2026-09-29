@@ -1,0 +1,112 @@
+# Copyright 2019-2024 Tauri Programme within The Commons Conservancy
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
+
+name: test Vitul AgentOS
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  agentos-arm64-smoke:
+    name: Vitul AgentOS ARM64 package smoke
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    env:
+      RUST_BACKTRACE: 1
+      CARGO_PROFILE_DEV_DEBUG: 0
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@1.90
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils file jq libayatana-appindicator3-dev libgtk-3-dev librsvg2-dev libwebkit2gtk-4.1-dev
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: vitul-agentos-arm64
+
+      - name: Test Vitul CLI
+        run: cargo test -p vitul-cli --locked
+
+      - name: Build Vitul CLI and smoke-test `vitul init`
+        run: |
+          cargo build -p vitul-cli --locked
+          project_dir=$(mktemp -d)
+          cd "$project_dir"
+          "$GITHUB_WORKSPACE/target/debug/vitul" init vitul-ci-init --yes --manager pnpm
+          test -f vitul-ci-init/src-vitul/vitul.conf.json
+          test -f vitul-ci-init/backend/Cargo.toml
+          test -f vitul-ci-init/src/opentool.ts
+          python3 -c 'import json; p=json.load(open("vitul-ci-init/package.json")); assert "@vitul/cli" not in p.get("devDependencies", {}); assert p["scripts"]["vitul"] == "vitul"'
+          pnpm --dir "$project_dir/vitul-ci-init" install
+          PATH="$GITHUB_WORKSPACE/target/debug:$PATH" pnpm --dir "$project_dir/vitul-ci-init" run vitul --version
+          pnpm --dir "$project_dir/vitul-ci-init" run build
+
+      - name: Install JavaScript workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Build API and Vitul CLI
+        run: |
+          pnpm build:api
+          pnpm build:cli:debug
+
+      - name: Build the OpenTool example as an AgentOS app
+        run: pnpm --dir examples/vitul-opentool vitul build --target agentos-arm64
+
+      - name: Validate the generated .agt package
+        shell: bash
+        run: |
+          artifact=$(find examples/vitul-opentool/dist -maxdepth 1 -type f -name '*-agentos-arm64.agt' -print -quit)
+          test -n "$artifact"
+
+          tar -tzf "$artifact" | grep -Eq '^\./app\.json$'
+          tar -tzf "$artifact" | grep -Eq '^\./web/index\.html$'
+          tar -tzf "$artifact" | grep -Eq '^\./backend/vitul-backend$'
+
+          manifest=$(tar -xOzf "$artifact" ./app.json)
+          printf '%s' "$manifest" | jq --exit-status '
+            .manifestVersion == 2 and
+            .architecture == "arm64" and
+            .run.type == "process" and
+            .run.port == 0 and
+            .run.healthCheck == "/opentool/version" and
+            .frontend.entry == "/" and
+            .rpc.protocol == "opentool" and
+            .rpc.version == 2 and
+            .rpc.basePath == "/opentool" and
+            (.permissions | index("native.window-control") != null)
+          ' >/dev/null
+
+          package_dir=$(mktemp -d)
+          tar -xzf "$artifact" -C "$package_dir"
+          readelf -h "$package_dir/backend/vitul-backend" | grep -Eq 'Machine:.*AArch64'
+          echo "Validated $artifact"
