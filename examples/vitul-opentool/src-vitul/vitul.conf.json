@@ -1,7 +1,7 @@
 {
   "$schema": "../../../crates/tauri-cli/config.schema.json",
-  "productName": "Vitul OpenTool",
-  "version": "0.1.0",
+  "productName": "Vitul Demo",
+  "version": "0.1.4",
   "identifier": "com.vitul.opentool",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -13,9 +13,13 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Vitul OpenTool App",
+        "title": "Vitul Demo",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 16, "y": 18 }
       }
     ],
     "security": {
@@ -26,11 +30,12 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/window-lab/icon.png",
+      "icons/window-lab/32x32.png",
+      "icons/window-lab/128x128.png",
+      "icons/window-lab/128x128@2x.png",
+      "icons/window-lab/icon.icns",
+      "icons/window-lab/icon.ico"
     ]
   }
 }

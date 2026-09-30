@@ -122,6 +122,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
     serde_json::from_slice(&fs::read(vitul_config).context("failed to read Vitul runtime config")?)
       .context("failed to parse Vitul runtime config")?;
   let permissions = agentos_permissions(project_root)?;
+  let title_bar = agentos_title_bar(project_root)?;
 
   let package_name = package
     .get("name")
@@ -171,6 +172,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
   let staging = tempfile::tempdir().context("failed to create package staging directory")?;
   let staging_root = staging.path();
   let packaged_sidecars = collect_sidecars(runtime_dir, &config, staging_root)?;
+  copy_agentos_icon(&config, runtime_dir, staging_root)?;
   if !packaged_sidecars.is_empty()
     && !permissions
       .iter()
@@ -188,7 +190,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
     "name": display_name,
     "name_zh": display_name,
     "version": version,
-    "description": "Vitul OpenTool application",
+    "description": format!("{display_name} application"),
     "permissions": permissions,
     "sidecars": packaged_sidecars,
     "run": {
@@ -209,6 +211,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
     },
     "open": {
       "mode": "window",
+      "titleBar": title_bar,
       "defaultWidth": 960,
       "defaultHeight": 680
     }
@@ -237,6 +240,93 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
 
   println!("AgentOS ARM64 package created: {}", archive.display());
   Ok(())
+}
+
+fn copy_agentos_icon(config: &Value, runtime_dir: &Path, staging_root: &Path) -> Result<()> {
+  let Some(icon_config) = config
+    .get("bundle")
+    .and_then(|bundle| bundle.get("icon"))
+  else {
+    return Ok(());
+  };
+  let icon_paths = match icon_config {
+    Value::String(path) => vec![path.clone()],
+    Value::Array(paths) => paths
+      .iter()
+      .filter_map(Value::as_str)
+      .map(str::to_owned)
+      .collect(),
+    Value::Null => return Ok(()),
+    _ => bail!("bundle.icon must be a path or an array of paths"),
+  };
+  let selected_icon = icon_paths
+    .iter()
+    .find(|path| {
+      Path::new(path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.eq_ignore_ascii_case("icon.png"))
+    })
+    .or_else(|| icon_paths.iter().find(|path| is_agentos_icon_path(path)));
+  let Some(selected_icon) = selected_icon else {
+    return Ok(());
+  };
+
+  let source = runtime_dir.join(selected_icon);
+  if !source.is_file() {
+    bail!("configured AgentOS app icon is missing: {}", source.display());
+  }
+  let extension = Path::new(selected_icon)
+    .extension()
+    .and_then(|extension| extension.to_str())
+    .context("configured AgentOS app icon must have a supported extension")?;
+  let destination = staging_root.join(format!("icon.{}", extension.to_ascii_lowercase()));
+  fs::copy(&source, &destination).with_context(|| {
+    format!(
+      "failed to copy AgentOS app icon from {} to {}",
+      source.display(),
+      destination.display()
+    )
+  })?;
+  Ok(())
+}
+
+fn is_agentos_icon_path(path: &str) -> bool {
+  Path::new(path)
+    .extension()
+    .and_then(|extension| extension.to_str())
+    .is_some_and(|extension| {
+      ["png", "svg", "webp", "jpg"]
+        .iter()
+        .any(|supported| extension.eq_ignore_ascii_case(supported))
+    })
+}
+
+fn agentos_title_bar(project_root: &Path) -> Result<String> {
+  let config_path = project_root.join("vitul.conf.json");
+  if !config_path.is_file() {
+    return Ok("system".to_owned());
+  }
+  let config: Value =
+    serde_json::from_slice(&fs::read(&config_path).context("failed to read vitul.conf.json")?)
+      .context("failed to parse vitul.conf.json")?;
+  let Some(open) = config
+    .get("agentos")
+    .and_then(|agentos| agentos.get("open"))
+  else {
+    return Ok("system".to_owned());
+  };
+  let open = open
+    .as_object()
+    .context("agentos.open must be an object")?;
+  let Some(title_bar) = open.get("titleBar") else {
+    return Ok("system".to_owned());
+  };
+  match title_bar.as_str() {
+    Some("system") => Ok("system".to_owned()),
+    Some("overlay") => Ok("overlay".to_owned()),
+    _ => bail!("agentos.open.titleBar must be `system` or `overlay`"),
+  }
 }
 
 fn agentos_permissions(project_root: &Path) -> Result<Vec<String>> {

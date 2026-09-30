@@ -1,8 +1,8 @@
 # Vitul 示例
 
-建议从 [vitul-opentool](vitul-opentool/README-zh_CN.md) 开始。它展示 Vitul 的两类
-应用交互：系统窗口操作通过宿主 IPC，业务操作通过 OpenTool JSON-RPC。该示例支持
-桌面 WebView 和 AgentOS 内嵌 WebView。
+建议从 [vitul-opentool](vitul-opentool/README-zh_CN.md) 开始。它的 Window Lab 页面展示
+标题栏覆盖、通过宿主 IPC 执行窗口操作、中英文界面、多种外观主题，以及通过
+OpenTool JSON-RPC 执行业务操作。该示例支持桌面 WebView 和 AgentOS 内嵌 WebView。
 
 [api](api/README-zh_CN.md) 是 CI 使用的 Vitul 桌面 API 集成验证夹具，覆盖窗口、菜单、
 托盘、事件等桌面 API 行为。开发新应用请从 vitul-opentool 开始。

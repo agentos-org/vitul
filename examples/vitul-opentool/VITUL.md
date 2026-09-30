@@ -1,4 +1,4 @@
-# Vitul OpenTool example
+# Vitul Demo
 
 This is the recommended starter example for Vitul. It demonstrates two separate
 routes from the web UI:
@@ -50,14 +50,15 @@ ARM64 package with Docker:
 
     pnpm vitul build --target agentos-arm64
 
-The package builder reads the native permissions from vitul.conf.json. This
-example requests only native.window-control. It writes the .agt package to
-dist/.
+The package builder reads native permissions and `agentos.open.titleBar` from
+the project-root vitul.conf.json. This example requests `overlay` and only the
+`native.window-control` permission. It writes the .agt package to dist/.
 
 ## Code map
 
-- src/host.ts selects the desktop or AgentOS host provider.
-- src/desktop-host.ts maps window.minimize to the compatible native runtime.
+- src/host.ts selects a host and handles AgentOS window context updates.
+- src/desktop-host.ts maps window operations to the compatible native runtime.
+- src/main.ts implements the language/theme selectors and window-control demo.
 - src/opentool.ts creates and validates an OpenTool JSON-RPC request and
   response.
 - backend/src/lib.rs implements the greet business tool and creates its

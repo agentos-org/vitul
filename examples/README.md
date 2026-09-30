@@ -1,9 +1,10 @@
 # Vitul Examples
 
-Start with [vitul-opentool](vitul-opentool/README.md). It demonstrates the two
-app boundaries used by Vitul: system window control through host IPC and
-business operations through OpenTool JSON-RPC. The same example supports
-desktop WebViews and the AgentOS embedded WebView.
+Start with [vitul-opentool](vitul-opentool/README.md). Its Window Lab shows an
+overlay title bar, window operations through host IPC, English and Chinese
+locales, several appearance themes, and business operations through OpenTool
+JSON-RPC. The same example supports desktop WebViews and the AgentOS embedded
+WebView.
 
 [api](api/README.md) is the Vitul desktop API integration fixture used by CI. It
 covers window, menu, tray, event, and other desktop API behavior; use

@@ -1,4 +1,4 @@
-# Vitul OpenTool 示例
+# Vitul Demo 示例
 
 这是推荐的新手示例，演示 Web 前端与原生宿主之间的两种独立通路：
 
@@ -45,13 +45,15 @@ AgentOS v2 `.agt` manifest 支持 ARM64 和 x64。以下命令使用 Docker 构�
 
     pnpm vitul build --target agentos-arm64
 
-打包器会从 vitul.conf.json 读取原生权限。本示例仅申请 native.window-control，
-生成的 .agt 应用包写入 dist/。
+打包器会从项目根目录的 vitul.conf.json 读取原生权限和
+`agentos.open.titleBar`。本示例请求 `overlay`，并且仅申请
+`native.window-control` 权限，生成的 .agt 应用包写入 dist/。
 
 ## 代码结构
 
-- src/host.ts 选择桌面或 AgentOS 宿主 provider。
-- src/desktop-host.ts 将 window.minimize 映射到兼容的原生运行时。
+- src/host.ts 选择宿主并处理 AgentOS 窗口上下文更新。
+- src/desktop-host.ts 将窗口操作映射到兼容的原生运行时。
+- src/main.ts 实现多语言、多主题选择器和窗口操作演示。
 - src/opentool.ts 创建 OpenTool JSON-RPC 请求并校验响应。
 - backend/src/lib.rs 实现 greet 业务工具并创建 OpenTool 路由。
 - backend/src/main.rs 在桌面开发和 AgentOS 打包中通过 HTTP 托管路由。

@@ -28,6 +28,12 @@ it in an embedded WebView based on Chromium.
 Set `VITUL_AGENTOS_BUILD_IMAGE` to override the container image, or change
 `agentos.buildImage` in `vitul.conf.json`.
 
+Set `agentos.open.titleBar` in the project-root `vitul.conf.json` to `system`
+or `overlay` to choose how the AgentOS App content is laid out relative to the
+Shell title bar. The default is `system`. This preference is written to the
+generated AgentOS `app.json`; the host reports the mode it actually applies.
+Shell-managed windows keep Shell-owned controls above App content.
+
 ## Application APIs
 
 Put business operations in the Rust backend and call them through
@@ -37,8 +43,8 @@ AgentOS Gateway APIs. The starter does not call the Gateway by default; import
 the SDK only when your app needs those APIs.
 `src/host.ts` defines the system API boundary; `src/desktop-host.ts` maps it to
 the compatible native runtime on desktop and mobile, while the AgentOS provider
-talks to the host's `window.agentos.host` bridge. The starter demonstrates window minimization over
-host IPC and requests only `native.window-control` for AgentOS. Add other
+talks to the host's `window.agentos.host` bridge. The starter demonstrates
+minimizing over host IPC and requests only `native.window-control` for AgentOS. Add other
 `native.*` permissions in `vitul.conf.json` only when your app needs them.
 AgentOS starts the packaged backend on a per-instance dynamic loopback port and
 serves the frontend at `/`; OpenTool RPC uses `/opentool` on that same origin.

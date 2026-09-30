@@ -1,7 +1,7 @@
 [package]
 name = "vitul-opentool"
-version = "0.1.0"
-description = "A Vitul App"
+version = "0.1.4"
+description = "Vitul Demo"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

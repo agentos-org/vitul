@@ -26,6 +26,7 @@ export class OpenToolError extends Error {
 
 let endpoint: Promise<string> | undefined;
 let transport: Promise<Transport> | undefined;
+let fallbackRequestSequence = 0;
 
 async function getTransport(): Promise<Transport> {
   transport ??= (async () => {
@@ -47,12 +48,34 @@ async function getEndpoint(): Promise<string> {
   return endpoint;
 }
 
+function createRequestId(): string {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === "function") {
+    return cryptoApi.randomUUID();
+  }
+  if (typeof cryptoApi?.getRandomValues === "function") {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+    return [
+      hex.slice(0, 4).join(""),
+      hex.slice(4, 6).join(""),
+      hex.slice(6, 8).join(""),
+      hex.slice(8, 10).join(""),
+      hex.slice(10).join(""),
+    ].join("-");
+  }
+  fallbackRequestSequence += 1;
+  return `request-${Date.now().toString(36)}-${fallbackRequestSequence.toString(36)}`;
+}
+
 function createRequest(method: string, params: Record<string, unknown>) {
   return {
     jsonrpc: "2.0.0" as const,
     method,
     params,
-    id: crypto.randomUUID(),
+    id: createRequestId(),
   };
 }
 

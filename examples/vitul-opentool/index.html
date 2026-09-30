@@ -4,51 +4,167 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <title>Vitul OpenTool Example</title>
-    <link rel="stylesheet" href="/src/styles.css" />
-    <script type="module" src="/src/main.ts"></script>
+    <title>Vitul Demo</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="./src-vitul/icons/window-lab/icon.png"
+    />
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script type="module" src="./src/main.ts"></script>
   </head>
   <body>
-    <main class="container">
-      <header>
-        <p class="eyebrow">A Vitul application</p>
-        <h1>Two ways to talk to native code</h1>
-        <p class="intro">
-          Use host IPC for operating-system actions and OpenTool JSON-RPC for
-          application business operations.
-        </p>
-        <p id="host-status" class="status" aria-live="polite">Detecting host…</p>
+    <div id="app" class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Vitul Demo home">
+          <img
+            class="brand-mark"
+            src="./src-vitul/icons/window-lab/icon.png"
+            alt=""
+          />
+          <span class="brand-name">Vitul Demo</span>
+        </a>
+        <div
+          class="window-drag-region"
+          data-tauri-drag-region
+          aria-hidden="true"
+        ></div>
+        <div class="topbar-tools">
+          <label class="select-wrap">
+            <span id="language-label">Language</span>
+            <select id="language-select" aria-label="Language">
+              <option value="system">System</option>
+              <option value="en">English</option>
+              <option value="zh">简体中文</option>
+            </select>
+          </label>
+          <label class="select-wrap">
+            <span id="theme-label">Theme</span>
+            <select id="theme-select" aria-label="Theme">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="ocean">Ocean</option>
+            </select>
+          </label>
+        </div>
       </header>
 
-      <section class="card" aria-labelledby="system-title">
-        <div>
-          <p class="eyebrow">System API</p>
-          <h2 id="system-title">Host IPC</h2>
-          <p>These actions go to the desktop runtime or AgentOS host.</p>
-        </div>
-        <div class="actions">
-          <button id="minimize-button" type="button">Minimize window</button>
-        </div>
-        <p id="system-message" class="result" aria-live="polite">
-          Choose an action to call the host.
-        </p>
-      </section>
+      <main class="content">
+        <section class="intro-row">
+          <div class="intro-copy">
+            <p class="eyebrow" id="eyebrow">HOST CAPABILITIES</p>
+            <h1 id="page-title">A window into your OS.</h1>
+            <p class="intro-text" id="page-description">
+              Explore an overlay title bar, native window actions, and an
+              OpenTool business API in one small app.
+            </p>
+          </div>
+          <div class="host-card">
+            <span class="host-indicator" aria-hidden="true"></span>
+            <div>
+              <p class="host-caption" id="host-caption">Connected host</p>
+              <p class="host-name" id="host-status" aria-live="polite">
+                Detecting host…
+              </p>
+            </div>
+          </div>
+        </section>
 
-      <section class="card" aria-labelledby="business-title">
-        <div>
-          <p class="eyebrow">Business API</p>
-          <h2 id="business-title">OpenTool</h2>
-          <p>The Rust backend handles this request through OpenTool JSON-RPC.</p>
-        </div>
-        <form id="greet-form" class="actions">
-          <label for="greet-input">Name</label>
-          <input id="greet-input" value="Vitul developer" autocomplete="name" />
-          <button type="submit">Call greet</button>
-        </form>
-        <p id="business-message" class="result" aria-live="polite">
-          The request will be sent to /opentool/call.
-        </p>
-      </section>
-    </main>
+        <section class="window-panel panel" aria-labelledby="window-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow" id="window-eyebrow">SYSTEM API</p>
+              <h2 id="window-title">Window controls</h2>
+              <p class="panel-description" id="window-description">
+                These actions are handled by the current OS or AgentOS window
+                host.
+              </p>
+            </div>
+            <span class="api-tag">window-control</span>
+          </div>
+          <div class="window-actions" role="group" aria-label="Window actions">
+            <button id="minimize-button" class="action-button" type="button">
+              <span class="action-icon minimize-icon" aria-hidden="true"></span>
+              <span id="minimize-label">Minimize</span>
+            </button>
+            <button id="maximize-button" class="action-button" type="button">
+              <span class="action-icon maximize-icon" aria-hidden="true"></span>
+              <span id="maximize-label">Maximize</span>
+            </button>
+            <button id="fullscreen-button" class="action-button" type="button">
+              <span class="action-icon fullscreen-icon" aria-hidden="true"
+                >⛶</span
+              >
+              <span id="fullscreen-label">Enter full screen</span>
+            </button>
+            <button
+              id="close-button"
+              class="action-button danger-button"
+              type="button"
+            >
+              <span class="action-icon close-icon" aria-hidden="true">×</span>
+              <span id="close-label">Close window</span>
+            </button>
+          </div>
+          <div class="window-status-row">
+            <p id="system-message" class="result" aria-live="polite">
+              Choose an action to call the host.
+            </p>
+            <div class="window-state">
+              <span class="state-dot" aria-hidden="true"></span>
+              <span id="window-state-label">Window ready</span>
+            </div>
+          </div>
+          <div class="titlebar-status">
+            <div>
+              <p class="titlebar-label" id="titlebar-label">Title bar layout</p>
+              <p class="titlebar-copy" id="titlebar-copy">
+                Overlay requested · waiting for host status
+              </p>
+            </div>
+            <span id="titlebar-badge" class="status-badge pending"
+              >Checking</span
+            >
+          </div>
+        </section>
+
+        <section class="business-panel panel" aria-labelledby="business-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow" id="business-eyebrow">BUSINESS API</p>
+              <h2 id="business-title">OpenTool greeting</h2>
+              <p class="panel-description" id="business-description">
+                This request goes to the Rust backend through OpenTool JSON-RPC.
+              </p>
+            </div>
+            <span class="api-tag opentool-tag">/opentool</span>
+          </div>
+          <form id="greet-form" class="greet-form">
+            <label for="greet-input" id="name-label">Your name</label>
+            <div class="greet-input-row">
+              <input id="greet-input" value="AgentOS" autocomplete="name" />
+              <button id="greet-button" type="submit" class="primary-button">
+                Call greet
+              </button>
+            </div>
+          </form>
+          <p
+            id="business-message"
+            class="result business-result"
+            aria-live="polite"
+          >
+            The response will appear here.
+          </p>
+        </section>
+
+        <footer class="footer">
+          <span id="footer-copy"
+            >One UI · multiple hosts · same app contract</span
+          >
+          <span class="footer-mark">VITUL <span>×</span> AGENTOS</span>
+        </footer>
+      </main>
+    </div>
   </body>
 </html>

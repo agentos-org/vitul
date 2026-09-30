@@ -7,6 +7,7 @@
   },
   "agentos": {
     "buildImage": "rust:1.90-bookworm",
-    "permissions": ["native.window-control"]
+    "permissions": ["native.window-control"],
+    "open": { "titleBar": "system" }
   }
 }

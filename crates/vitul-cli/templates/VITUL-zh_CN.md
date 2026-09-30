@@ -18,13 +18,15 @@ Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS �
 
 设置 `VITUL_AGENTOS_BUILD_IMAGE` 可以覆盖容器镜像；也可以修改 `vitul.conf.json` 中的 `agentos.buildImage`。
 
+在项目根目录的 `vitul.conf.json` 中设置 `agentos.open.titleBar` 为 `system` 或 `overlay`，选择 AgentOS App 内容相对于 Shell 标题栏的布局，默认值为 `system`。该设置会写入生成的 AgentOS `app.json`；宿主会报告实际生效的模式。Shell 管理的窗口会继续由 Shell 管理并绘制窗口控件。
+
 ## 应用 API
 
 将业务操作放在 Rust 后端，并通过 `src/opentool.ts` 调用。脚手架中的 `greet` 示例使用 OpenTool JSON-RPC。
 
 生成的 `package.json` 已包含 `agentos-sdk-ts`，供需要调用 AgentOS Gateway API 的应用使用。默认脚手架不会调用 Gateway；只有应用需要这些 API 时才在代码中导入 SDK。
 
-`src/host.ts` 定义系统 API 边界；`src/desktop-host.ts` 将其映射到桌面和移动原生运行时，AgentOS provider 则调用宿主提供的 `window.agentos.host` 桥接接口。脚手架示例通过宿主 IPC 最小化窗口，AgentOS 仅请求 `native.window-control` 权限。只有应用确实需要时，才在 `vitul.conf.json` 中添加其他 `native.*` 权限。AgentOS 会为每个应用实例动态分配 loopback 端口来启动后端，并在同一来源下以 `/` 提供前端、以 `/opentool` 提供 OpenTool RPC。由 AgentOS WebShell 通过 `/apps/{appId}/` 托管时，生成的客户端会使用该代理前缀访问同一 App 后端。
+`src/host.ts` 定义系统 API 边界；`src/desktop-host.ts` 将其映射到桌面和移动原生运行时，AgentOS provider 则调用宿主提供的 `window.agentos.host` 桥接接口。脚手架示例通过宿主 IPC 演示最小化窗口，AgentOS 仅请求 `native.window-control` 权限。只有应用确实需要时，才在 `vitul.conf.json` 中添加其他 `native.*` 权限。AgentOS 会为每个应用实例动态分配 loopback 端口来启动后端，并在同一来源下以 `/` 提供前端、以 `/opentool` 提供 OpenTool RPC。由 AgentOS WebShell 通过 `/apps/{appId}/` 托管时，生成的客户端会使用该代理前缀访问同一 App 后端。
 
 Android 和 iOS 通过原生 IPC 调用嵌入 App 原生进程的 OpenTool 路由。请求继续使用 OpenTool JSON-RPC 消息格式，`streamCall` 事件通过原生事件通道传递；移动端不会启动 HTTP 服务。后端通过 `backend/` 链接进移动 App。桌面应用仍通过 HTTP 调用独立运行的 OpenTool 后端，桌面 IPC 处理器只向前端提供后端地址。
 
