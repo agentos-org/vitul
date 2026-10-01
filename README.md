@@ -76,11 +76,38 @@ Choose the row for the platform where the app will run:
 | macOS                 | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build`                                                                     | System WebView; `.app` bundle and `.dmg` disk image by default.                                                                                          | Build on macOS with Rust, Node.js/pnpm, and Xcode Command Line Tools (`xcode-select --install`).                                     |
 
 Desktop package formats can be selected with `bundle.targets` in
-`src-vitul/vitul.conf.json`. Installable AgentOS `.agt` packages use manifest
-v1 and support ARM64 and x64; the current Vitul packager produces ARM64
-packages. OpenTool's `rpc.version: 2` is an independent API binding version.
+`src-vitul/vitul.conf.json`. The legacy `agentos-arm64` target builds existing
+Vitul projects; the standalone `Vitulfile` flow below packages existing
+process apps for Linux ARM64 and remote websites as architecture-independent
+AgentOS URL apps. OpenTool's `rpc.version: 2` is an independent API binding
+version.
 These commands do not build the Ubuntu 24 system image or the AgentOS Desktop host
 application; build those from their AgentOS projects.
+
+### Package an existing web app for AgentOS
+
+`Vitulfile` is a separate packaging flow for projects that already have their
+own frontend and backend, or for websites hosted elsewhere. It does not require
+the project to use Rust or Tauri and does not add a Rust proxy. A local app
+provides its own HTTP service; a remote-web profile creates an AgentOS URL
+package that loads an HTTPS site in the embedded CEF WebApp window.
+
+```sh
+cd path/to/existing-project
+vitul agentos init
+# Edit Vitulfile for the project's build, artifacts, and run command
+vitul agentos inspect
+vitul agentos validate
+vitul build --target agentos/arm64
+```
+
+Use `vitul agentos init --type remote-web --url https://example.com` for a
+hosted website. Process packages are written as
+`dist/<app>-<version>-agentos-arm64.agt`; URL packages use
+`dist/<app>-<version>-agentos-any.agt`. See the
+[Vitulfile guide](crates/vitul-cli/src/vitulfile/README.md) or
+[简体中文说明](crates/vitul-cli/src/vitulfile/README-zh_CN.md) for config
+examples, build behavior, and limitations.
 
 ## AgentOS SDKs
 
@@ -102,7 +129,8 @@ public GitHub repositories are listed here.
 ## Repository layout
 
 - `crates/vitul-cli/` contains the Vitul project generator, development runner,
-  and AgentOS packager.
+  and AgentOS packagers. The standalone `Vitulfile` workflow is documented in
+  `crates/vitul-cli/src/vitulfile/`.
 - `crates/tauri-*` contains the compatible desktop engine. Its Cargo package and
   Rust crate names remain compatible with the existing runtime and plugin ecosystem.
 - `packages/` contains the compatible JavaScript API (`@tauri-apps/api`) and

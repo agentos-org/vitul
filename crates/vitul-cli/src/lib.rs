@@ -1,11 +1,12 @@
 mod agentos;
 mod dev;
 mod init;
+mod vitulfile;
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use std::{ffi::OsString, path::PathBuf};
 
-const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init <PROJECT>     Create an OpenTool-first Vitul project\n  dev                Run a desktop app with its OpenTool backend\n  build              Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                     Run Tauri-compatible tooling through Vitul\n\nTARGETS:\n  Desktop targets use Vitul's Tauri-compatible runtime.\n  Installable AgentOS v1 .agt manifests support ARM64 and x64.\n  agentos-arm64      Build an AgentOS ARM64 .agt package\n  agentos-x64        x64 package target is not provided by this CLI\n\nCOMPATIBILITY:\n  Tauri-compatible desktop tooling is invoked internally by Vitul.\n";
+const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init <PROJECT>     Create an OpenTool-first Vitul project\n  agentos <COMMAND>  Create and inspect Vitulfile-based AgentOS packages\n  dev                Run a desktop app with its OpenTool backend\n  build              Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                     Run Tauri-compatible tooling through Vitul\n\nTARGETS:\n  Desktop targets use Vitul's Tauri-compatible runtime.\n  agentos/arm64      Build an AgentOS ARM64 .agt package from Vitulfile\n  agentos-arm64      Compatibility alias for existing Vitul projects\n\nCOMPATIBILITY:\n  Tauri-compatible desktop tooling is invoked internally by Vitul.\n";
 
 pub fn run() -> anyhow::Result<()> {
   let args = std::env::args_os().skip(1).collect::<Vec<_>>();
@@ -26,6 +27,7 @@ pub fn run_vitul_with_args(args: Vec<OsString>) -> anyhow::Result<()> {
     "-h" | "--help" | "help" => print!("{HELP}"),
     "-V" | "--version" => println!("vitul {}", env!("CARGO_PKG_VERSION")),
     "init" => init::run(args)?,
+    "agentos" => agentos::run(args)?,
     "dev" => dev::run(args)?,
     "build" => run_build(args)?,
     other => run_tauri(other, args, "vitul")?,
@@ -41,8 +43,18 @@ pub fn run_compat_with_args(args: Vec<OsString>, bin_name: Option<String>) -> an
     .iter()
     .any(|arg| matches!(arg.to_string_lossy().as_ref(), "-h" | "--help"));
   let is_vitul_project = is_vitul_project(&std::env::current_dir()?);
+  let has_vitulfile = std::env::current_dir()?
+    .join(vitulfile::FILE_NAME)
+    .is_file();
+  let is_agentos_build = command.as_deref() == Some("build")
+    && option_value(&args, "--target", "-t").is_some_and(|target| target.starts_with("agentos/"));
 
-  if is_vitul_project && !wants_help && matches!(command.as_deref(), Some("dev" | "build")) {
+  if command.as_deref() == Some("agentos")
+    || (!wants_help
+      && (is_agentos_build
+        || (command.as_deref() == Some("build") && (is_vitul_project || has_vitulfile))
+        || (command.as_deref() == Some("dev") && is_vitul_project)))
+  {
     return run_vitul_with_args(args);
   }
 
@@ -56,9 +68,20 @@ fn is_vitul_project(root: &std::path::Path) -> bool {
 
 fn run_build(args: Vec<OsString>) -> anyhow::Result<()> {
   match option_value(&args, "--target", "-t").as_deref() {
-    Some("agentos-arm64") => agentos::build_arm64(&project_root()?),
+    Some("agentos/arm64") => agentos::build_vitulfile(&project_root()?),
+    Some("agentos-arm64") => {
+      let root = project_root()?;
+      if root.join(vitulfile::FILE_NAME).is_file() {
+        agentos::build_vitulfile(&root)
+      } else {
+        agentos::legacy::build_arm64(&root)
+      }
+    }
     Some("agentos-x64") => {
-      bail!("AgentOS x64 package creation is not supported by this Vitul CLI; use `agentos-arm64`")
+      bail!("AgentOS x64 package creation is not supported by this Vitul CLI; use `agentos/arm64`")
+    }
+    Some("agentos/x64") => {
+      bail!("AgentOS x64 package creation is not supported by this Vitul CLI; use `agentos/arm64`")
     }
     _ => run_tauri("build", args, "vitul"),
   }

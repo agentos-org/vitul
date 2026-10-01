@@ -10370,9 +10370,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "create-vitul-app",
+ "serde",
  "serde_json",
+ "serde_yaml",
  "tauri-cli",
  "tempfile",
+ "url",
 ]
 
 [[package]]
