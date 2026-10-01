@@ -69,16 +69,17 @@ Choose the row for the platform where the app will run:
 
 | Target                | Commands                                                                                                               | Runtime and build output                                                                                                                                 | Requirements                                                                                                                         |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| AgentOS (ARM64 / x64) | `pnpm vitul build --target agentos-arm64`                                                                              | AgentOS embedded Chromium-based WebView; v2 `.agt` manifests support ARM64 and x64, and the Shell assigns the backend a dynamic loopback port at launch. | The current Vitul packager builds ARM64 on an ARM64 Mac with Docker.                                                                 |
+| AgentOS (ARM64 / x64) | `pnpm vitul build --target agentos-arm64`                                                                              | AgentOS embedded Chromium-based WebView; installable v1 `.agt` manifests support ARM64 and x64. AgentOS maps an assigned loopback host port to the configured container port. | The current Vitul packager builds ARM64 on an ARM64 Mac with Docker.                                                                 |
 | Android               | Dev: `pnpm vitul android dev`<br>APK: `pnpm vitul android build --apk`<br>Play Store: `pnpm vitul android build --aab` | System Android WebView; produces an `.apk` or `.aab`. The OpenTool backend runs in the app process and uses Tauri IPC.                                   | Android Studio, Android SDK/NDK, and the Android Rust target.                                                                        |
 | iOS                   | Dev: `pnpm vitul ios dev`<br>Build: `pnpm vitul ios build`                                                             | System WKWebView; produces an `.ipa`. The OpenTool backend runs in the app process and uses Tauri IPC.                                                   | macOS, Xcode, and the iOS Rust target.                                                                                               |
 | Windows               | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build`                                                                     | System WebView2; `.msi` and NSIS `.exe` installers by default.                                                                                           | Build on Windows with Rust MSVC, Node.js/pnpm, Visual Studio C++ Build Tools (“Desktop development with C++”), and WebView2 Runtime. |
 | macOS                 | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build`                                                                     | System WebView; `.app` bundle and `.dmg` disk image by default.                                                                                          | Build on macOS with Rust, Node.js/pnpm, and Xcode Command Line Tools (`xcode-select --install`).                                     |
 
 Desktop package formats can be selected with `bundle.targets` in
-`src-vitul/vitul.conf.json`. AgentOS v2 app manifests support ARM64 and x64
-installations. The current Vitul packager produces ARM64 packages. These
-commands do not build the Ubuntu 24 system image or the AgentOS Desktop host
+`src-vitul/vitul.conf.json`. Installable AgentOS `.agt` packages use manifest
+v1 and support ARM64 and x64; the current Vitul packager produces ARM64
+packages. OpenTool's `rpc.version: 2` is an independent API binding version.
+These commands do not build the Ubuntu 24 system image or the AgentOS Desktop host
 application; build those from their AgentOS projects.
 
 ## AgentOS SDKs

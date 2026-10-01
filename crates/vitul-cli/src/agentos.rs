@@ -10,6 +10,7 @@ use std::{
 const RUST_TARGET: &str = "aarch64-unknown-linux-gnu";
 const ARCHITECTURE: &str = "arm64";
 const DEFAULT_BUILD_IMAGE: &str = "rust:1.90-bookworm";
+const DEFAULT_AGENTOS_PORT: u16 = 9627;
 const BACKEND_BINARY: &str = "vitul-backend";
 const DEFAULT_AGENTOS_PERMISSIONS: &[&str] = &[
   "native.window-control",
@@ -121,9 +122,10 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
   let config: Value =
     serde_json::from_slice(&fs::read(vitul_config).context("failed to read Vitul runtime config")?)
       .context("failed to parse Vitul runtime config")?;
+  let bundle_id = agentos_bundle_id(&config)?;
   let permissions = agentos_permissions(project_root)?;
   let title_bar = agentos_title_bar(project_root)?;
-
+  let port = agentos_port(project_root)?;
   let package_name = package
     .get("name")
     .and_then(Value::as_str)
@@ -136,7 +138,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
     .get("version")
     .and_then(Value::as_str)
     .unwrap_or("0.1.0");
-  let app_id = app_id(package_name);
+  let archive_name = package_archive_name(package_name);
 
   let runtime_dir = vitul_config
     .parent()
@@ -168,7 +170,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
 
   let output_dir = project_root.join("dist");
   fs::create_dir_all(&output_dir).context("failed to create dist directory")?;
-  let archive = output_dir.join(format!("{app_id}-{version}-agentos-arm64.agt"));
+  let archive = output_dir.join(format!("{archive_name}-{version}-agentos-arm64.agt"));
   let staging = tempfile::tempdir().context("failed to create package staging directory")?;
   let staging_root = staging.path();
   let packaged_sidecars = collect_sidecars(runtime_dir, &config, staging_root)?;
@@ -184,9 +186,9 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
   }
 
   let manifest = json!({
-    "manifestVersion": 2,
+    "manifestVersion": 1,
     "architecture": ARCHITECTURE,
-    "id": app_id,
+    "bundleId": bundle_id,
     "name": display_name,
     "name_zh": display_name,
     "version": version,
@@ -196,7 +198,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
     "run": {
       "type": "process",
       "entry": format!("backend/{BACKEND_BINARY}"),
-      "port": 0,
+      "port": port,
       "healthCheck": "/opentool/version",
       "readyTimeout": 60,
       "autoStart": false
@@ -329,6 +331,58 @@ fn agentos_title_bar(project_root: &Path) -> Result<String> {
   }
 }
 
+fn agentos_port(project_root: &Path) -> Result<u16> {
+  let config_path = project_root.join("vitul.conf.json");
+  if !config_path.is_file() {
+    return Ok(DEFAULT_AGENTOS_PORT);
+  }
+  let config: Value =
+    serde_json::from_slice(&fs::read(&config_path).context("failed to read vitul.conf.json")?)
+      .context("failed to parse vitul.conf.json")?;
+  let Some(port) = config
+    .get("agentos")
+    .and_then(|agentos| agentos.get("port"))
+  else {
+    return Ok(DEFAULT_AGENTOS_PORT);
+  };
+  let port = port
+    .as_u64()
+    .and_then(|port| u16::try_from(port).ok())
+    .filter(|port| *port > 0)
+    .context("agentos.port must be an integer from 1 to 65535")?;
+  Ok(port)
+}
+
+fn agentos_bundle_id(config: &Value) -> Result<String> {
+  let identifier = config
+    .get("identifier")
+    .and_then(Value::as_str)
+    .context("src-vitul/vitul.conf.json must declare a reverse-DNS identifier")?;
+  let bundle_id = identifier.to_ascii_lowercase();
+  if !is_valid_bundle_id(&bundle_id) {
+    bail!(
+      "src-vitul/vitul.conf.json identifier `{identifier}` must be a valid reverse-DNS AgentOS bundleId"
+    );
+  }
+  Ok(bundle_id)
+}
+
+fn is_valid_bundle_id(value: &str) -> bool {
+  value.len() <= 253
+    && value.is_ascii()
+    && value.split('.').count() >= 2
+    && value.split('.').all(|label| {
+      let bytes = label.as_bytes();
+      !bytes.is_empty()
+        && bytes.len() <= 63
+        && bytes[0].is_ascii_alphanumeric()
+        && bytes[bytes.len() - 1].is_ascii_alphanumeric()
+        && bytes
+          .iter()
+          .all(|byte| byte.is_ascii_alphanumeric() || *byte == b'-')
+    })
+}
+
 fn agentos_permissions(project_root: &Path) -> Result<Vec<String>> {
   let config_path = project_root.join("vitul.conf.json");
   if !config_path.is_file() {
@@ -434,7 +488,7 @@ fn is_agentos_sidecar_name(name: &str) -> bool {
       .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
 }
 
-fn app_id(package_name: &str) -> String {
+fn package_archive_name(package_name: &str) -> String {
   let mut result = String::new();
   for character in package_name.chars().flat_map(char::to_lowercase) {
     if character.is_ascii_lowercase() || character.is_ascii_digit() {
@@ -512,15 +566,20 @@ fn run_command(command: &mut Command, description: &str) -> Result<Output> {
 
 #[cfg(test)]
 mod tests {
-  use super::{ARCHITECTURE, RUST_TARGET, app_id, package_app};
+  use super::{ARCHITECTURE, RUST_TARGET, agentos_bundle_id, package_app, package_archive_name};
   use serde_json::{Value, json};
   use std::{fs, process::Command};
   use tempfile::tempdir;
 
   #[test]
-  fn app_id_uses_agentos_safe_lowercase_names() {
-    assert_eq!(app_id("Hello Vitul 2"), "hello-vitul-2");
-    assert_eq!(app_id("---"), "vitul-app");
+  fn agentos_bundle_id_uses_the_reverse_dns_runtime_identifier() {
+    let config = json!({ "identifier": "Com.Example.Hello-Vitul" });
+    assert_eq!(
+      agentos_bundle_id(&config).expect("valid reverse-DNS identifier"),
+      "com.example.hello-vitul"
+    );
+    assert_eq!(package_archive_name("Hello Vitul 2"), "hello-vitul-2");
+    assert_eq!(package_archive_name("---"), "vitul-app");
   }
 
   #[test]
@@ -556,6 +615,7 @@ mod tests {
       &vitul_config,
       serde_json::to_vec(&json!({
         "productName": "Hello Vitul",
+        "identifier": "com.example.hello-vitul",
         "build": { "frontendDist": "../dist" },
         "bundle": { "externalBin": ["binaries/worker"] }
       }))
@@ -566,6 +626,7 @@ mod tests {
       root.join("vitul.conf.json"),
       serde_json::to_vec(&json!({
         "agentos": {
+          "port": 15237,
           "permissions": [
             "native.window-control",
             "native.file-dialogs",
@@ -610,10 +671,11 @@ mod tests {
       .expect("read packaged AgentOS app.json");
     assert!(manifest.status.success());
     let manifest: Value = serde_json::from_slice(&manifest.stdout).expect("parse app.json");
-    assert_eq!(manifest["manifestVersion"], 2);
+    assert_eq!(manifest["manifestVersion"], 1);
     assert_eq!(manifest["architecture"], ARCHITECTURE);
-    assert_eq!(manifest["id"], "hello-vitul");
-    assert_eq!(manifest["run"]["port"], 0);
+    assert_eq!(manifest["bundleId"], "com.example.hello-vitul");
+    assert!(manifest.get("id").is_none());
+    assert_eq!(manifest["run"]["port"], 15237);
     assert_eq!(manifest["run"]["autoStart"], false);
     assert_eq!(manifest["run"]["healthCheck"], "/opentool/version");
     assert_eq!(manifest["frontend"]["entry"], "/");

@@ -57,8 +57,9 @@ Rust CLI 会安装项目脚本所使用的 `vitul` 命令。可选的 `@vitul/cl
 | Windows                | 开发：`pnpm vitul dev`<br>构建：`pnpm vitul build`                                                                     | 使用系统 WebView2；默认生成 `.msi` 安装包和 NSIS `.exe` 安装程序。                                                     | 在 Windows 上构建；需要 Rust MSVC 工具链、Node.js/pnpm、Visual Studio C++ Build Tools（“使用 C++ 的桌面开发”工作负载）和 WebView2 Runtime。 |
 | macOS                  | 开发：`pnpm vitul dev`<br>构建：`pnpm vitul build`                                                                     | 使用系统 WebView；默认生成 `.app` 应用包和 `.dmg` 磁盘映像。                                                           | 在 macOS 上构建；需要 Rust、Node.js/pnpm 和 Xcode Command Line Tools（`xcode-select --install`）。                                          |
 
-桌面产物格式可以通过 `src-vitul/vitul.conf.json` 中的 `bundle.targets` 选择。AgentOS v2
-应用 manifest 支持 ARM64 和 x64 安装环境；当前 Vitul 打包器生成 ARM64 包。相关命令不
+桌面产物格式可以通过 `src-vitul/vitul.conf.json` 中的 `bundle.targets` 选择。可安装的
+AgentOS `.agt` 使用 manifest v1，支持 ARM64 和 x64；AgentOS 会将动态分配的 loopback
+宿主端口映射到 `agentos.port` 指定的容器内端口（默认 `9627`）。当前 Vitul 打包器生成 ARM64 包。相关命令不
 构建基于 Ubuntu 24 的系统镜像或 AgentOS Desktop 宿主应用；这两者由 AgentOS 自己的
 项目构建。
 

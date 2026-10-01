@@ -22,8 +22,9 @@ it in an embedded WebView based on Chromium.
   Set `bundle.targets` in `src-vitul/vitul.conf.json` to choose desktop formats.
 - `vitul build --target agentos-arm64` builds the web assets and ARM64 Linux
   backend in Docker, then writes an AgentOS `.agt` archive to `dist/`.
-- AgentOS v2 `.agt` manifests support ARM64 and x64. The current Vitul
-  packager builds ARM64 packages.
+- Installable AgentOS `.agt` packages use manifest v1 and support ARM64 and
+  x64; the current Vitul packager builds ARM64 packages. OpenTool uses the
+  separate `rpc.version: 2` binding.
 
 Set `VITUL_AGENTOS_BUILD_IMAGE` to override the container image, or change
 `agentos.buildImage` in `vitul.conf.json`.
@@ -33,6 +34,10 @@ or `overlay` to choose how the AgentOS App content is laid out relative to the
 Shell title bar. The default is `system`. This preference is written to the
 generated AgentOS `app.json`; the host reports the mode it actually applies.
 Shell-managed windows keep Shell-owned controls above App content.
+The AgentOS `bundleId` comes from `identifier` in
+`src-vitul/vitul.conf.json`. Set `agentos.port` in the project-root config to
+choose the backend's container-internal port from 1 to 65535; it defaults to
+9627.
 
 ## Application APIs
 
@@ -46,10 +51,14 @@ the compatible native runtime on desktop and mobile, while the AgentOS provider
 talks to the host's `window.agentos.host` bridge. The starter demonstrates
 minimizing over host IPC and requests only `native.window-control` for AgentOS. Add other
 `native.*` permissions in `vitul.conf.json` only when your app needs them.
-AgentOS starts the packaged backend on a per-instance dynamic loopback port and
-serves the frontend at `/`; OpenTool RPC uses `/opentool` on that same origin.
-When AgentOS WebShell hosts the App at `/apps/{appId}/`, the generated client
-uses that proxy prefix to reach the same App backend.
+AgentOS starts the packaged backend with `HOST=0.0.0.0` and `PORT` set to
+`agentos.port`, then maps an assigned loopback host port to that container port.
+The frontend is served at `/`; OpenTool RPC uses `/opentool` on the same origin.
+Windows for one installed App share its backend and host port. When AgentOS
+WebShell hosts the App at `/apps/{appId}/`, the generated client uses that proxy
+prefix to reach the same backend. AgentOS App OpenTool requests are limited to
+1 MiB; the generated Rust backend applies that limit in AgentOS and keeps the
+OpenTool SDK's 16 MiB default on other hosts.
 
 Android and iOS use native IPC to call the OpenTool router embedded in the app's
 native process. Requests keep the OpenTool JSON-RPC envelope, and `streamCall`

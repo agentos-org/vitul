@@ -46,6 +46,11 @@ pub async fn create_server(
   let tool_args = tool.init_args(cli_arguments.parse()?)?;
   opentool_rust::schema::load_json(SPEC)?;
   tool.init(&tool_args).await?;
+  let max_request_body_bytes = if std::env::var_os("AGENTOS_APP_BUNDLE_ID").is_some() {
+    1024 * 1024
+  } else {
+    opentool_rust::DEFAULT_MAX_REQUEST_BODY_BYTES
+  };
 
   Ok(
     OpenToolServer::builder(tool)
@@ -54,6 +59,7 @@ pub async fn create_server(
       .version(env!("CARGO_PKG_VERSION"))
       .spec_json(SPEC)
       .cli_arguments(CliArguments::new(std::iter::empty::<String>()))
+      .max_request_body_bytes(max_request_body_bytes)
       .build(),
   )
 }

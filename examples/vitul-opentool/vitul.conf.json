@@ -7,6 +7,7 @@
   },
   "agentos": {
     "buildImage": "rust:1.90-bookworm",
+    "port": 9627,
     "permissions": ["native.window-control"],
     "open": { "titleBar": "overlay" }
   }

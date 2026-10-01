@@ -5,7 +5,7 @@ mod init;
 use anyhow::{bail, Context};
 use std::{ffi::OsString, path::PathBuf};
 
-const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init <PROJECT>     Create an OpenTool-first Vitul project\n  dev                Run a desktop app with its OpenTool backend\n  build              Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                     Run Tauri-compatible tooling through Vitul\n\nTARGETS:\n  Desktop targets use Vitul's Tauri-compatible runtime.\n  AgentOS v2 .agt manifests support ARM64 and x64.\n  agentos-arm64      Build an AgentOS ARM64 .agt package\n  agentos-x64        x64 package target is not provided by this CLI\n\nCOMPATIBILITY:\n  Tauri-compatible desktop tooling is invoked internally by Vitul.\n";
+const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init <PROJECT>     Create an OpenTool-first Vitul project\n  dev                Run a desktop app with its OpenTool backend\n  build              Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                     Run Tauri-compatible tooling through Vitul\n\nTARGETS:\n  Desktop targets use Vitul's Tauri-compatible runtime.\n  Installable AgentOS v1 .agt manifests support ARM64 and x64.\n  agentos-arm64      Build an AgentOS ARM64 .agt package\n  agentos-x64        x64 package target is not provided by this CLI\n\nCOMPATIBILITY:\n  Tauri-compatible desktop tooling is invoked internally by Vitul.\n";
 
 pub fn run() -> anyhow::Result<()> {
   let args = std::env::args_os().skip(1).collect::<Vec<_>>();

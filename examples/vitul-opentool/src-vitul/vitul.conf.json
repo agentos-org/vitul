@@ -2,7 +2,7 @@
   "$schema": "../../../crates/tauri-cli/config.schema.json",
   "productName": "Vitul Demo",
   "version": "0.1.4",
-  "identifier": "com.vitul.opentool",
+  "identifier": "com.litevar.agentos.vitul.demo",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",

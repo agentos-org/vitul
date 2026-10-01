@@ -41,13 +41,15 @@ Android SDK 工具链；iOS 需要 macOS 和 Xcode。
 vitul dev 会先使用操作系统分配的 loopback 端口启动 Rust OpenTool 后端，再打开
 桌面应用。Vite 开发服务器会把 /opentool 请求转发给后端。
 
-AgentOS v2 `.agt` manifest 支持 ARM64 和 x64。以下命令使用 Docker 构建 ARM64 包：
+可安装的 AgentOS `.agt` 包使用 manifest v1，支持 ARM64 和 x64；当前 Vitul
+打包器构建 ARM64 包。OpenTool 使用独立的 `rpc.version: 2` 绑定版本。以下命令使用 Docker 构建 ARM64 包：
 
     pnpm vitul build --target agentos-arm64
 
-打包器会从项目根目录的 vitul.conf.json 读取原生权限和
-`agentos.open.titleBar`。本示例请求 `overlay`，并且仅申请
-`native.window-control` 权限，生成的 .agt 应用包写入 dist/。
+打包器会从项目根目录的 `vitul.conf.json` 读取 `agentos.port`、原生权限和
+`agentos.open.titleBar`。本示例请求 `overlay`、默认容器端口 `9627`，并且仅申请
+`native.window-control` 权限。AgentOS 会分配 loopback 宿主端口并映射到容器端口；同一已安装 App 的多个窗口共享一个后端。manifest 的 `bundleId` 来自
+`src-vitul/vitul.conf.json` 中的 `identifier`。生成的 .agt 包写入 dist/。
 
 ## 代码结构
 
