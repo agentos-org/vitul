@@ -122,7 +122,11 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
   let config: Value =
     serde_json::from_slice(&fs::read(vitul_config).context("failed to read Vitul runtime config")?)
       .context("failed to parse Vitul runtime config")?;
-  let bundle_id = agentos_bundle_id(&config)?;
+  let agentos_settings = agentos_settings(project_root)?;
+  let bundle_id = match agentos_bundle_id_override(&agentos_settings)? {
+    Some(bundle_id) => bundle_id,
+    None => agentos_bundle_id(&config)?,
+  };
   let permissions = agentos_permissions(project_root)?;
   let title_bar = agentos_title_bar(project_root)?;
   let port = agentos_port(project_root)?;
@@ -134,10 +138,15 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
     .get("productName")
     .and_then(Value::as_str)
     .unwrap_or(package_name);
+  let name_zh =
+    agentos_setting_string(&agentos_settings, "nameZh")?.unwrap_or_else(|| display_name.to_owned());
   let version = package
     .get("version")
     .and_then(Value::as_str)
     .unwrap_or("0.1.0");
+  let description = agentos_setting_string(&agentos_settings, "description")?
+    .unwrap_or_else(|| format!("{display_name} application"));
+  let description_zh = agentos_setting_string(&agentos_settings, "descriptionZh")?;
   let archive_name = package_archive_name(package_name);
 
   let runtime_dir = vitul_config
@@ -185,14 +194,14 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
     );
   }
 
-  let manifest = json!({
+  let mut manifest = json!({
     "manifestVersion": 1,
     "architecture": ARCHITECTURE,
     "bundleId": bundle_id,
     "name": display_name,
-    "name_zh": display_name,
+    "name_zh": name_zh,
     "version": version,
-    "description": format!("{display_name} application"),
+    "description": description,
     "permissions": permissions,
     "sidecars": packaged_sidecars,
     "run": {
@@ -218,6 +227,9 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
       "defaultHeight": 680
     }
   });
+  if let Some(description_zh) = description_zh {
+    manifest["description_zh"] = json!(description_zh);
+  }
   fs::write(
     staging_root.join("app.json"),
     serde_json::to_vec_pretty(&manifest).context("failed to encode AgentOS app.json")?,
@@ -365,6 +377,38 @@ fn agentos_bundle_id(config: &Value) -> Result<String> {
     );
   }
   Ok(bundle_id)
+}
+
+fn agentos_settings(project_root: &Path) -> Result<Value> {
+  let config_path = project_root.join("vitul.conf.json");
+  if !config_path.is_file() {
+    return Ok(json!({}));
+  }
+  let config: Value =
+    serde_json::from_slice(&fs::read(&config_path).context("failed to read Vitul runtime config")?)
+      .context("failed to parse Vitul runtime config")?;
+  Ok(config.get("agentos").cloned().unwrap_or_else(|| json!({})))
+}
+
+fn agentos_setting_string(settings: &Value, key: &str) -> Result<Option<String>> {
+  let Some(value) = settings.get(key) else {
+    return Ok(None);
+  };
+  let value = value
+    .as_str()
+    .filter(|value| !value.trim().is_empty())
+    .with_context(|| format!("agentos.{key} must be a non-empty string"))?;
+  Ok(Some(value.to_owned()))
+}
+
+fn agentos_bundle_id_override(settings: &Value) -> Result<Option<String>> {
+  let Some(bundle_id) = agentos_setting_string(settings, "bundleId")? else {
+    return Ok(None);
+  };
+  if !is_valid_bundle_id(&bundle_id) {
+    bail!("agentos.bundleId must be a valid reverse-DNS AgentOS bundle ID");
+  }
+  Ok(Some(bundle_id))
 }
 
 fn is_valid_bundle_id(value: &str) -> bool {
@@ -522,6 +566,13 @@ fn copy_directory_contents(source: &Path, destination: &Path) -> Result<()> {
     if file_type.is_dir() {
       copy_directory_contents(&source_path, &destination_path)?;
     } else if file_type.is_file() {
+      if source_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("agt"))
+      {
+        continue;
+      }
       fs::copy(&source_path, &destination_path)
         .with_context(|| format!("failed to copy {}", source_path.display()))?;
     } else if file_type.is_symlink() {

@@ -1,0 +1,25 @@
+[package]
+name = "toney-musicd"
+version = "0.3.9"
+edition = "2021"
+
+[workspace]
+
+[[bin]]
+name = "musicd"
+path = "src/main.rs"
+
+[dependencies]
+ape-decoder = "0.3.2"
+encoding_rs = "0.8"
+claxon = "0.4.3"
+axum = { version = "0.7", features = ["multipart"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+symphonia = { version = "0.6.1", default-features = false, features = ["aiff", "aac", "alac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
+symphonia-common = "0.6.1"
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tower-http = { version = "0.5", features = ["cors", "fs", "limit"] }
+uuid = { version = "1", features = ["v4"] }
+wavpack = { path = "vendor/wavpack" }

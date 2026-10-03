@@ -1,13 +1,19 @@
 # Vitul 示例
 
-建议从 [vitul-opentool](vitul-opentool/README-zh_CN.md) 开始。它的 Window Lab 页面展示
-标题栏覆盖、通过宿主 IPC 执行窗口操作、中英文界面、多种外观主题，以及通过
-OpenTool JSON-RPC 执行业务操作。该示例支持桌面 WebView 和 AgentOS 内嵌 WebView。
+Vitul 原生应用通过 OpenTool 处理业务操作，通过宿主 API 执行系统功能。建议从
+[window-lab](window-lab/README-zh_CN.md) 开始，它用一个精简的桌面和 AgentOS 应用展示这两部分。
 
-[api](api/README-zh_CN.md) 是 CI 使用的 Vitul 桌面 API 集成验证夹具，覆盖窗口、菜单、
-托盘、事件等桌面 API 行为。开发新应用请从 vitul-opentool 开始。
+[frame-video](frame-video/README-zh_CN.md) 是一个更完整的原生示例。它保留 AgentOS
+Frame Video 界面，并用 Rust 后端管理媒体库和视频流。
 
-其余目录聚焦于特定的兼容桌面能力或运行时功能。开发新应用时，请参考
-vitul-opentool 中的 OpenTool 与宿主 API 结构。
+## AgentOS 应用类型
 
-构建和运行方法请查看各目录中的 README。
+[process](process/README-zh_CN.md) 展示如何把已有前后端项目打包为 AgentOS process
+应用。示例 Toney Music 使用 React/Vite 和 Go。
+
+[url](url/README-zh_CN.md) 展示如何把已经托管的 HTTPS 网站打包为 AgentOS URL 应用。
+
+CI 使用的桌面 API 集成夹具位于
+[tests/fixtures/desktop-api](../tests/fixtures/desktop-api/README-zh_CN.md)，用于验证兼容 API 行为。
+
+构建条件和运行方法请查看各目录中的 README。

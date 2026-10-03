@@ -2,7 +2,7 @@
   "name": "@tauri-apps/api-e2e",
   "private": true,
   "version": "0.0.0",
-  "description": "End-to-end test suite for @tauri-apps/api, driven against the examples/api app via WebdriverIO.",
+  "description": "End-to-end test suite for @tauri-apps/api, driven against Vitul's desktop API test fixture via WebdriverIO.",
   "license": "Apache-2.0 OR MIT",
   "type": "module",
   "scripts": {

@@ -59,9 +59,28 @@ Rust CLI 会安装项目脚本所使用的 `vitul` 命令。可选的 `@vitul/cl
 
 桌面产物格式可以通过 `src-vitul/vitul.conf.json` 中的 `bundle.targets` 选择。可安装的
 AgentOS `.agt` 使用 manifest v1，支持 ARM64 和 x64；AgentOS 会将动态分配的 loopback
-宿主端口映射到 `agentos.port` 指定的容器内端口（默认 `9627`）。当前 Vitul 打包器生成 ARM64 包。相关命令不
+宿主端口映射到 `agentos.port` 指定的容器内端口（默认 `9627`）。旧版
+`agentos-arm64` 命令为 Vitul 原生项目生成 ARM64 包；独立的 Vitulfile 打包流程支持
+现有项目构建 ARM64 和 x64 包。相关命令不
 构建基于 Ubuntu 24 的系统镜像或 AgentOS Desktop 宿主应用；这两者由 AgentOS 自己的
 项目构建。
+
+### 使用 Vitulfile 打包已有 Web 项目
+
+`Vitulfile` 面向已有前后端项目和线上网站，不要求项目使用 Rust 或 Tauri。process
+项目可在 `targets` 中声明 `agentos/arm64`、`agentos/x64` 或两者，然后执行：
+
+```sh
+cd path/to/existing-project
+vitul agentos init
+# 配置 Vitulfile 中的 build、artifacts 和 run
+vitul agentos validate
+vitul build --target agentos
+```
+
+线上 HTTPS 网站使用 `vitul agentos init --type remote-web --url https://example.com`；
+AgentOS 会在内嵌 CEF WebApp 窗口中打开它。详见
+[Vitulfile 中文说明](crates/vitul-cli/src/vitulfile/README-zh_CN.md)。
 
 ## AgentOS SDK
 

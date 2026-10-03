@@ -16,7 +16,7 @@ on:
       - '.github/workflows/test-api-e2e-mobile.yml'
       - 'packages/api/**'
       - 'packages/api-e2e/**'
-      - 'examples/api/**'
+      - 'tests/fixtures/desktop-api/**'
       - 'crates/tauri/mobile/**'
       - 'crates/tauri-cli/templates/mobile/**'
 
@@ -107,7 +107,7 @@ jobs:
       # Built before the emulator is up so it does not sit idle (and time out)
       # during the Rust and Gradle builds; the suite then reuses the APK.
       - name: build the APK
-        working-directory: ./examples/api
+        working-directory: ./tests/fixtures/desktop-api
         run: |
           pnpm vitul android init --ci --skip-targets-install
           pnpm vitul android build --debug --apk --target $E2E_ANDROID_TARGET
@@ -209,7 +209,7 @@ jobs:
       # Simulator build (`aarch64-sim` on the Apple Silicon runners), unsigned.
       # Built ahead of the suite for symmetry with the Android job.
       - name: build the simulator app
-        working-directory: ./examples/api
+        working-directory: ./tests/fixtures/desktop-api
         run: |
           pnpm vitul ios init --ci --skip-targets-install
           pnpm vitul ios build --debug --target aarch64-sim --no-sign

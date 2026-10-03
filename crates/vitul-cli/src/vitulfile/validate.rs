@@ -22,7 +22,7 @@ pub fn run(args: &[OsString]) -> Result<()> {
     );
   }
   let config = Vitulfile::load(&root, file.as_deref())?;
-  println!("Vitulfile is valid for {}", config.target);
+  println!("Vitulfile is valid for {}", config.target_summary());
   Ok(())
 }
 

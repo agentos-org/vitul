@@ -3,10 +3,9 @@ packages:
   - packages/api-e2e
   - packages/cli
   - crates/tauri-schema-worker
-  - examples/api
-  - examples/vitul-opentool
-  - examples/resources
-  - examples/file-associations
+  - tests/fixtures/desktop-api
+  - examples/window-lab
+  - examples/frame-video
 
 allowBuilds:
   # appium's postinstall only auto-installs drivers for global installs; ours

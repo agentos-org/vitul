@@ -78,9 +78,9 @@ Choose the row for the platform where the app will run:
 Desktop package formats can be selected with `bundle.targets` in
 `src-vitul/vitul.conf.json`. The legacy `agentos-arm64` target builds existing
 Vitul projects; the standalone `Vitulfile` flow below packages existing
-process apps for Linux ARM64 and remote websites as architecture-independent
-AgentOS URL apps. OpenTool's `rpc.version: 2` is an independent API binding
-version.
+process apps for Linux ARM64 and x64 and remote websites as
+architecture-independent AgentOS URL apps. OpenTool's `rpc.version: 2` is an
+independent API binding version.
 These commands do not build the Ubuntu 24 system image or the AgentOS Desktop host
 application; build those from their AgentOS projects.
 
@@ -98,12 +98,20 @@ vitul agentos init
 # Edit Vitulfile for the project's build, artifacts, and run command
 vitul agentos inspect
 vitul agentos validate
-vitul build --target agentos/arm64
+vitul build --target agentos
 ```
 
-Use `vitul agentos init --type remote-web --url https://example.com` for a
-hosted website. Process packages are written as
-`dist/<app>-<version>-agentos-arm64.agt`; URL packages use
+Declare `targets: [agentos/arm64, agentos/x64]` in `Vitulfile` to build both
+process architectures. Use `--target agentos/arm64` or `--target agentos/x64`
+to build only one declared target. For a hosted website, run:
+
+```sh
+vitul agentos init --type remote-web --url https://example.com
+```
+
+Process packages are written as
+`dist/<app>-<version>-agentos-arm64.agt` and/or
+`dist/<app>-<version>-agentos-x64.agt`; URL packages use
 `dist/<app>-<version>-agentos-any.agt`. See the
 [Vitulfile guide](crates/vitul-cli/src/vitulfile/README.md) or
 [简体中文说明](crates/vitul-cli/src/vitulfile/README-zh_CN.md) for config

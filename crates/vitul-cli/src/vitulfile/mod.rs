@@ -43,11 +43,21 @@ impl Vitulfile {
     if self.schema_version != 1 {
       bail!("Vitulfile schemaVersion must be 1");
     }
-    if self.target != "agentos/arm64" {
-      if self.target == "agentos/x64" {
-        bail!("target agentos/x64 is not supported yet; use agentos/arm64");
+    if self.target.is_some() && !self.targets.is_empty() {
+      bail!("use either `target` or `targets`, not both");
+    }
+    let targets = self.declared_targets();
+    if targets.is_empty() {
+      bail!("Vitulfile must declare `target` or a non-empty `targets` list");
+    }
+    let mut unique_targets = std::collections::BTreeSet::new();
+    for target in targets {
+      if !matches!(target, "agentos/arm64" | "agentos/x64") {
+        bail!("unsupported target {target}; expected agentos/arm64 or agentos/x64");
       }
-      bail!("unsupported target {}; expected agentos/arm64", self.target);
+      if !unique_targets.insert(target) {
+        bail!("duplicate target `{target}` in Vitulfile");
+      }
     }
     if !valid_bundle_id(&self.app.id) {
       bail!("app.id must be a reverse-DNS identifier, for example com.example.app");
@@ -88,6 +98,9 @@ impl Vitulfile {
       "native.notifications",
       "native.external-links",
       "native.sidecars",
+      "native.audio",
+      "native.audio.exclusive",
+      "native.tray",
     ];
     for permission in &self.agentos.permissions {
       if !SUPPORTED_PERMISSIONS.contains(&permission.as_str()) {
@@ -277,7 +290,7 @@ pub fn init(project_root: &Path, app_type: AppType, remote_url: Option<&str>) ->
     AppType::RemoteWeb => "agentos:\n  titleBar: system\n",
   };
   let contents = format!(
-    "schemaVersion: 1\ntarget: agentos/arm64\napp:\n  type: {}\n  id: com.example.{}\n  name: {}\n  version: 0.1.0\n{}{}",
+    "schemaVersion: 1\ntargets:\n  - agentos/arm64\napp:\n  type: {}\n  id: com.example.{}\n  name: {}\n  version: 0.1.0\n{}{}",
     match app_type {
       AppType::Process => "process",
       AppType::RemoteWeb => "remote-web",

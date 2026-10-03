@@ -1,0 +1,132 @@
+{
+  "$schema": "../../../../crates/tauri-schema-generator/schemas/config.schema.json",
+  "productName": "Vitul API",
+  "version": "1.0.0",
+  "identifier": "com.vitul.api",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build",
+    "removeUnusedCommands": true
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "security": {
+      "pattern": {
+        "use": "isolation",
+        "options": {
+          "dir": "../isolation-dist/"
+        }
+      },
+      "csp": {
+        "default-src": "'self' customprotocol: asset:",
+        "connect-src": "'self' ipc: http://ipc.localhost http://127.0.0.1:*",
+        "font-src": ["https://fonts.gstatic.com"],
+        "img-src": "'self' asset: http://asset.localhost blob: data:",
+        "style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com"
+      },
+      "freezePrototype": true,
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": ["$APPDATA/db/**", "$RESOURCE/**"],
+          "deny": ["$APPDATA/db/*.stronghold"]
+        }
+      }
+    }
+  },
+  "plugins": {
+    "cli": {
+      "description": "Vitul API example",
+      "args": [
+        {
+          "short": "c",
+          "name": "config",
+          "takesValue": true,
+          "description": "Config path"
+        },
+        {
+          "short": "t",
+          "name": "theme",
+          "takesValue": true,
+          "description": "App theme",
+          "possibleValues": ["light", "dark", "system"]
+        },
+        {
+          "short": "v",
+          "name": "verbose",
+          "description": "Verbosity level"
+        }
+      ],
+      "subcommands": {
+        "update": {
+          "description": "Updates the app",
+          "args": [
+            {
+              "short": "b",
+              "name": "background",
+              "description": "Update in background"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "fileAssociations": [
+      {
+        "ext": ["png"],
+        "mimeType": "image/png",
+        "rank": "Default"
+      },
+      {
+        "ext": ["jpg", "jpeg"],
+        "mimeType": "image/jpeg",
+        "rank": "Alternate"
+      },
+      {
+        "ext": ["gif"],
+        "mimeType": "image/gif",
+        "rank": "Owner"
+      },
+      {
+        "ext": ["vituljson"],
+        "exportedType": {
+          "identifier": "com.vitul.dev-file-associations-demo.vituljson",
+          "conformsTo": ["public.json"]
+        }
+      },
+      {
+        "ext": ["vituld"],
+        "exportedType": {
+          "identifier": "com.vitul.dev-file-associations-demo.vituldata",
+          "conformsTo": ["public.data"]
+        }
+      }
+    ],
+    "icon": [
+      "../.icons/32x32.png",
+      "../.icons/128x128.png",
+      "../.icons/128x128@2x.png",
+      "../.icons/icon.icns",
+      "../.icons/icon.ico",
+      "../.icons/AppIcon.icon"
+    ],
+    "windows": {
+      "wix": {
+        "language": {
+          "en-US": {},
+          "pt-BR": {
+            "localePath": "locales/pt-BR.wxl"
+          }
+        }
+      },
+      "nsis": {
+        "compression": "none"
+      }
+    }
+  }
+}

@@ -29,18 +29,18 @@ members = [
   "bench/tests/files_transfer/src-tauri",
   "bench/tests/helloworld/src-tauri",
 
-  # examples
-  "examples/file-associations/src-tauri",
-  "examples/resources/src-tauri",
-  "examples/api/src-vitul",
-  "examples/api/src-vitul/tauri-plugin-sample",
+  # Vitul API integration fixture
+  "tests/fixtures/desktop-api/src-vitul",
+  "tests/fixtures/desktop-api/src-vitul/tauri-plugin-sample",
 ]
 resolver = "3"
 exclude = [
   "vendor/create-vitul-app",
-  "examples/api/backend",
-  "examples/vitul-opentool/backend",
-  "examples/vitul-opentool/src-vitul",
+  "tests/fixtures/desktop-api/backend",
+  "examples/frame-video/backend",
+  "examples/frame-video/src-vitul",
+  "examples/window-lab/backend",
+  "examples/window-lab/src-vitul",
 ]
 
 [workspace.package]

@@ -17,10 +17,12 @@ Vitul 在构建机器上按顺序执行构建步骤、收集指定文件、生�
 AgentOS 安装包。AgentOS 运行环境提供 Node.js、Python、Bash 和常见系统库；应用
 专用依赖仍需放入打包文件。
 
-构建步骤本身不会交叉编译应用。若项目需要生成本地可执行文件，构建脚本必须自行
-产出 Linux ARM64 文件。每个构建步骤会收到这些环境变量：`VITUL_TARGET=agentos/arm64`、
-`VITUL_TARGET_OS=linux`、`VITUL_TARGET_ARCH=arm64` 和
-`AGENTOS_TARGET=agentos/arm64`。
+Vitul 支持 Linux ARM64（`agentos/arm64`）和 x64（`agentos/x64`）process 包。
+在 `targets` 中声明一个或两个目标后，Vitul 会依次执行各目标的构建步骤，并在进入
+下一个目标前完成当前包的产物收集。构建步骤本身不会交叉编译应用；构建脚本需要根据
+目标环境变量生成对应架构的二进制文件和依赖。每个步骤都会收到当前目标对应的
+`VITUL_TARGET`、`VITUL_TARGET_OS=linux`、`VITUL_TARGET_ARCH` 和
+`AGENTOS_TARGET`。例如 `VITUL_TARGET_ARCH` 会是 `arm64` 或 `x64`。
 
 ### 线上网站
 
@@ -54,23 +56,33 @@ vitul agentos init --type remote-web --url https://github.com
 vitul agentos inspect
 vitul agentos validate
 
-# process 配置生成 dist/<应用名>-<版本>-agentos-arm64.agt
+# 一次构建 Vitulfile 中声明的所有目标
+vitul build --target agentos
+# 也可以只构建一个已声明的目标：vitul build --target agentos/arm64
+#                              vitul build --target agentos/x64
+
+# process 配置生成 dist/<应用名>-<版本>-agentos-arm64.agt 和/或
+#                  dist/<应用名>-<版本>-agentos-x64.agt
 # remote-web 配置生成 dist/<应用名>-<版本>-agentos-any.agt
-vitul build --target agentos/arm64
 ```
 
-两种配置都使用 `agentos/arm64` 作为 Vitul 构建目标。remote-web 包不包含平台相关的
-应用进程，因此其 manifest 声明 `architecture: any`。
+remote-web 不包含平台相关的应用进程，因此始终只生成一个声明
+`architecture: any` 的包。其目标声明仅用于校验允许使用的 Vitul 构建目标。
 
 `vitul agentos init --path <目录>` 可以将文件写入另一个项目目录。本地应用的初始
 配置使用 `./bin/server` 和 `bin/server` 作为示例启动命令与产物路径。验证和构建前，
 请根据项目修改它们。`inspect` 会指出初始配置中尚未满足的项目，方便继续填写。
 
+多架构 process 应用使用 `targets` 列表。旧的单值写法 `target: agentos/arm64` 仍然
+兼容；一个 Vitulfile 只能使用这两种写法中的一种。
+
 ## 本地应用配置示例
 
 ```yaml
 schemaVersion: 1
-target: agentos/arm64
+targets:
+  - agentos/arm64
+  - agentos/x64
 
 app:
   type: process
@@ -153,11 +165,11 @@ agentos:
 
 ## 要求与限制
 
-- 本地 process 安装包面向 Linux ARM64；remote-web 包声明 `architecture: any`。两者都使用
-  manifest version 1。本模块尚未实现 x64 process 输出。
+- 本地 process 安装包可面向 Linux ARM64 或 x64；remote-web 包声明
+  `architecture: any`。两者都使用 manifest version 1。
 - 打包机器需要是 Unix 系统，并安装 `tar`。
-- 本地应用需要提供兼容 Linux ARM64 的服务及其运行文件。Vitul 不会自动把多服务
-  Compose 部署合并为单个进程。
+- 本地应用需要为声明的每个架构提供兼容 Linux 的服务及其运行文件。Vitul 不会自动把
+  多服务 Compose 部署合并为单个进程。
 - process 包会声明 OpenTool 绑定，但 Vitul 不会替应用生成业务工具。若要支持
   AgentOS agent 调用，应用服务需要在配置的 `rpcBasePath` 下实现 OpenTool 路由。
   URL 包没有应用进程，也不声明 OpenTool 绑定。
@@ -171,5 +183,5 @@ agentos:
 
 新建 Vitul 应用仍使用 `vitul init`、`vitul.conf.json` 和 Rust 后端。
 `Vitulfile` 用于将现有 Web 应用打包为 AgentOS 应用。项目存在 `Vitulfile` 时，
-`vitul build --target agentos/arm64` 使用本模块。对于没有 `Vitulfile` 的旧 Vitul 项目，
+`vitul build --target agentos` 或指定单个 AgentOS 架构会使用本模块。对于没有 `Vitulfile` 的旧 Vitul 项目，
 原有的 `agentos-arm64` 兼容目标仍会调用其打包流程。

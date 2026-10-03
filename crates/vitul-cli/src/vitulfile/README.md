@@ -21,11 +21,14 @@ the AgentOS package. Node.js, Python, Bash, and common runtimes are available
 inside AgentOS; app-specific dependencies still need to be included in the
 artifacts.
 
-The build step does not cross-compile an application. A build script that
-produces a native executable must produce a Linux ARM64 executable itself.
-`VITUL_TARGET=agentos/arm64`, `VITUL_TARGET_OS=linux`,
-`VITUL_TARGET_ARCH=arm64`, and `AGENTOS_TARGET=agentos/arm64` are supplied to
-each build step.
+Vitul supports Linux ARM64 (`agentos/arm64`) and x64 (`agentos/x64`) process
+packages. Declare one or both in `targets`; each target's build steps run
+sequentially, then Vitul packages the artifacts before moving to the next
+target. The build step does not cross-compile an application: build scripts
+must use the target environment to produce binaries and dependencies for the
+selected architecture. Each step receives `VITUL_TARGET`,
+`VITUL_TARGET_OS=linux`, `VITUL_TARGET_ARCH`, and `AGENTOS_TARGET` for that
+iteration. For example, `VITUL_TARGET_ARCH` is `arm64` or `x64`.
 
 ### Remote website
 
@@ -62,14 +65,19 @@ Then inspect, validate, and package the configured project:
 vitul agentos inspect
 vitul agentos validate
 
-# Process profile: dist/<app>-<version>-agentos-arm64.agt
+# Build all targets declared in Vitulfile
+vitul build --target agentos
+# Or build one declared target: vitul build --target agentos/arm64
+#                           vitul build --target agentos/x64
+
+# Process profile: dist/<app>-<version>-agentos-arm64.agt and/or
+#                  dist/<app>-<version>-agentos-x64.agt
 # Remote-web profile: dist/<app>-<version>-agentos-any.agt
-vitul build --target agentos/arm64
 ```
 
-The CLI target remains `agentos/arm64` for both profiles. A remote URL package
-declares `architecture: any` because it contains no platform-specific app
-process.
+Remote-web apps always produce one `architecture: any` package because they
+contain no platform-specific app process. Their target declaration only
+controls which Vitul target selectors are accepted.
 
 `vitul agentos init --path <DIR>` writes the file in another project
 directory. The process starter uses `./bin/server` and `bin/server` as example
@@ -77,11 +85,17 @@ command and artifact paths. Edit these for the project before validation and
 build. `inspect` reports an incomplete starter config so you can see what needs
 to be changed.
 
+Use `targets` for a multi-architecture process app. The older single-value
+`target: agentos/arm64` form remains supported; a Vitulfile must use one form or
+the other.
+
 ## Local app example
 
 ```yaml
 schemaVersion: 1
-target: agentos/arm64
+targets:
+  - agentos/arm64
+  - agentos/x64
 
 app:
   type: process
@@ -168,13 +182,12 @@ agentos:
 
 ## Requirements and limitations
 
-- Local process packages target Linux ARM64. Remote URL packages declare
-  `architecture: any`. Both use manifest version 1; x64 process output is not
-  implemented by this module.
+- Local process packages target Linux ARM64 or x64 as declared in `targets`.
+  Remote URL packages declare `architecture: any`. Both use manifest version 1.
 - The package builder runs on a Unix host with `tar` available.
-- A process app must package a Linux ARM64-compatible service and all
-  app-specific runtime files. Vitul does not convert a multi-service Compose
-  deployment into one process.
+- A process app must package a Linux binary and all app-specific runtime files
+  compatible with each declared architecture. Vitul does not convert a
+  multi-service Compose deployment into one process.
 - Vitul writes an OpenTool binding for process apps, but it does not invent
   business tools. To make AgentOS agent calls work, the app server must
   implement the OpenTool routes at its configured `rpcBasePath`. URL apps have
@@ -185,13 +198,14 @@ agentos:
   native capabilities.
 - Dockage and Gitea are candidate apps to package with this format, not
   guaranteed turnkey targets. Their host Docker access, Git/runtime
-  dependencies, persistence, and ARM64 builds need to be configured for the
-  AgentOS environment.
+  dependencies, persistence, and architecture-specific builds need to be
+  configured for the AgentOS environment.
 
 ## Relationship to Vitul projects
 
 The new-app workflow still uses `vitul init`, `vitul.conf.json`, and its Rust
 backend. `Vitulfile` is for packaging an existing web app as an AgentOS app.
-When a project has `Vitulfile`, `vitul build --target agentos/arm64` uses this
-module. The existing `agentos-arm64` compatibility target continues to build
-older Vitul projects that do not have a `Vitulfile`.
+When a project has `Vitulfile`, `vitul build --target agentos` or a specific
+AgentOS architecture uses this module. The existing `agentos-arm64`
+compatibility target continues to build older Vitul projects that do not have
+a `Vitulfile`.

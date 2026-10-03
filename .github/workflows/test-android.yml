@@ -96,13 +96,13 @@ jobs:
         run: pnpm build
 
       - name: init Android Studio project
-        working-directory: ./examples/api
+        working-directory: ./tests/fixtures/desktop-api
         run: cargo tauri android init
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: build APK
-        working-directory: ./examples/api
+        working-directory: ./tests/fixtures/desktop-api
         run: cargo tauri android build
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}

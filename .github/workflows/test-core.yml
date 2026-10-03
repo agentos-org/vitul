@@ -12,6 +12,7 @@ on:
     paths:
       - '.github/workflows/test-core.yml'
       - 'crates/**'
+      - 'tests/fixtures/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '!crates/tauri/scripts/**'
@@ -132,8 +133,6 @@ jobs:
       - name: test tauri
         run: ${{ matrix.platform.cargo }} ${{ matrix.features.key == 'no-default' && 'check' || matrix.platform.command }} --target ${{ matrix.platform.target }} ${{ matrix.features.args }} --manifest-path crates/tauri/Cargo.toml
 
-      - name: test tauri examples
+      - name: test Vitul API fixture
         if: ${{ matrix.features.key != 'no-default' && matrix.platform.command == 'test' }}
-        run: |
-          ${{ matrix.platform.cargo }} test --target ${{ matrix.platform.target }} ${{ matrix.features.args }} --examples --manifest-path crates/tauri/Cargo.toml
-          ${{ matrix.platform.cargo }} test --target ${{ matrix.platform.target }} ${{ matrix.features.args }} --manifest-path examples/api/src-vitul/Cargo.toml
+        run: ${{ matrix.platform.cargo }} test --target ${{ matrix.platform.target }} ${{ matrix.features.args }} --manifest-path tests/fixtures/desktop-api/src-vitul/Cargo.toml

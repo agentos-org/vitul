@@ -85,7 +85,7 @@ jobs:
         uses: actions/download-artifact@v4.1.7
         with:
           name: cargo-tauri
-          path: 'examples/api'
+          path: 'tests/fixtures/desktop-api'
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -117,7 +117,7 @@ jobs:
         run: |
           cd packages/api
           pnpm i --frozen-lockfile && pnpm build
-          cd ../../examples/api
+          cd ../../tests/fixtures/desktop-api
           pnpm i --frozen-lockfile
           . .setup-cross.sh
           chmod +x cargo-tauri

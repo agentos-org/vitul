@@ -7,9 +7,7 @@ use std::{
   process::Command,
 };
 
-const ARCHITECTURE: &str = "arm64";
-
-pub fn build(project_root: &Path) -> Result<()> {
+pub fn build(project_root: &Path, requested_target: &str) -> Result<()> {
   let project_root = project_root.canonicalize().with_context(|| {
     format!(
       "could not resolve project directory {}",
@@ -17,49 +15,89 @@ pub fn build(project_root: &Path) -> Result<()> {
     )
   })?;
   let config = Config::load(&project_root, None)?;
-  println!("Building {} for {}", config.app.name, config.target);
-  let architecture = if config.app.app_type == VitulfileAppType::RemoteWeb {
-    "any"
+  let declared_targets = config.declared_targets();
+  let selected_targets = if requested_target == "agentos" {
+    declared_targets
   } else {
-    ARCHITECTURE
+    if !declared_targets.contains(&requested_target) {
+      bail!(
+        "target `{requested_target}` is not declared in Vitulfile; available targets: {}",
+        config.target_summary()
+      );
+    }
+    vec![requested_target]
   };
 
-  if config.app.app_type == VitulfileAppType::Process {
-    run_build_steps(&project_root, &config)?;
+  // URL apps contain no platform-specific process and always produce one `any` package.
+  let package_targets = if config.app.app_type == VitulfileAppType::RemoteWeb {
+    vec!["any"]
+  } else {
+    selected_targets
+  };
+  let archive_staging =
+    tempfile::tempdir().context("could not create AgentOS archive staging directory")?;
+  let mut archive_names = Vec::new();
+  for target in package_targets {
+    let architecture = if target == "any" {
+      target
+    } else {
+      target.strip_prefix("agentos/").unwrap_or(target)
+    };
+    println!(
+      "Building {} for AgentOS architecture {architecture}",
+      config.app.name
+    );
+    if config.app.app_type == VitulfileAppType::Process {
+      run_build_steps(&project_root, &config, target)?;
+    }
+
+    let archive_name = format!(
+      "{}-{}-agentos-{architecture}.agt",
+      archive_name(&config.app.name),
+      config.app.version
+    );
+    let archive_path = archive_staging.path().join(&archive_name);
+    let staging =
+      tempfile::tempdir().context("could not create AgentOS package staging directory")?;
+    stage_package(&project_root, &config, staging.path(), architecture)?;
+    let mut command = Command::new("tar");
+    command
+      .args(["-czf"])
+      .arg(&archive_path)
+      .args(["-C"])
+      .arg(staging.path())
+      .arg(".");
+    let status = command
+      .status()
+      .context("failed to start `tar` while creating the AgentOS package")?;
+    if !status.success() {
+      bail!("creating the AgentOS .agt archive failed with {status}");
+    }
+    archive_names.push(archive_name);
   }
 
   let output_dir = project_root.join("dist");
   fs::create_dir_all(&output_dir)
     .with_context(|| format!("could not create {}", output_dir.display()))?;
-  let archive_path = output_dir.join(format!(
-    "{}-{}-agentos-{architecture}.agt",
-    archive_name(&config.app.name),
-    config.app.version
-  ));
-  let staging =
-    tempfile::tempdir().context("could not create AgentOS package staging directory")?;
-  stage_package(&project_root, &config, staging.path())?;
-  let mut command = Command::new("tar");
-  command
-    .args(["-czf"])
-    .arg(&archive_path)
-    .args(["-C"])
-    .arg(staging.path())
-    .arg(".");
-  let status = command
-    .status()
-    .context("failed to start `tar` while creating the AgentOS package")?;
-  if !status.success() {
-    bail!("creating the AgentOS .agt archive failed with {status}");
+  for archive_name in archive_names {
+    let staged_archive = archive_staging.path().join(&archive_name);
+    let archive_path = output_dir.join(&archive_name);
+    fs::copy(&staged_archive, &archive_path).with_context(|| {
+      format!(
+        "could not copy AgentOS package from {} to {}",
+        staged_archive.display(),
+        archive_path.display()
+      )
+    })?;
+    println!("AgentOS package created: {}", archive_path.display());
   }
-  println!(
-    "AgentOS {architecture} package created: {}",
-    archive_path.display()
-  );
   Ok(())
 }
 
-fn run_build_steps(project_root: &Path, config: &Config) -> Result<()> {
+fn run_build_steps(project_root: &Path, config: &Config, target: &str) -> Result<()> {
+  let architecture = target
+    .strip_prefix("agentos/")
+    .context("process build target must use the `agentos/<architecture>` format")?;
   for (index, step) in config.build.steps.iter().enumerate() {
     let cwd = step
       .cwd
@@ -70,13 +108,11 @@ fn run_build_steps(project_root: &Path, config: &Config) -> Result<()> {
     command
       .args(&step.args)
       .current_dir(&cwd)
-      .env("VITUL_TARGET", "agentos/arm64")
+      .envs(&step.env)
+      .env("VITUL_TARGET", target)
       .env("VITUL_TARGET_OS", "linux")
-      .env("VITUL_TARGET_ARCH", ARCHITECTURE)
-      .env("AGENTOS_TARGET", "agentos/arm64");
-    for (name, value) in &step.env {
-      command.env(name, value);
-    }
+      .env("VITUL_TARGET_ARCH", architecture)
+      .env("AGENTOS_TARGET", target);
     println!("Running build step {}: {command:?}", index + 1);
     let status = command.status().with_context(|| {
       format!(
@@ -92,7 +128,12 @@ fn run_build_steps(project_root: &Path, config: &Config) -> Result<()> {
   Ok(())
 }
 
-fn stage_package(project_root: &Path, config: &Config, staging_root: &Path) -> Result<()> {
+fn stage_package(
+  project_root: &Path,
+  config: &Config,
+  staging_root: &Path,
+  architecture: &str,
+) -> Result<()> {
   if config.app.app_type == VitulfileAppType::Process {
     for (index, artifact) in config.build.artifacts.iter().enumerate() {
       let source = project_root.join(&artifact.from);
@@ -153,7 +194,7 @@ fn stage_package(project_root: &Path, config: &Config, staging_root: &Path) -> R
       .with_context(|| format!("could not package app icon {}", icon.display()))?;
   }
 
-  let manifest = manifest(config)?;
+  let manifest = manifest(config, architecture)?;
   let manifest_bytes =
     serde_json::to_vec_pretty(&manifest).context("could not encode AgentOS app.json")?;
   fs::write(staging_root.join("app.json"), manifest_bytes)
@@ -161,7 +202,7 @@ fn stage_package(project_root: &Path, config: &Config, staging_root: &Path) -> R
   Ok(())
 }
 
-fn manifest(config: &Config) -> Result<Value> {
+fn manifest(config: &Config, architecture: &str) -> Result<Value> {
   let is_remote = config.app.app_type == VitulfileAppType::RemoteWeb;
   let mut manifest = if is_remote {
     let url = config
@@ -173,7 +214,7 @@ fn manifest(config: &Config) -> Result<Value> {
       "manifestVersion": 1,
       "appType": "url",
       "architecture": "any",
-      "bundleId": config.app.id.to_ascii_lowercase(),
+      "bundleId": config.app.id,
       "name": config.app.name,
       "version": config.app.version,
       "open": {
@@ -190,8 +231,8 @@ fn manifest(config: &Config) -> Result<Value> {
     json!({
       "manifestVersion": 1,
       "appType": "process",
-      "architecture": ARCHITECTURE,
-      "bundleId": config.app.id.to_ascii_lowercase(),
+      "architecture": architecture,
+      "bundleId": config.app.id,
       "name": config.app.name,
       "version": config.app.version,
       "permissions": config.agentos.permissions,

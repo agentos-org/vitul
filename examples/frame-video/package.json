@@ -1,0 +1,29 @@
+{
+  "name": "frame-video",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "vitul": "vitul"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "../../packages/api/dist",
+    "lucide-react": "^0.468.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@vitul/cli": "link:../../packages/cli",
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.2",
+    "tailwindcss": "^4.3.1",
+    "typescript": "~6.0.3",
+    "vite": "^8.1.4"
+  }
+}

@@ -6,7 +6,10 @@ use std::{collections::BTreeMap, path::PathBuf};
 pub struct Vitulfile {
   #[serde(rename = "schemaVersion")]
   pub schema_version: u32,
-  pub target: String,
+  #[serde(default)]
+  pub target: Option<String>,
+  #[serde(default)]
+  pub targets: Vec<String>,
   pub app: AppConfig,
   #[serde(default)]
   pub build: BuildConfig,
@@ -18,6 +21,20 @@ pub struct Vitulfile {
   pub agentos: AgentOsConfig,
   #[serde(default)]
   pub data: DataConfig,
+}
+
+impl Vitulfile {
+  pub fn declared_targets(&self) -> Vec<&str> {
+    if let Some(target) = self.target.as_deref() {
+      vec![target]
+    } else {
+      self.targets.iter().map(String::as_str).collect()
+    }
+  }
+
+  pub fn target_summary(&self) -> String {
+    self.declared_targets().join(", ")
+  }
 }
 
 #[derive(Clone, Debug, Deserialize)]

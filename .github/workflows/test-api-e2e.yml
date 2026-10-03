@@ -16,7 +16,7 @@ on:
       - '.github/workflows/test-api-e2e.yml'
       - 'packages/api/**'
       - 'packages/api-e2e/**'
-      - 'examples/api/**'
+      - 'tests/fixtures/desktop-api/**'
 
 env:
   RUST_BACKTRACE: 1

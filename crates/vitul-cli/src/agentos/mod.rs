@@ -30,8 +30,8 @@ pub fn run(args: Vec<OsString>) -> Result<()> {
   }
 }
 
-pub fn build_vitulfile(project_root: &std::path::Path) -> Result<()> {
-  package::build(project_root)
+pub fn build_vitulfile(project_root: &std::path::Path, target: &str) -> Result<()> {
+  package::build(project_root, target)
 }
 
 fn run_init(args: &[OsString]) -> Result<()> {
@@ -72,6 +72,6 @@ fn option_value(args: &[OsString], option: &str) -> Option<String> {
 
 fn print_help() {
   println!(
-    "AgentOS packaging with Vitulfile\n\nUSAGE:\n  vitul agentos <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init      Write a starter Vitulfile\n  inspect   Inspect the current project and Vitulfile\n  validate  Validate Vitulfile for agentos/arm64\n\nINIT OPTIONS:\n  --path <DIR>             Project directory (default: current directory)\n  --type <process|remote-web>\n                           App profile (default: process)\n  --url <HTTPS_URL>        Required for remote-web\n\nBUILD:\n  vitul build --target agentos/arm64"
+    "AgentOS packaging with Vitulfile\n\nUSAGE:\n  vitul agentos <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init      Write a starter Vitulfile\n  inspect   Inspect the current project and Vitulfile\n  validate  Validate declared AgentOS targets\n\nINIT OPTIONS:\n  --path <DIR>             Project directory (default: current directory)\n  --type <process|remote-web>\n                           App profile (default: process)\n  --url <HTTPS_URL>        Required for remote-web\n\nBUILD:\n  vitul build --target agentos             Build every target declared in Vitulfile\n  vitul build --target agentos/arm64       Build only ARM64\n  vitul build --target agentos/x64         Build only x64"
   );
 }

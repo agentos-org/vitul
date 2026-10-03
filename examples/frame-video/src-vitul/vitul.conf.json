@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../crates/tauri-cli/config.schema.json",
+  "productName": "Frame Video",
+  "version": "0.2.0",
+  "identifier": "com.litevar.agentos.frameVideo",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Frame Video",
+        "width": 1120,
+        "height": 760,
+        "minWidth": 840,
+        "minHeight": 560,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png"
+    ]
+  }
+}

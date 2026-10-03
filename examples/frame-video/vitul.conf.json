@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "backend": {
+    "type": "opentool",
+    "manifest": "backend/Cargo.toml",
+    "binary": "vitul-backend"
+  },
+  "agentos": {
+    "buildImage": "rust:1.90-bookworm",
+    "bundleId": "com.litevar.agentos.frameVideo",
+    "nameZh": "Frame视频",
+    "description": "A simple local video player with a focused stage, playlist, and control bar.",
+    "descriptionZh": "简洁的本地视频播放器，包含播放画面、播放列表和控制栏。",
+    "port": 9627,
+    "permissions": ["native.file-dialogs"],
+    "open": { "titleBar": "system" }
+  }
+}

@@ -102,7 +102,7 @@ describeApi('event', () => {
   })
 
   it('bridges events to and from the Rust backend', async () => {
-    // examples/api listens for `js-event` and replies with `rust-event { data }`.
+    // tests/fixtures/desktop-api listens for `js-event` and replies with `rust-event { data }`.
     const reply = await tauri(
       (api) =>
         new Promise<{ data: string }>((resolve, reject) => {

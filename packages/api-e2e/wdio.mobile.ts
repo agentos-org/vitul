@@ -21,7 +21,7 @@ const repoRoot = path.resolve(dirname, '..', '..')
 const appDir = path.join(repoRoot, 'examples', 'api')
 const runtimeDir = path.join(appDir, 'src-vitul')
 
-/** `identifier` in examples/api's vitul.conf.json. */
+/** `identifier` in tests/fixtures/desktop-api's vitul.conf.json. */
 const appId = 'com.vitul.api'
 
 /** Where Appium looks for drivers; they are devDependencies of this package. */
@@ -111,7 +111,7 @@ export function mobileConfig(platform: MobilePlatform): WebdriverIO.Config {
       }
 
       if (!process.env.E2E_SKIP_BUILD && !process.env.E2E_APP_PATH) {
-        // `examples/api`'s `vitul` script uses the local native CLI, which
+        // `tests/fixtures/desktop-api`'s `vitul` script uses the local native CLI, which
         // requires `pnpm build:cli:debug`.
         //
         // The generated Android Studio / Xcode project lives in `src-vitul/gen`
@@ -218,7 +218,7 @@ export function mobileConfig(platform: MobilePlatform): WebdriverIO.Config {
   }
 }
 
-/** Runs `pnpm vitul <args>` in examples/api, failing loudly. */
+/** Runs `pnpm vitul <args>` in tests/fixtures/desktop-api, failing loudly. */
 function vitulCli(args: string[]): void {
   const result = spawnSync('pnpm', ['vitul', ...args], {
     cwd: appDir,

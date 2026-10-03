@@ -3,10 +3,10 @@ mod dev;
 mod init;
 mod vitulfile;
 
-use anyhow::{Context, bail};
+use anyhow::Context;
 use std::{ffi::OsString, path::PathBuf};
 
-const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init <PROJECT>     Create an OpenTool-first Vitul project\n  agentos <COMMAND>  Create and inspect Vitulfile-based AgentOS packages\n  dev                Run a desktop app with its OpenTool backend\n  build              Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                     Run Tauri-compatible tooling through Vitul\n\nTARGETS:\n  Desktop targets use Vitul's Tauri-compatible runtime.\n  agentos/arm64      Build an AgentOS ARM64 .agt package from Vitulfile\n  agentos-arm64      Compatibility alias for existing Vitul projects\n\nCOMPATIBILITY:\n  Tauri-compatible desktop tooling is invoked internally by Vitul.\n";
+const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init <PROJECT>     Create an OpenTool-first Vitul project\n  agentos <COMMAND>  Create and inspect Vitulfile-based AgentOS packages\n  dev                Run a desktop app with its OpenTool backend\n  build              Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                     Run Tauri-compatible tooling through Vitul\n\nTARGETS:\n  Desktop targets use Vitul's Tauri-compatible runtime.\n  agentos             Build every target declared in Vitulfile\n  agentos/arm64       Build an AgentOS ARM64 .agt package from Vitulfile\n  agentos/x64         Build an AgentOS x64 .agt package from Vitulfile\n  agentos-arm64       Compatibility alias for existing Vitul projects\n\nCOMPATIBILITY:\n  Tauri-compatible desktop tooling is invoked internally by Vitul.\n";
 
 pub fn run() -> anyhow::Result<()> {
   let args = std::env::args_os().skip(1).collect::<Vec<_>>();
@@ -47,7 +47,8 @@ pub fn run_compat_with_args(args: Vec<OsString>, bin_name: Option<String>) -> an
     .join(vitulfile::FILE_NAME)
     .is_file();
   let is_agentos_build = command.as_deref() == Some("build")
-    && option_value(&args, "--target", "-t").is_some_and(|target| target.starts_with("agentos/"));
+    && option_value(&args, "--target", "-t")
+      .is_some_and(|target| target == "agentos" || target.starts_with("agentos/"));
 
   if command.as_deref() == Some("agentos")
     || (!wants_help
@@ -68,22 +69,29 @@ fn is_vitul_project(root: &std::path::Path) -> bool {
 
 fn run_build(args: Vec<OsString>) -> anyhow::Result<()> {
   match option_value(&args, "--target", "-t").as_deref() {
-    Some("agentos/arm64") => agentos::build_vitulfile(&project_root()?),
+    Some("agentos") => agentos::build_vitulfile(&project_root()?, "agentos"),
+    Some("agentos/arm64") => build_agentos_arm64(&project_root()?),
+    Some("agentos/x64") => agentos::build_vitulfile(&project_root()?, "agentos/x64"),
     Some("agentos-arm64") => {
       let root = project_root()?;
       if root.join(vitulfile::FILE_NAME).is_file() {
-        agentos::build_vitulfile(&root)
+        agentos::build_vitulfile(&root, "agentos/arm64")
       } else {
         agentos::legacy::build_arm64(&root)
       }
     }
-    Some("agentos-x64") => {
-      bail!("AgentOS x64 package creation is not supported by this Vitul CLI; use `agentos/arm64`")
-    }
-    Some("agentos/x64") => {
-      bail!("AgentOS x64 package creation is not supported by this Vitul CLI; use `agentos/arm64`")
-    }
+    Some("agentos-x64") => agentos::build_vitulfile(&project_root()?, "agentos/x64"),
     _ => run_tauri("build", args, "vitul"),
+  }
+}
+
+fn build_agentos_arm64(root: &std::path::Path) -> anyhow::Result<()> {
+  if root.join(vitulfile::FILE_NAME).is_file() {
+    agentos::build_vitulfile(root, "agentos/arm64")
+  } else if is_vitul_project(root) {
+    agentos::legacy::build_arm64(root)
+  } else {
+    agentos::build_vitulfile(root, "agentos/arm64")
   }
 }
 

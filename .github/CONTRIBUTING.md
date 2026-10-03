@@ -21,8 +21,10 @@ Node.js declared by the package you are working on.
 - `crates/tauri-*` and `packages/api` provide the Tauri-compatible desktop
   runtime and JavaScript API. Their public names and protocol identifiers are
   compatibility interfaces; preserve them when changing the implementation.
-- `examples/vitul-opentool` demonstrates host IPC for system actions and
-  OpenTool for application business calls.
+- `examples/window-lab` demonstrates a native Vitul app, with host IPC for
+  system actions and OpenTool for application business calls.
+- `examples/process` and `examples/url` cover AgentOS packaging for existing
+  processes and hosted websites.
 
 See [Architecture](../ARCHITECTURE.md) for the runtime and package boundaries.
 

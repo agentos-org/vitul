@@ -50,7 +50,7 @@ pub fn run(args: &[OsString]) -> Result<()> {
         super::VitulfileAppType::RemoteWeb => "remote-web",
       }
     );
-    println!("Target: {}", config.target);
+    println!("Targets: {}", config.target_summary());
     match config.app.app_type {
       super::VitulfileAppType::Process => {
         println!(

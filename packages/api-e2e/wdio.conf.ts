@@ -68,7 +68,7 @@ export const config: WebdriverIO.Config = {
     }
 
     if (!process.env.E2E_SKIP_BUILD && !process.env.E2E_APP_PATH) {
-      // `examples/api`'s `vitul` script uses the local native CLI, which
+      // `tests/fixtures/desktop-api`'s `vitul` script uses the local native CLI, which
       // requires `pnpm build:cli:debug`.
       //
       // The override config does two things for this (debug, test-only) build:
