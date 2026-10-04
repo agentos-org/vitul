@@ -2,7 +2,7 @@
   "id": "toney-music",
   "name": "Toney Music",
   "name_zh": "Toney音乐",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "A focused local music library with queue and mini-player controls.",
   "description_zh": "专注本地音乐的播放器，支持媒体库、播放队列和迷你播放器控制。",
   "requiresCapabilities": ["externalApps"],

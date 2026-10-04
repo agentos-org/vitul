@@ -178,7 +178,12 @@ async fn tray_icon(state: &AppState, icon_png_base64: Option<&str>) -> Value {
   };
   let detail = track_name.as_deref().unwrap_or("No track selected");
   let detail_zh = track_name.as_deref().unwrap_or("未选择歌曲");
-  let tooltip = shorten_utf16(&format!("Toney Music · {status}: {detail}"), 128);
+  let locale = state.tray_locale.read().await;
+  let tooltip = if locale.as_str() == "zh" {
+    shorten_utf16(&format!("Toney音乐 · {status_zh}：{detail_zh}"), 128)
+  } else {
+    shorten_utf16(&format!("Toney Music · {status}: {detail}"), 128)
+  };
   let status_label = shorten_utf16(&format!("{status}: {detail}"), 128);
   let status_label_zh = shorten_utf16(&format!("{status_zh}：{detail_zh}"), 128);
   let (toggle_label, toggle_label_zh) = if playback_state == "playing" {

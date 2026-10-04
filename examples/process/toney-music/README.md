@@ -49,7 +49,7 @@ vitul build --target agentos/arm64
 The Rust build script uses a Linux container for cross-platform builds and reads
 `VITUL_TARGET_ARCH`. The package currently targets `agentos/arm64`. Vitul builds
 the frontend and `musicd`, includes FFmpeg as fallback, and writes
-`dist/toney-music-0.3.9-agentos-arm64.agt`.
+`dist/toney-music-0.3.10-agentos-arm64.agt`.
 
 The generated process manifest requests `native.audio`,
 `native.audio.exclusive`, and `native.tray`. AgentOS provides
@@ -58,6 +58,7 @@ The generated process manifest requests `native.audio`,
 updates the track/status tooltip and menu while playing. The menu provides Play
 or Pause and Stop. Menu entries provide AgentOS `localizedLabels` for `en-US`
 and `zh-CN`; the Shell chooses the current locale and falls back to `label`.
+The hover tooltip follows Toney's interface language, which is saved with the app data.
 Closing the CEF window leaves `musicd`, the audio session, and the tray controls
 running; stopping or uninstalling the App ends playback and removes the tray
 icon.

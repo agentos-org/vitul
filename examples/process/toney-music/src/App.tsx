@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type Ref } from "react";
 import { filePickerFileToMediaUrl, openFilePicker, readFennFileDrag, uploadFilesToFennFolder, type FennFileDragItem, type FennFilePickerFile } from "../../shared/plugin-sdk.js";
-import { deleteTrack, fetchBitPerfectSettings, fetchDecoderPreferences, fetchDecoderStatus, fetchPlayback, fetchTracks, heartbeatPlaybackUI, pausePlayback, resumePlayback, seekPlayback, setDecoderPreference, startPlayback, stopPlayback, updateBitPerfectSettings, uploadTrack } from "./api";
+import { deleteTrack, fetchBitPerfectSettings, fetchDecoderPreferences, fetchDecoderStatus, fetchPlayback, fetchTracks, heartbeatPlaybackUI, pausePlayback, resumePlayback, seekPlayback, setDecoderPreference, startPlayback, stopPlayback, updateBitPerfectSettings, updateTrayLocale, uploadTrack } from "./api";
 import { resolveLocale, resolveTheme, textFor, type CopyKey } from "./i18n";
 import { DEFAULT_DECODER_PREFERENCES, type DecoderFormat, type DecoderPreference, type DecoderPreferences, type DecoderState, type LanguagePreference, type Locale, type PlaybackState, type Playlist, type RepeatMode, type Theme, type ThemePreference, type Track, type View } from "./types";
 
@@ -321,7 +321,7 @@ function TrackTable({ locale, tracks, favoriteKeys, playlists, removeLabel, onPl
 
 function SettingsView({ locale, languagePreference, themePreference, decoder, decoderPreferences, playback, audioMode, audioDevice, bitPerfectEnabled, bitPerfectPending, onLanguage, onTheme, onAudioMode, onAudioDevice, onBitPerfectChange, onDecoderPreference }: { locale: Locale; languagePreference: LanguagePreference; themePreference: ThemePreference; decoder: DecoderState; decoderPreferences: DecoderPreferences; playback: PlaybackState; audioMode: "shared" | "exclusive"; audioDevice: string; bitPerfectEnabled: boolean; bitPerfectPending: boolean; onLanguage: (value: LanguagePreference) => void; onTheme: (value: ThemePreference) => void; onAudioMode: (value: "shared" | "exclusive") => void; onAudioDevice: (value: string) => void; onBitPerfectChange: (value: boolean) => void; onDecoderPreference: (format: DecoderFormat, preference: DecoderPreference) => void }) {
   const t = (key: CopyKey) => textFor(locale, key);
-  const status = decoder.loading ? t("settings.decoderLoading") : decoder.available ? t("settings.decoderReady") : t("settings.decoderUnavailable");
+  const status = decoder.loading ? t("settings.decoderLoading") : decoder.error ? t("settings.statusUnavailable") : decoder.available ? t("settings.decoderReady") : t("settings.decoderUnavailable");
   const deviceOptions = decoder.audio.devices.filter((device) => device.mode === audioMode && device.available !== false).map((device) => [device.id, device.name] as [string, string]);
   const selectedDevice = deviceOptions.some(([id]) => id === audioDevice) ? audioDevice : deviceOptions[0]?.[0] ?? "default";
   const decoderPreferenceRows: Array<[DecoderFormat, CopyKey, string]> = [
@@ -335,8 +335,8 @@ function SettingsView({ locale, languagePreference, themePreference, decoder, de
   ];
   return <section className="music-view"><div className="settings-shell"><div className="settings-heading"><span className="section-kicker">{t("settings.kicker")}</span><h2>{t("nav.settings")}</h2><p>{t("settings.subtitle")}</p></div>
     <section className="settings-card"><div className="settings-section-title">{t("settings.appearanceHeader")}</div><SettingSelect label={t("settings.languageLabel")} description={t("settings.languageDescription")} value={languagePreference} onChange={(value) => onLanguage(value as LanguagePreference)} options={[["system", t("settings.languageSystem")], ["zh", t("settings.languageChinese")], ["en", t("settings.languageEnglish")]]} /><SettingSelect label={t("settings.themeLabel")} description={t("settings.themeDescription")} value={themePreference} onChange={(value) => onTheme(value as ThemePreference)} options={[["system", t("settings.themeSystem")], ["light", t("settings.themeLight")], ["dark", t("settings.themeDark")]]} /></section>
-    <section className="settings-card"><div className="settings-section-title">{t("settings.outputHeader")}</div><p className="settings-section-description">{t("settings.outputDescription")}</p><SettingSelect label={t("settings.outputModeLabel")} description={t("settings.outputModeDescription")} value={audioMode} onChange={(value) => onAudioMode(value as "shared" | "exclusive")} options={[["exclusive", t("settings.outputExclusive")], ["shared", t("settings.outputShared")]]} /><SettingSelect label={t("settings.outputDeviceLabel")} description={t("settings.outputDeviceDescription")} value={selectedDevice} onChange={onAudioDevice} options={deviceOptions.length ? deviceOptions : [["default", t("settings.outputUnavailable")]]} /><div className="settings-row"><div><strong>{t("settings.bitPerfectLabel")}</strong><span>{t("settings.bitPerfectDescription")}</span></div><button type="button" role="switch" aria-label={t("settings.bitPerfectLabel")} aria-checked={bitPerfectEnabled} aria-busy={bitPerfectPending} disabled={bitPerfectPending} className={cn("settings-switch", bitPerfectEnabled && "is-on")} onClick={() => onBitPerfectChange(!bitPerfectEnabled)}><span className="settings-switch-knob" />{bitPerfectPending ? t("settings.bitPerfectChecking") : bitPerfectEnabled ? t("settings.bitPerfectDisable") : t("settings.bitPerfectEnable")}</button></div></section>
-    <section className="settings-card decoder-card"><div className="settings-section-title">{t("settings.decoderHeader")}</div><p className="settings-section-description">{t("settings.decoderDescription")}</p><div className="decoder-status-line"><span className={cn("decoder-status-dot", decoder.loading ? "" : decoder.available ? "is-ready" : "is-error")} /><strong>{status}</strong><span>{decoder.audio.available ? t("settings.outputReady") : decoder.audio.error || t("settings.outputUnavailable")}</span></div><div className="decoder-details"><div><span>{t("settings.decoderEngineLabel")}</span><strong>{decoder.engine || t("settings.decoderUnknown")}</strong></div><div><span>{t("settings.decoderPathLabel")}</span><strong className="decoder-path">{decoder.path || t("settings.decoderUnknown")}</strong></div></div>
+    <section className="settings-card"><div className="settings-section-title">{t("settings.outputHeader")}</div><p className="settings-section-description">{t("settings.outputDescription")}</p><SettingSelect label={t("settings.outputModeLabel")} description={t("settings.outputModeDescription")} value={audioMode} onChange={(value) => onAudioMode(value as "shared" | "exclusive")} options={[["exclusive", t("settings.outputExclusive")], ["shared", t("settings.outputShared")]]} /><SettingSelect label={t("settings.outputDeviceLabel")} description={t("settings.outputDeviceDescription")} value={selectedDevice} onChange={onAudioDevice} options={deviceOptions.length ? deviceOptions : [["default", t(decoder.error ? "settings.statusUnavailable" : "settings.outputUnavailable")]]} /><div className="settings-row"><div><strong>{t("settings.bitPerfectLabel")}</strong><span>{t("settings.bitPerfectDescription")}</span></div><button type="button" role="switch" aria-label={t("settings.bitPerfectLabel")} aria-checked={bitPerfectEnabled} aria-busy={bitPerfectPending} disabled={bitPerfectPending} className={cn("settings-switch", bitPerfectEnabled && "is-on")} onClick={() => onBitPerfectChange(!bitPerfectEnabled)}><span className="settings-switch-knob" />{bitPerfectPending ? t("settings.bitPerfectChecking") : bitPerfectEnabled ? t("settings.bitPerfectDisable") : t("settings.bitPerfectEnable")}</button></div></section>
+    <section className="settings-card decoder-card"><div className="settings-section-title">{t("settings.decoderHeader")}</div><p className="settings-section-description">{t("settings.decoderDescription")}</p><div className="decoder-status-line"><span className={cn("decoder-status-dot", decoder.loading ? "" : decoder.available ? "is-ready" : "is-error")} /><strong>{status}</strong><span>{decoder.error || (decoder.audio.available ? t("settings.outputReady") : decoder.audio.error || t("settings.outputUnavailable"))}</span></div><div className="decoder-details"><div><span>{t("settings.decoderEngineLabel")}</span><strong>{decoder.engine || t("settings.decoderUnknown")}</strong></div><div><span>{t("settings.decoderPathLabel")}</span><strong className="decoder-path">{decoder.path || t("settings.decoderUnknown")}</strong></div></div>
       <div className="decoder-engines">{decoder.engines.map((entry) => <div key={entry.engine}><strong>{entry.engine}</strong><span>{entry.formats.map((format) => format.toUpperCase()).join(" · ")}</span></div>)}</div>
       <div className="decoder-preferences"><div className="settings-section-title">{t("settings.decoderPreferencesHeader")}</div><p className="settings-section-description">{t("settings.decoderPreferencesDescription")}</p><div className="decoder-preference-list">{decoderPreferenceRows.map(([format, label, engine]) => <SettingSelect key={format} label={t(label)} description={engine} value={decoderPreferences[format]} onChange={(value) => onDecoderPreference(format, value as DecoderPreference)} options={[["auto", format === "other" ? t("settings.decoderAuto") : engine], ["ffmpeg", decoder.ffmpegAvailable ? t("settings.decoderFfmpegForced") : t("settings.decoderFfmpegUnavailable"), !decoder.ffmpegAvailable]]} />)}</div></div>
       <div className="decoder-current"><span>{t("settings.currentStream")}</span>{playback.decoder ? <><strong>{playback.decoder}</strong><span>{[playback.sampleRate ? `${playback.sampleRate} Hz` : "", playback.bitsPerSample ? `${playback.bitsPerSample}-bit` : "", playback.channels ? `${playback.channels} ch` : ""].filter(Boolean).join(" · ")}</span><span>{playback.bitPerfectDecode ? t("settings.exactDecode") : playback.sourceLossless === false ? t("settings.lossyDecode") : t("settings.fallbackDecode")}</span><span>{playback.mode === "shared" ? t("settings.sharedQuality") : t("settings.exclusiveQuality")}</span></> : <span>{t("settings.noCurrentStream")}</span>}</div>
@@ -483,6 +483,10 @@ export default function App() {
   }, [locale, theme]);
 
   useEffect(() => {
+    void updateTrayLocale(locale).catch(() => {});
+  }, [locale]);
+
+  useEffect(() => {
     const heartbeat = () => { void heartbeatPlaybackUI().catch(() => {}); };
     heartbeat();
     const timer = window.setInterval(heartbeat, 1500);
@@ -516,15 +520,19 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      fetchTracks().catch((error) => { notify(t("backendUnavailable", { error: error.message })); return []; }),
-      fetchDecoderStatus().catch((error) => ({ ...DEFAULT_DECODER, loading: false, error: error.message })),
-      fetchDecoderPreferences().catch(() => DEFAULT_DECODER_PREFERENCES),
-      fetchPlayback().catch(() => DEFAULT_PLAYBACK),
-      fetchBitPerfectSettings().catch(() => ({ enabled: false })),
-    ]).then(([loadedTracks, loadedDecoder, loadedDecoderPreferences, loadedPlayback, loadedBitPerfect]) => {
+    let retryTimer: number | undefined;
+    let attempt = 0;
+    const load = () => {
+      let retry = false;
+      void Promise.all([
+        fetchTracks().catch((error) => { retry = true; if (attempt === 0) notify(t("backendUnavailable", { error: error.message })); return null; }),
+        fetchDecoderStatus().catch((error) => { retry = true; return { ...DEFAULT_DECODER, loading: false, error: error.message }; }),
+        fetchDecoderPreferences().catch(() => DEFAULT_DECODER_PREFERENCES),
+        fetchPlayback().catch(() => DEFAULT_PLAYBACK),
+        fetchBitPerfectSettings().catch(() => ({ enabled: false })),
+      ]).then(([loadedTracks, loadedDecoder, loadedDecoderPreferences, loadedPlayback, loadedBitPerfect]) => {
       if (cancelled) return;
-      setTracks(loadedTracks);
+      if (loadedTracks) setTracks(loadedTracks);
       setDecoder(loadedDecoder);
       setDecoderPreferences(loadedDecoderPreferences);
       setBitPerfectEnabled(loadedBitPerfect.enabled);
@@ -543,16 +551,24 @@ export default function App() {
         setAudioDevice(modeDevices[0].id);
         if (loadedBitPerfect.enabled) store("music-output-device", modeDevices[0].id);
       }
-      setQueueIds((ids) => {
-        const valid = ids.filter((id) => loadedTracks.some((track) => track.id === id));
-        return valid.length ? valid : loadedTracks.map((track) => track.id);
-      });
-      if (loadedTracks.length && !loadedPlayback.trackId && !currentId) {
-        setCurrentId(loadedTracks[0].id);
+      if (loadedTracks) {
+        setQueueIds((ids) => {
+          const valid = ids.filter((id) => loadedTracks.some((track) => track.id === id));
+          return valid.length ? valid : loadedTracks.map((track) => track.id);
+        });
+      }
+      if (loadedTracks?.length && !loadedPlayback.trackId) {
+        setCurrentId((id) => id ?? loadedTracks[0].id);
+      }
+      if (retry) {
+        attempt += 1;
+        retryTimer = window.setTimeout(load, 3000);
       }
     });
-    return () => { cancelled = true; };
-    // Load the local library once when the external app opens.
+    };
+    load();
+    return () => { cancelled = true; if (retryTimer !== undefined) window.clearTimeout(retryTimer); };
+    // AgentOS can serve the UI before the app backend is ready; retry failed startup requests.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -860,16 +876,15 @@ export default function App() {
     try {
       if (enabled) {
         const track = current ?? tracks[0];
-        if (!track) throw new Error(t("settings.bitPerfectNoTrack"));
         const device = decoder.audio.devices.find((item) => item.mode === "exclusive" && item.available !== false);
         if (!device) throw new Error(t("settings.bitPerfectNoDevice"));
-        const settings = await updateBitPerfectSettings(true, track.id, device.id);
+        const settings = await updateBitPerfectSettings(true, track?.id, device.id);
         setBitPerfectEnabled(settings.enabled);
         setAudioMode("exclusive");
         setAudioDevice(device.id);
         store("music-output-mode", "exclusive");
         store("music-output-device", device.id);
-        notify(t("settings.bitPerfectEnabled"), 4000);
+        notify(t(track ? "settings.bitPerfectEnabled" : "settings.bitPerfectPendingTrack"), 4000);
       } else {
         const settings = await updateBitPerfectSettings(false);
         setBitPerfectEnabled(settings.enabled);
@@ -902,13 +917,9 @@ export default function App() {
     if (bitPerfectEnabled) {
       if (bitPerfectPending) return;
       const track = current ?? tracks[0];
-      if (!track) {
-        notify(t("settings.bitPerfectEnableFailed", { error: t("settings.bitPerfectNoTrack") }), 6000);
-        return;
-      }
       setBitPerfectPending(true);
       try {
-        await updateBitPerfectSettings(true, track.id, value);
+        await updateBitPerfectSettings(true, track?.id, value);
         setAudioDevice(value);
         store("music-output-device", value);
       } catch (error) {

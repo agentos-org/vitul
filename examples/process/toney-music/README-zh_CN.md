@@ -42,13 +42,13 @@ vitul build --target agentos/arm64
 
 Rust 构建脚本在跨平台构建时使用 Linux 容器，并读取 `VITUL_TARGET_ARCH`。当前
 `Vitulfile` 目标为 `agentos/arm64`。Vitul 会构建前端和 `musicd`，将 FFmpeg 作为兜底一起打包，
-并生成 `dist/toney-music-0.3.9-agentos-arm64.agt`。
+并生成 `dist/toney-music-0.3.10-agentos-arm64.agt`。
 
 生成的进程 manifest 声明 `native.audio`、`native.audio.exclusive` 和 `native.tray`。AgentOS 启动应用时会提供
 `AGENTOS_AUDIO_SOCKET` 和 `AGENTOS_TRAY_SOCKET`。`musicd` 后端使用打包的 Toney Music PNG 作为托盘图标，
 并动态更新曲目/播放状态提示和菜单；菜单提供播放/暂停、停止操作。关闭 CEF 窗口后，`musicd`、音频会话和
 托盘控制仍会运行。菜单项提供 AgentOS 约定的 `localizedLabels`，支持 `en-US` 和 `zh-CN`；Shell 按当前语言选择文案，
-没有匹配时回退到 `label`。停止或卸载应用时，AgentOS 会结束播放并移除托盘图标。
+没有匹配时回退到 `label`。悬停提示随 Toney 界面语言更新，并保存在应用数据目录中。停止或卸载应用时，AgentOS 会结束播放并移除托盘图标。
 
 ## CUE 分轨
 

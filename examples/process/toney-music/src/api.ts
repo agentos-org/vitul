@@ -65,6 +65,15 @@ export async function fetchDecoderStatus(): Promise<DecoderState> {
   };
 }
 
+export async function updateTrayLocale(locale: "zh" | "en"): Promise<void> {
+  const response = await fetch(apiUrl("/tray/locale"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ locale }),
+  });
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+}
+
 export async function fetchDecoderPreferences(): Promise<DecoderPreferences> {
   return requestJSON<DecoderPreferences>("/decoder-settings");
 }

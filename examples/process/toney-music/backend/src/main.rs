@@ -12,10 +12,8 @@ use std::{
 };
 
 use axum::{
-  body::Body,
   extract::{DefaultBodyLimit, Multipart, Path as AxumPath, State},
-  http::{header, Method, Request, StatusCode, Uri},
-  middleware::{self, Next},
+  http::{header, Method, StatusCode},
   response::{IntoResponse, Response},
   routing::{delete, get, post},
   Json, Router,
@@ -49,6 +47,7 @@ struct AppState {
   ffmpeg: String,
   decoder_preferences: Arc<RwLock<DecoderPreferences>>,
   bit_perfect_enabled: Arc<RwLock<bool>>,
+  tray_locale: Arc<RwLock<String>>,
   tracks: Arc<RwLock<Vec<Track>>>,
   audio: Arc<audio::AudioManager>,
   ui_last_seen_ms: Arc<AtomicU64>,
@@ -249,6 +248,11 @@ struct BitPerfectSettingsRequest {
   device: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct TrayLocaleRequest {
+  locale: String,
+}
+
 fn default_audio_mode() -> String {
   "exclusive".to_string()
 }
@@ -323,6 +327,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(data) => serde_json::from_slice::<BitPerfectSettings>(&data).unwrap_or_default(),
     Err(_) => BitPerfectSettings::default(),
   };
+  let tray_locale = fs::read_to_string(data_dir.join("tray-locale.txt"))
+    .await
+    .unwrap_or_default();
   let state = AppState {
     data_dir,
     library_dir,
@@ -331,6 +338,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ffmpeg,
     decoder_preferences: Arc::new(RwLock::new(decoder_preferences)),
     bit_perfect_enabled: Arc::new(RwLock::new(bit_perfect_settings.enabled)),
+    tray_locale: Arc::new(RwLock::new(
+      if tray_locale.trim() == "zh" {
+        "zh"
+      } else {
+        "en"
+      }
+      .to_string(),
+    )),
     tracks: Arc::new(RwLock::new(tracks)),
     audio: Arc::new(audio::AudioManager::new(cache_dir)),
     ui_last_seen_ms: Arc::new(AtomicU64::new(0)),
@@ -352,9 +367,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ])
     .allow_headers([header::CONTENT_TYPE, header::RANGE]);
 
-  let app = Router::new()
+  let routes = Router::new()
     .route("/health", get(health))
     .route("/api/status", get(status))
+    .route("/api/tray/locale", post(update_tray_locale))
     .route(
       "/api/decoder-settings",
       get(get_decoder_settings).post(update_decoder_settings),
@@ -371,11 +387,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .route("/api/playback/resume", post(resume_playback))
     .route("/api/playback/stop", post(stop_playback))
     .route("/api/playback/seek", post(seek_playback))
-    .fallback_service(ServeDir::new(public_dir).append_index_html_on_directories(true))
     .layer(DefaultBodyLimit::max(MAX_REQUEST_BYTES))
     .layer(cors)
-    .layer(middleware::from_fn(strip_plugin_prefix))
     .with_state(state.clone());
+  let app = Router::new()
+    .nest(
+      PLUGIN_ROUTE,
+      routes
+        .clone()
+        .fallback_service(ServeDir::new(public_dir.clone()).append_index_html_on_directories(true)),
+    )
+    .merge(routes)
+    .fallback_service(ServeDir::new(public_dir).append_index_html_on_directories(true));
 
   let address: SocketAddr = format!("{host}:{port}").parse()?;
   let listener = TcpListener::bind(address).await?;
@@ -386,30 +409,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   Ok(())
 }
 
-async fn strip_plugin_prefix(mut request: Request<Body>, next: Next) -> Response {
-  let path = request.uri().path();
-  if path == PLUGIN_ROUTE || path.starts_with(&format!("{PLUGIN_ROUTE}/")) {
-    let stripped = path.strip_prefix(PLUGIN_ROUTE).unwrap_or("/");
-    let path_and_query = request
-      .uri()
-      .query()
-      .map(|query| format!("{stripped}?{query}"))
-      .unwrap_or_else(|| {
-        if stripped.is_empty() {
-          "/".to_string()
-        } else {
-          stripped.to_string()
-        }
-      });
-    if let Ok(uri) = Uri::builder().path_and_query(path_and_query).build() {
-      *request.uri_mut() = uri;
-    }
-  }
-  next.run(request).await
-}
-
 async fn health() -> Json<Value> {
   Json(json!({ "status": "ok", "service": SERVICE_NAME, "version": SERVICE_VERSION }))
+}
+
+async fn update_tray_locale(
+  State(state): State<AppState>,
+  Json(request): Json<TrayLocaleRequest>,
+) -> Result<StatusCode, ApiError> {
+  if !matches!(request.locale.as_str(), "zh" | "en") {
+    return Err(ApiError(
+      StatusCode::BAD_REQUEST,
+      "unsupported tray locale".to_string(),
+    ));
+  }
+  fs::write(state.data_dir.join("tray-locale.txt"), &request.locale).await?;
+  *state.tray_locale.write().await = request.locale;
+  Ok(StatusCode::NO_CONTENT)
 }
 
 async fn status(State(state): State<AppState>) -> Json<Value> {
@@ -472,10 +488,10 @@ async fn update_bit_perfect_settings(
   Json(request): Json<BitPerfectSettingsRequest>,
 ) -> Result<Json<Value>, ApiError> {
   let preflight = if request.enabled {
-    let track_id = if let Some(track_id) = request.track_id {
-      track_id
+    let track_id = if let Some(track_id) = request.track_id.clone() {
+      Some(track_id)
     } else if let Some(track_id) = state.audio.current_track_id().await {
-      track_id
+      Some(track_id)
     } else {
       state
         .tracks
@@ -484,48 +500,73 @@ async fn update_bit_perfect_settings(
         .iter()
         .min_by_key(|track| track.added_at)
         .map(|track| track.id.clone())
+    };
+    if let Some(track_id) = track_id {
+      let track = state
+        .tracks
+        .read()
+        .await
+        .iter()
+        .find(|track| track.id == track_id)
+        .cloned()
+        .ok_or_else(|| {
+          ApiError(
+            StatusCode::NOT_FOUND,
+            "The selected song is no longer in the library.".to_string(),
+          )
+        })?;
+      let decoder_preference = state
+        .decoder_preferences
+        .read()
+        .await
+        .for_extension(&track.extension)
+        .as_str()
+        .to_string();
+      Some(
+        state
+          .audio
+          .check_bit_perfect_output(
+            cache_identity(&track),
+            state.library_dir.join(&track.stored_name),
+            state.cache_dir.clone(),
+            state.ffmpeg.clone(),
+            track.extension,
+            decoder_preference,
+            request.device.unwrap_or_default(),
+          )
+          .await
+          .map_err(|error| ApiError(StatusCode::UNPROCESSABLE_ENTITY, error))?,
+      )
+    } else {
+      let capabilities = state.audio.capabilities().await;
+      let requested_device = request
+        .device
+        .as_deref()
+        .filter(|device| !device.is_empty());
+      let exclusive_device = capabilities
+        .get("devices")
+        .and_then(Value::as_array)
+        .and_then(|devices| {
+          devices.iter().find(|device| {
+            device.get("mode").and_then(Value::as_str) == Some("exclusive")
+              && device.get("available").and_then(Value::as_bool) != Some(false)
+              && requested_device.is_none_or(|requested| {
+                requested == "default"
+                  || device.get("id").and_then(Value::as_str) == Some(requested)
+              })
+          })
+        });
+      let device_id = exclusive_device
+        .and_then(|device| device.get("id"))
+        .and_then(Value::as_str)
         .ok_or_else(|| {
           ApiError(
             StatusCode::UNPROCESSABLE_ENTITY,
-            "Import a lossless song before enabling bit-perfect mode.".to_string(),
+            "AgentOS did not provide an available exclusive ALSA device.".to_string(),
           )
-        })?
-    };
-    let track = state
-      .tracks
-      .read()
-      .await
-      .iter()
-      .find(|track| track.id == track_id)
-      .cloned()
-      .ok_or_else(|| {
-        ApiError(
-          StatusCode::NOT_FOUND,
-          "The selected song is no longer in the library.".to_string(),
-        )
-      })?;
-    let decoder_preference = state
-      .decoder_preferences
-      .read()
-      .await
-      .for_extension(&track.extension)
-      .as_str()
-      .to_string();
-    Some(
-      state
-        .audio
-        .check_bit_perfect_output(
-          cache_identity(&track),
-          state.library_dir.join(&track.stored_name),
-          state.cache_dir.clone(),
-          state.ffmpeg.clone(),
-          track.extension,
-          decoder_preference,
-          request.device.unwrap_or_default(),
-        )
-        .await
-        .map_err(|error| ApiError(StatusCode::UNPROCESSABLE_ENTITY, error))?,
-    )
+        })?;
+      Some(json!({ "deferred": true, "device": device_id }))
+    }
   } else {
     None
   };
