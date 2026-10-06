@@ -17,13 +17,20 @@ export type VideoSelection = { paths: string[]; files: File[] };
 
 export async function openVideoSelection(): Promise<VideoSelection> {
   if (window.agentos?.host) {
-    const selected = await window.agentos.host.invoke<string | string[] | null>(
-      "dialog.openFile",
-      {
-        filters: [{ name: "Video files", extensions: videoExtensions }],
-      },
-    );
-    return { paths: normalizePaths(selected), files: [] };
+    try {
+      const selected = await window.agentos.host.invoke<string | string[] | null>(
+        "dialog.openFile",
+        {
+          filters: [{ name: "Video files", extensions: videoExtensions }],
+        },
+      );
+      return { paths: normalizePaths(selected), files: [] };
+    } catch (error) {
+      if (!isUnsupportedHostMethod(error, "dialog.openFile")) throw error;
+      // Keep the app usable in AgentOS hosts that expose the web app bridge
+      // before granting optional native dialog capabilities.
+      return { paths: [], files: await openBrowserFilePicker() };
+    }
   }
 
   if (window.__TAURI_INTERNALS__) {
@@ -35,6 +42,11 @@ export async function openVideoSelection(): Promise<VideoSelection> {
   }
 
   return { paths: [], files: await openBrowserFilePicker() };
+}
+
+function isUnsupportedHostMethod(error: unknown, method: string): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes(`Unsupported AgentOS host method: ${method}`);
 }
 
 function normalizePaths(value: string | string[] | null): string[] {

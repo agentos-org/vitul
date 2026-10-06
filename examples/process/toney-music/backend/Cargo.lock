@@ -648,6 +648,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
+name = "opentool-rust"
+version = "0.1.0"
+source = "git+https://github.com/opentool-hub/opentool-rust#b3ce13e5bc5272d4b6f1e83b0f93d8e433bf6485"
+dependencies = [
+ "async-trait",
+ "axum",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1122,6 +1136,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-stream"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3d06f0b082ba57c26b79407372e57cf2a1e28124f78e9479fe80322cf53420b"
+dependencies = [
+ "futures-core",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
 name = "tokio-util"
 version = "0.7.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1139,9 +1164,11 @@ name = "toney-musicd"
 version = "0.3.10"
 dependencies = [
  "ape-decoder",
+ "async-trait",
  "axum",
  "claxon",
  "encoding_rs",
+ "opentool-rust",
  "serde",
  "serde_json",
  "sha2",

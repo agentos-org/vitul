@@ -11,17 +11,25 @@ use std::{
   time::SystemTime,
 };
 
+use async_trait::async_trait;
 use axum::{
   extract::{DefaultBodyLimit, Multipart, Path as AxumPath, State},
-  http::{header, Method, StatusCode},
+  http::{header, Method, Request, StatusCode},
+  middleware::{self, Next},
   response::{IntoResponse, Response},
   routing::{delete, get, post},
   Json, Router,
 };
+use opentool_rust::{CliArguments, OpenToolServer, Tool, ToolError};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use tokio::{fs, io::AsyncWriteExt, net::TcpListener, sync::RwLock};
+use tokio::{
+  fs,
+  io::AsyncWriteExt,
+  net::TcpListener,
+  sync::{watch, RwLock},
+};
 use tower_http::{
   cors::{Any, CorsLayer},
   services::ServeDir,
@@ -33,6 +41,7 @@ const SERVICE_VERSION: &str = env!("CARGO_PKG_VERSION");
 const PLUGIN_ROUTE: &str = "/apps/toney-music";
 const MAX_UPLOAD_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = (8 * 1024 * 1024 * 1024usize) + (32 * 1024 * 1024);
+const MAX_OPENTOOL_REQUEST_BYTES: usize = 1024 * 1024;
 const SUPPORTED_EXTENSIONS: &[&str] = &[
   "flac", "wav", "wave", "aiff", "aif", "mp3", "aac", "m4a", "ogg", "oga", "opus", "dsf", "dff",
   "ape", "wv", "alac",
@@ -51,6 +60,264 @@ struct AppState {
   tracks: Arc<RwLock<Vec<Track>>>,
   audio: Arc<audio::AudioManager>,
   ui_last_seen_ms: Arc<AtomicU64>,
+}
+
+const OPENTOOL_SPEC: &str = r#"{
+  "opentool": "1.0.0",
+  "info": { "title": "Toney Music", "version": "0.3.10" },
+  "functions": [
+    {
+      "name": "library.list",
+      "description": "List or search the music library. Results contain metadata only, not local file paths. Use a result's id as playback.play.trackId.",
+      "parameters": [
+        { "name": "query", "type": "string", "required": false },
+        { "name": "limit", "type": "number", "required": false }
+      ],
+      "returns": { "type": "object", "properties": { "tracks": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "trackNumber": { "type": "number" }, "fileName": { "type": "string" }, "title": { "type": "string" }, "artist": { "type": "string" }, "album": { "type": "string" }, "extension": { "type": "string" }, "size": { "type": "number" }, "duration": { "type": "number" }, "tone": { "type": "number" }, "addedAt": { "type": "number" } } } }, "total": { "type": "number" }, "returned": { "type": "number" }, "truncated": { "type": "boolean" } } }
+    },
+    {
+      "name": "playback.status",
+      "description": "Get the current playback state and audio output details.",
+      "parameters": [],
+      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } }
+    },
+    {
+      "name": "playback.play",
+      "description": "Play a track from the Toney Music library using the id returned by library.list.",
+      "parameters": [
+        { "name": "trackId", "type": "string", "required": true },
+        { "name": "position", "type": "number", "required": false },
+        { "name": "mode", "type": "string", "required": false },
+        { "name": "device", "type": "string", "required": false },
+        { "name": "autoplay", "type": "boolean", "required": false }
+      ],
+      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } }
+    },
+    {
+      "name": "playback.pause",
+      "description": "Pause the current track.",
+      "parameters": [],
+      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" } } }
+    },
+    {
+      "name": "playback.resume",
+      "description": "Resume the current track.",
+      "parameters": [],
+      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" } } }
+    },
+    {
+      "name": "playback.stop",
+      "description": "Stop playback.",
+      "parameters": [],
+      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" } } }
+    },
+    {
+      "name": "playback.seek",
+      "description": "Seek within the current track to a position in seconds.",
+      "parameters": [{ "name": "position", "type": "number", "required": true }],
+      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } }
+    }
+  ]
+}"#;
+
+type MusicOpenToolServer = OpenToolServer<MusicOpenTool>;
+
+#[derive(Clone)]
+struct MusicOpenTool {
+  state: AppState,
+}
+
+impl MusicOpenTool {
+  async fn list_tracks(&self, params: &Value) -> Result<Value, ToolError> {
+    let query = match params.get("query") {
+      Some(value) => value
+        .as_str()
+        .ok_or_else(|| ToolError::invalid_params("query must be a string"))?
+        .trim()
+        .to_lowercase(),
+      None => String::new(),
+    };
+    let limit = match params.get("limit") {
+      Some(value) => value
+        .as_u64()
+        .filter(|limit| (1..=500).contains(limit))
+        .ok_or_else(|| ToolError::invalid_params("limit must be an integer from 1 to 500"))?
+        as usize,
+      None => 100,
+    };
+
+    let mut tracks = self.state.tracks.read().await.clone();
+    tracks.sort_by_key(|track| track.added_at);
+    let matching = tracks
+      .into_iter()
+      .filter(|track| {
+        query.is_empty()
+          || track.title.to_lowercase().contains(&query)
+          || track.artist.to_lowercase().contains(&query)
+          || track.album.to_lowercase().contains(&query)
+          || track.file_name.to_lowercase().contains(&query)
+      })
+      .collect::<Vec<_>>();
+    let total = matching.len();
+    let tracks = matching.into_iter().take(limit).collect::<Vec<_>>();
+    let returned = tracks.len();
+    Ok(json!({
+      "tracks": tracks.iter().map(public_track).collect::<Vec<_>>(),
+      "total": total,
+      "returned": returned,
+      "truncated": total > returned,
+    }))
+  }
+
+  async fn play(&self, params: &Value) -> Result<Value, ToolError> {
+    let track_id = required_tool_string(params, "trackId")?;
+    let position = optional_tool_number(params, "position", 0.0)?;
+    let mode = optional_tool_string(params, "mode", "exclusive")?;
+    if !matches!(mode.as_str(), "exclusive" | "shared") {
+      return Err(ToolError::invalid_params(
+        "mode must be `exclusive` or `shared`",
+      ));
+    }
+    let device = optional_tool_string(params, "device", "default")?;
+    let autoplay = match params.get("autoplay") {
+      Some(value) => value
+        .as_bool()
+        .ok_or_else(|| ToolError::invalid_params("autoplay must be a boolean"))?,
+      None => true,
+    };
+    let track = self
+      .state
+      .tracks
+      .read()
+      .await
+      .iter()
+      .find(|track| track.id == track_id)
+      .cloned()
+      .ok_or_else(|| ToolError::execution("track was not found in the library"))?;
+    start_track(&self.state, track, position, &mode, device, autoplay)
+      .await
+      .map_err(ToolError::execution)
+  }
+
+  async fn seek(&self, params: &Value) -> Result<Value, ToolError> {
+    let position = required_tool_number(params, "position")?;
+    let track_id = self
+      .state
+      .audio
+      .current_track_id()
+      .await
+      .ok_or_else(|| ToolError::execution("no track is selected"))?;
+    let track = self
+      .state
+      .tracks
+      .read()
+      .await
+      .iter()
+      .find(|track| track.id == track_id)
+      .cloned()
+      .ok_or_else(|| ToolError::execution("the current track is no longer in the library"))?;
+    let snapshot = self.state.audio.snapshot().await;
+    let mode = snapshot
+      .get("mode")
+      .and_then(Value::as_str)
+      .unwrap_or("exclusive")
+      .to_owned();
+    let device = snapshot
+      .get("device")
+      .and_then(Value::as_str)
+      .unwrap_or("default")
+      .to_owned();
+    let was_playing = snapshot.get("state").and_then(Value::as_str) != Some("paused");
+    start_track(&self.state, track, position, &mode, device, was_playing)
+      .await
+      .map_err(ToolError::execution)
+  }
+}
+
+#[async_trait]
+impl Tool for MusicOpenTool {
+  async fn call(&self, method: &str, params: Value) -> Result<Value, ToolError> {
+    match method {
+      "library.list" => self.list_tracks(&params).await,
+      "playback.status" => Ok(playback_status_value(&self.state).await),
+      "playback.play" => self.play(&params).await,
+      "playback.pause" => self.state.audio.pause().await.map_err(ToolError::execution),
+      "playback.resume" => self
+        .state
+        .audio
+        .resume()
+        .await
+        .map_err(ToolError::execution),
+      "playback.stop" => {
+        self.state.audio.stop().await;
+        Ok(playback_status_value(&self.state).await)
+      }
+      "playback.seek" => self.seek(&params).await,
+      _ => Err(ToolError::method_not_found(method)),
+    }
+  }
+}
+
+fn required_tool_string<'a>(params: &'a Value, key: &str) -> Result<&'a str, ToolError> {
+  params
+    .get(key)
+    .and_then(Value::as_str)
+    .filter(|value| !value.is_empty() && value.len() <= 256)
+    .ok_or_else(|| ToolError::invalid_params(format!("{key} must be a non-empty string")))
+}
+
+fn optional_tool_string(params: &Value, key: &str, default: &str) -> Result<String, ToolError> {
+  match params.get(key) {
+    None => Ok(default.to_owned()),
+    Some(value) => value
+      .as_str()
+      .filter(|value| !value.is_empty() && value.len() <= 256)
+      .map(str::to_owned)
+      .ok_or_else(|| ToolError::invalid_params(format!("{key} must be a non-empty string"))),
+  }
+}
+
+fn required_tool_number(params: &Value, key: &str) -> Result<f64, ToolError> {
+  params
+    .get(key)
+    .and_then(Value::as_f64)
+    .filter(|value| value.is_finite() && *value >= 0.0)
+    .ok_or_else(|| ToolError::invalid_params(format!("{key} must be a non-negative number")))
+}
+
+fn optional_tool_number(params: &Value, key: &str, default: f64) -> Result<f64, ToolError> {
+  match params.get(key) {
+    None => Ok(default),
+    Some(_) => required_tool_number(params, key),
+  }
+}
+
+async fn create_opentool_server(
+  tool: MusicOpenTool,
+  arguments: impl IntoIterator<Item = String>,
+  host: String,
+  port: u16,
+) -> Result<MusicOpenToolServer, Box<dyn std::error::Error + Send + Sync>> {
+  let cli_arguments = CliArguments::new(arguments);
+  let tool_args = tool.init_args(cli_arguments.parse()?)?;
+  opentool_rust::schema::load_json(OPENTOOL_SPEC)?;
+  tool.init(&tool_args).await?;
+  let max_request_body_bytes = if std::env::var_os("AGENTOS_APP_BUNDLE_ID").is_some() {
+    MAX_OPENTOOL_REQUEST_BYTES
+  } else {
+    opentool_rust::DEFAULT_MAX_REQUEST_BODY_BYTES
+  };
+
+  Ok(
+    OpenToolServer::builder(tool)
+      .host(host)
+      .port(port)
+      .version(SERVICE_VERSION)
+      .spec_json(OPENTOOL_SPEC)
+      .cli_arguments(CliArguments::new(std::iter::empty::<String>()))
+      .max_request_body_bytes(max_request_body_bytes)
+      .build(),
+  )
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -261,7 +528,7 @@ fn default_true() -> bool {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let data_dir = PathBuf::from(env_value("DATA_DIR", "./data"));
   let public_dir = PathBuf::from(env_value("PUBLIC_DIR", "./public"));
   let host = env_value("HOST", "0.0.0.0");
@@ -355,6 +622,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     save_library(&state, &tracks).await?;
   }
   let tray_state = state.clone();
+  let opentool_server = Arc::new(
+    create_opentool_server(
+      MusicOpenTool {
+        state: state.clone(),
+      },
+      std::env::args().skip(1),
+      host.clone(),
+      port,
+    )
+    .await?,
+  );
 
   let cors = CorsLayer::new()
     .allow_origin(Any)
@@ -365,7 +643,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
       Method::DELETE,
       Method::OPTIONS,
     ])
-    .allow_headers([header::CONTENT_TYPE, header::RANGE]);
+    .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::RANGE]);
 
   let routes = Router::new()
     .route("/health", get(health))
@@ -388,25 +666,94 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .route("/api/playback/stop", post(stop_playback))
     .route("/api/playback/seek", post(seek_playback))
     .layer(DefaultBodyLimit::max(MAX_REQUEST_BYTES))
-    .layer(cors)
     .with_state(state.clone());
-  let app = Router::new()
-    .nest(
-      PLUGIN_ROUTE,
-      routes
-        .clone()
-        .fallback_service(ServeDir::new(public_dir.clone()).append_index_html_on_directories(true)),
-    )
-    .merge(routes)
-    .fallback_service(ServeDir::new(public_dir).append_index_html_on_directories(true));
+  let app = opentool_server.router().merge(
+    Router::new()
+      .nest(
+        PLUGIN_ROUTE,
+        routes.clone().fallback_service(
+          ServeDir::new(public_dir.clone()).append_index_html_on_directories(true),
+        ),
+      )
+      .merge(routes)
+      .fallback_service(ServeDir::new(public_dir).append_index_html_on_directories(true)),
+  );
+
+  let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
+  let stop_state = Arc::new(StopState {
+    server: Arc::clone(&opentool_server),
+    app_state: state.clone(),
+    shutdown: shutdown_tx.clone(),
+  });
+  let app = app
+    .layer(middleware::from_fn_with_state(stop_state, intercept_stop))
+    .layer(cors);
 
   let address: SocketAddr = format!("{host}:{port}").parse()?;
   let listener = TcpListener::bind(address).await?;
   eprintln!("{SERVICE_NAME} {SERVICE_VERSION} listening on {address}");
   tokio::spawn(tray::run(tray_state));
   tokio::spawn(auto_advance_cue_tracks(state.clone()));
-  axum::serve(listener, app).await?;
+  let shutdown_state = state.clone();
+  let shutdown_server = Arc::clone(&opentool_server);
+  let shutdown = async move {
+    tokio::select! {
+      _ = shutdown_rx.changed() => {},
+      _ = wait_for_os_shutdown() => {
+        shutdown_state.audio.stop().await;
+        let _ = shutdown_server.stop().await;
+        shutdown_tx.send_replace(true);
+      }
+    }
+  };
+  axum::serve(listener, app)
+    .with_graceful_shutdown(shutdown)
+    .await?;
   Ok(())
+}
+
+struct StopState {
+  server: Arc<MusicOpenToolServer>,
+  app_state: AppState,
+  shutdown: watch::Sender<bool>,
+}
+
+async fn intercept_stop(
+  State(state): State<Arc<StopState>>,
+  request: Request<axum::body::Body>,
+  next: Next,
+) -> Response {
+  if request.method() == Method::POST && request.uri().path() == "/opentool/stop" {
+    return match state.server.stop().await {
+      Ok(()) => {
+        state.app_state.audio.stop().await;
+        state.shutdown.send_replace(true);
+        Json(json!({ "status": "stopped" })).into_response()
+      }
+      Err(error) => (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({ "error": error.to_string() })),
+      )
+        .into_response(),
+    };
+  }
+  next.run(request).await
+}
+
+async fn wait_for_os_shutdown() {
+  #[cfg(unix)]
+  {
+    use tokio::signal::unix::{signal, SignalKind};
+    let mut terminate = signal(SignalKind::terminate()).expect("install SIGTERM handler");
+    tokio::select! {
+      _ = tokio::signal::ctrl_c() => {},
+      _ = terminate.recv() => {},
+    }
+  }
+  #[cfg(not(unix))]
+  {
+    let _ = tokio::signal::ctrl_c().await;
+  }
 }
 
 async fn health() -> Json<Value> {
@@ -941,6 +1288,10 @@ async fn delete_track(
 }
 
 async fn playback_status(State(state): State<AppState>) -> Json<Value> {
+  Json(playback_status_value(&state).await)
+}
+
+async fn playback_status_value(state: &AppState) -> Value {
   let mut snapshot = state.audio.snapshot().await;
   let track_id = snapshot.get("trackId").and_then(Value::as_str);
   let auto_advance_cue = if let Some(track_id) = track_id {
@@ -965,7 +1316,7 @@ async fn playback_status(State(state): State<AppState>) -> Json<Value> {
   if let Some(fields) = snapshot.as_object_mut() {
     fields.insert("autoAdvanceCue".to_string(), Value::Bool(auto_advance_cue));
   }
-  Json(snapshot)
+  snapshot
 }
 
 async fn client_heartbeat(State(state): State<AppState>) -> StatusCode {

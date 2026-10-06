@@ -10,13 +10,13 @@
     "vitul": "vitul"
   },
   "dependencies": {
-    "@tauri-apps/api": "../../packages/api/dist",
+    "@tauri-apps/api": "../../../packages/api/dist",
     "lucide-react": "^0.468.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@vitul/cli": "link:../../packages/cli",
+    "@vitul/cli": "link:../../../packages/cli",
     "@tailwindcss/vite": "^4.3.1",
     "@types/node": "^22",
     "@types/react": "^19",

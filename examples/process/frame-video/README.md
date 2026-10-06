@@ -12,6 +12,8 @@ does not run a Node.js or Python server.
   backend.
 - OpenTool manages the saved library with `library.list`, `library.add`,
   `library.remove`, `library.setFavorite`, and `library.clear`.
+- The AgentOS package opts into runtime OpenTool discovery. In AgentOS Settings,
+  each `library.*` function can be enabled individually before Chat can call it.
 - Rust serves selected local video files with byte-range responses so seeking
   works in the WebView.
 - The backend saves library metadata under AgentOS `DATA_DIR` or the desktop
@@ -38,9 +40,11 @@ pnpm vitul build --target agentos/arm64
 ```
 
 The AgentOS package is written to
-`dist/frame-video-0.2.0-agentos-arm64.agt`. AgentOS uses its own file dialog;
-selected files must be visible to the app process, such as files under the
-mounted user home directory. `agentos.bundleId` keeps the original AgentOS ID
+`dist/frame-video-0.2.0-agentos-arm64.agt`. AgentOS uses the generic host file
+dialog when available; selected paths must be accessible to the app process,
+such as files under the mounted user home directory. If the host does not
+expose that capability, the app falls back to the browser file picker and plays
+the video locally in the frontend. `agentos.bundleId` keeps the original AgentOS ID
 `com.litevar.agentos.frameVideo`, and the AgentOS metadata retains the source
 app's Chinese name and descriptions. The desktop build uses the Vitul native
 dialog.

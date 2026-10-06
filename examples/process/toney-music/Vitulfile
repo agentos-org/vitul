@@ -44,6 +44,7 @@ agentos:
   titleBar: system
   permissions: [native.audio, native.audio.exclusive, native.tray]
   rpcBasePath: /opentool
+  rpcDiscovery: runtime
 
 data:
   persistent: true

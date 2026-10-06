@@ -7,6 +7,16 @@ React/Vite 前端只负责控制界面。Rust `musicd` 进程管理媒体库、�
 并通过 `AGENTOS_AUDIO_SOCKET` 把原始 PCM 直接提交给 AgentOS 宿主音频 broker；CEF 不负责
 解码或播放音频流。
 
+## AgentOS Chat 的 OpenTool 接口
+
+进程 manifest 启用运行时 OpenTool 发现。Toney Music 提供 `library.list` 搜索曲目元数据，
+并提供 `playback.status`、`playback.play`、`playback.pause`、`playback.resume`、
+`playback.stop` 和 `playback.seek` 控制播放。`library.list` 默认最多返回 100 首；可以传入
+`query` 和可选的 `limit`（最大 500）搜索更大的曲库。接口不会返回本地文件路径。
+
+安装后，在 AgentOS“设置 → App 工具”中逐个启用允许 Chat 使用的函数。函数默认关闭。
+OpenTool 方法与 UI 和托盘控制共用同一份内存曲库及音频会话。
+
 ## 解码和输出路径
 
 - Claxon（Rust）按 FLAC 源采样精度解码 PCM 样本。
@@ -44,7 +54,8 @@ Rust 构建脚本在跨平台构建时使用 Linux 容器，并读取 `VITUL_TAR
 `Vitulfile` 目标为 `agentos/arm64`。Vitul 会构建前端和 `musicd`，将 FFmpeg 作为兜底一起打包，
 并生成 `dist/toney-music-0.3.10-agentos-arm64.agt`。
 
-生成的进程 manifest 声明 `native.audio`、`native.audio.exclusive` 和 `native.tray`。AgentOS 启动应用时会提供
+生成的进程 manifest 声明 `native.audio`、`native.audio.exclusive` 和 `native.tray`，并启用运行时
+OpenTool 发现。AgentOS 启动应用时会提供
 `AGENTOS_AUDIO_SOCKET` 和 `AGENTOS_TRAY_SOCKET`。`musicd` 后端使用打包的 Toney Music PNG 作为托盘图标，
 并动态更新曲目/播放状态提示和菜单；菜单提供播放/暂停、停止操作。关闭 CEF 窗口后，`musicd`、音频会话和
 托盘控制仍会运行。菜单项提供 AgentOS 约定的 `localizedLabels`，支持 `en-US` 和 `zh-CN`；Shell 按当前语言选择文案，

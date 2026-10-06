@@ -27,7 +27,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type Ref } from "react";
-import { filePickerFileToMediaUrl, openFilePicker, readFennFileDrag, uploadFilesToFennFolder, type FennFileDragItem, type FennFilePickerFile } from "../../shared/plugin-sdk.js";
+import { filePickerFileToMediaUrl, openFilePicker, readFennFileDrag, uploadFilesToFennFolder, type FennFileDragItem, type FennFilePickerFile } from "./lib/plugin-sdk.js";
 import { deleteTrack, fetchBitPerfectSettings, fetchDecoderPreferences, fetchDecoderStatus, fetchPlayback, fetchTracks, heartbeatPlaybackUI, pausePlayback, resumePlayback, seekPlayback, setDecoderPreference, startPlayback, stopPlayback, updateBitPerfectSettings, updateTrayLocale, uploadTrack } from "./api";
 import { resolveLocale, resolveTheme, textFor, type CopyKey } from "./i18n";
 import { DEFAULT_DECODER_PREFERENCES, type DecoderFormat, type DecoderPreference, type DecoderPreferences, type DecoderState, type LanguagePreference, type Locale, type PlaybackState, type Playlist, type RepeatMode, type Theme, type ThemePreference, type Track, type View } from "./types";

@@ -37,8 +37,8 @@ resolver = "3"
 exclude = [
   "vendor/create-vitul-app",
   "tests/fixtures/desktop-api/backend",
-  "examples/frame-video/backend",
-  "examples/frame-video/src-vitul",
+  "examples/process/frame-video/backend",
+  "examples/process/frame-video/src-vitul",
   "examples/window-lab/backend",
   "examples/window-lab/src-vitul",
 ]

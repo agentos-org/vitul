@@ -59,6 +59,7 @@ pub fn run(args: &[OsString]) -> Result<()> {
         );
         println!("Build steps: {}", config.build.steps.len());
         println!("Artifacts: {}", config.build.artifacts.len());
+        println!("OpenTool discovery: {}", config.agentos.rpc_discovery);
         println!("Persistent data: {}", config.data.persistent);
       }
       super::VitulfileAppType::RemoteWeb => {

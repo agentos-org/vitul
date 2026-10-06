@@ -258,14 +258,15 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
   };
   let object = manifest.as_object_mut().expect("manifest is a JSON object");
   if !is_remote {
-    object.insert(
-      "rpc".to_owned(),
-      json!({
-        "protocol": "opentool",
-        "version": 2,
-        "basePath": config.agentos.rpc_base_path
-      }),
-    );
+    let mut rpc = json!({
+      "protocol": "opentool",
+      "version": 2,
+      "basePath": config.agentos.rpc_base_path
+    });
+    if config.agentos.rpc_discovery == "runtime" {
+      rpc["discovery"] = json!("runtime");
+    }
+    object.insert("rpc".to_owned(), rpc);
   }
   if let Some(name_zh) = &config.app.name_zh {
     object.insert("name_zh".to_owned(), Value::String(name_zh.clone()));

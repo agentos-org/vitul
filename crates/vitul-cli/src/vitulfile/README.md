@@ -137,6 +137,7 @@ agentos:
   minHeight: 480
   permissions: [native.window-control]
   rpcBasePath: /opentool
+  rpcDiscovery: runtime
 
 data:
   persistent: true
@@ -192,6 +193,11 @@ agentos:
   business tools. To make AgentOS agent calls work, the app server must
   implement the OpenTool routes at its configured `rpcBasePath`. URL apps have
   no process or OpenTool binding.
+- `agentos.rpcDiscovery: runtime` opts a process app into live OpenTool function
+  discovery in AgentOS. Its `rpcBasePath` must serve valid OpenTool `load`,
+  `call`, and `streamCall` routes. Functions start disabled and must be enabled
+  individually in AgentOS Settings before Chat can call them; the default is
+  `static`.
 - `agentos.permissions` accepts `native.window-control`, `native.file-dialogs`,
   `native.clipboard`, `native.notifications`, `native.external-links`, and
   `native.sidecars` for process apps. Remote CEF pages cannot request these

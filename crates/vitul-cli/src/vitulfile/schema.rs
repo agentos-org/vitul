@@ -147,6 +147,8 @@ pub struct AgentOsConfig {
   pub permissions: Vec<String>,
   #[serde(default = "default_rpc_base_path")]
   pub rpc_base_path: String,
+  #[serde(default = "default_rpc_discovery")]
+  pub rpc_discovery: String,
 }
 
 impl Default for AgentOsConfig {
@@ -159,6 +161,7 @@ impl Default for AgentOsConfig {
       min_height: default_min_height(),
       permissions: Vec::new(),
       rpc_base_path: default_rpc_base_path(),
+      rpc_discovery: default_rpc_discovery(),
     }
   }
 }
@@ -208,4 +211,8 @@ fn default_min_height() -> u32 {
 
 fn default_rpc_base_path() -> String {
   "/opentool".to_owned()
+}
+
+fn default_rpc_discovery() -> String {
+  "static".to_owned()
 }

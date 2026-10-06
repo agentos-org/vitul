@@ -9,6 +9,19 @@ owns the library, decoding, output session, and background playback. It sends
 raw PCM directly to the AgentOS host audio broker over
 `AGENTOS_AUDIO_SOCKET`; CEF does not decode or play the audio stream.
 
+## OpenTool for AgentOS Chat
+
+The process manifest opts into runtime OpenTool discovery. Toney Music exposes
+`library.list` for metadata search and `playback.status`, `playback.play`,
+`playback.pause`, `playback.resume`, `playback.stop`, and `playback.seek` for
+playback control. `library.list` returns at most 100 tracks by default; pass a
+`query` and optional `limit` (up to 500) to search larger libraries. It never
+returns local file paths.
+
+After installation, open AgentOS Settings → App Tools and enable the functions
+you want Chat to use. Each function starts disabled. The OpenTool methods use
+the same in-memory library and audio session as the UI and tray controls.
+
 ## Decoder and output path
 
 - Claxon (Rust) decodes FLAC samples at the declared source precision.
@@ -52,7 +65,8 @@ the frontend and `musicd`, includes FFmpeg as fallback, and writes
 `dist/toney-music-0.3.10-agentos-arm64.agt`.
 
 The generated process manifest requests `native.audio`,
-`native.audio.exclusive`, and `native.tray`. AgentOS provides
+`native.audio.exclusive`, and `native.tray`, and opts into runtime OpenTool
+discovery. AgentOS provides
 `AGENTOS_AUDIO_SOCKET` and `AGENTOS_TRAY_SOCKET` to the running app. The
 `musicd` backend registers the packaged Toney Music PNG as its tray image and
 updates the track/status tooltip and menu while playing. The menu provides Play

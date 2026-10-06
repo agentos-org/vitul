@@ -124,6 +124,7 @@ agentos:
   minHeight: 480
   permissions: [native.window-control]
   rpcBasePath: /opentool
+  rpcDiscovery: runtime
 
 data:
   persistent: true
@@ -173,6 +174,9 @@ agentos:
 - process 包会声明 OpenTool 绑定，但 Vitul 不会替应用生成业务工具。若要支持
   AgentOS agent 调用，应用服务需要在配置的 `rpcBasePath` 下实现 OpenTool 路由。
   URL 包没有应用进程，也不声明 OpenTool 绑定。
+- `agentos.rpcDiscovery: runtime` 会让 process App 启用 AgentOS 动态 OpenTool 函数发现。
+  应用需要在 `rpcBasePath` 下提供有效的 OpenTool `load`、`call` 和 `streamCall` 路由。
+  函数默认关闭；用户需要先在 AgentOS 设置中逐个启用，Chat 才能调用。默认值为 `static`。
 - `agentos.permissions` 支持 `native.window-control`、`native.file-dialogs`、
   `native.clipboard`、`native.notifications`、`native.external-links` 和
   `native.sidecars`，仅适用于 process 应用。远程 CEF 页面不能申请这些原生能力。

@@ -129,6 +129,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
   };
   let permissions = agentos_permissions(project_root)?;
   let title_bar = agentos_title_bar(project_root)?;
+  let rpc_discovery = agentos_rpc_discovery(project_root)?;
   let port = agentos_port(project_root)?;
   let package_name = package
     .get("name")
@@ -196,6 +197,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
 
   let mut manifest = json!({
     "manifestVersion": 1,
+    "appType": "process",
     "architecture": ARCHITECTURE,
     "bundleId": bundle_id,
     "name": display_name,
@@ -229,6 +231,9 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
   });
   if let Some(description_zh) = description_zh {
     manifest["description_zh"] = json!(description_zh);
+  }
+  if rpc_discovery == "runtime" {
+    manifest["rpc"]["discovery"] = json!("runtime");
   }
   fs::write(
     staging_root.join("app.json"),
@@ -341,6 +346,39 @@ fn agentos_title_bar(project_root: &Path) -> Result<String> {
     Some("overlay") => Ok("overlay".to_owned()),
     _ => bail!("agentos.open.titleBar must be `system` or `overlay`"),
   }
+}
+
+fn agentos_rpc_discovery(project_root: &Path) -> Result<String> {
+  let config_path = project_root.join("vitul.conf.json");
+  if !config_path.is_file() {
+    return Ok("static".to_owned());
+  }
+  let config: Value =
+    serde_json::from_slice(&fs::read(&config_path).context("failed to read vitul.conf.json")?)
+      .context("failed to parse vitul.conf.json")?;
+  let Some(settings) = config.get("agentos") else {
+    return Ok("static".to_owned());
+  };
+  let settings = settings.as_object().context("agentos must be an object")?;
+  let Some(value) = settings.get("rpcDiscovery") else {
+    return Ok("static".to_owned());
+  };
+  let discovery = value
+    .as_str()
+    .context("agentos.rpcDiscovery must be `static` or `runtime`")?;
+  if !matches!(discovery, "static" | "runtime") {
+    bail!("agentos.rpcDiscovery must be `static` or `runtime`");
+  }
+  if discovery == "runtime"
+    && config
+      .get("backend")
+      .and_then(|backend| backend.get("type"))
+      .and_then(Value::as_str)
+      != Some("opentool")
+  {
+    bail!("agentos.rpcDiscovery runtime requires backend.type `opentool`");
+  }
+  Ok(discovery.to_owned())
 }
 
 fn agentos_port(project_root: &Path) -> Result<u16> {

@@ -80,6 +80,12 @@ impl Vitulfile {
     if !matches!(self.agentos.title_bar.as_str(), "system" | "overlay") {
       bail!("agentos.titleBar must be `system` or `overlay`");
     }
+    if !matches!(self.agentos.rpc_discovery.as_str(), "static" | "runtime") {
+      bail!("agentos.rpcDiscovery must be `static` or `runtime`");
+    }
+    if self.agentos.rpc_discovery == "runtime" && self.app.app_type != AppType::Process {
+      bail!("agentos.rpcDiscovery runtime requires a process app");
+    }
     if self.agentos.default_width < 200
       || self.agentos.default_height < 200
       || self.agentos.min_width < 200
@@ -285,7 +291,7 @@ pub fn init(project_root: &Path, app_type: AppType, remote_url: Option<&str>) ->
   };
   let agentos_fields = match app_type {
     AppType::Process => {
-      "agentos:\n  titleBar: system\n  permissions: []\n  rpcBasePath: /opentool\n"
+      "agentos:\n  titleBar: system\n  permissions: []\n  rpcBasePath: /opentool\n  rpcDiscovery: static\n"
     }
     AppType::RemoteWeb => "agentos:\n  titleBar: system\n",
   };
