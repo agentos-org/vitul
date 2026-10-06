@@ -14,6 +14,6 @@
     "port": 9627,
     "rpcDiscovery": "runtime",
     "permissions": ["native.file-dialogs"],
-    "open": { "titleBar": "system" }
+    "open": { "mode": "workspace", "titleBar": "system" }
   }
 }

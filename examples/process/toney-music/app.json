@@ -5,7 +5,6 @@
   "version": "0.3.10",
   "description": "A focused local music library with queue and mini-player controls.",
   "description_zh": "专注本地音乐的播放器，支持媒体库、播放队列和迷你播放器控制。",
-  "requiresCapabilities": ["externalApps"],
   "run": {
     "type": "process",
     "entry": "start.sh",
@@ -16,7 +15,7 @@
     "env": {}
   },
   "open": {
-    "mode": "browser",
+    "mode": "workspace",
     "url": "${baseurl}/apps/toney-music/index.html"
   }
 }

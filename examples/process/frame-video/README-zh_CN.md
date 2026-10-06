@@ -38,6 +38,7 @@ AgentOS 安装包输出到
 例如位于已挂载的用户 home 目录中。若宿主未开放该能力，应用会回退到浏览器文件选择器并在前端本地播放视频。
 `agentos.bundleId` 保留原 AgentOS ID
 `com.litevar.agentos.frameVideo`，中文名称和中英文描述也沿用原应用元数据。桌面版本使用 Vitul 原生文件对话框。
+生成的 AgentOS 应用会在当前 Workspace 中最大化打开。
 
 构建机需要 Node.js 和 pnpm 来运行 Vite，并需要 Rust 构建后端。安装包运行 Rust 后端和 WebView 资源，
 不依赖 Python 或 Node.js 应用运行时。

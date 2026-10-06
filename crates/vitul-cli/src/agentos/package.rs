@@ -218,7 +218,7 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
       "name": config.app.name,
       "version": config.app.version,
       "open": {
-        "mode": "window",
+        "mode": config.agentos.open_mode.as_str(),
         "url": url,
         "titleBar": config.agentos.title_bar,
         "defaultWidth": config.agentos.default_width,
@@ -247,7 +247,7 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
       },
       "frontend": { "entry": config.run.frontend_entry },
       "open": {
-        "mode": "window",
+        "mode": config.agentos.open_mode.as_str(),
         "titleBar": config.agentos.title_bar,
         "defaultWidth": config.agentos.default_width,
         "defaultHeight": config.agentos.default_height,

@@ -133,6 +133,8 @@ pub struct WebConfig {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AgentOsConfig {
+  #[serde(default = "default_open_mode")]
+  pub open_mode: String,
   #[serde(default = "default_title_bar")]
   pub title_bar: String,
   #[serde(default = "default_width")]
@@ -154,6 +156,7 @@ pub struct AgentOsConfig {
 impl Default for AgentOsConfig {
   fn default() -> Self {
     Self {
+      open_mode: default_open_mode(),
       title_bar: default_title_bar(),
       default_width: default_width(),
       default_height: default_height(),
@@ -191,6 +194,10 @@ fn default_frontend_entry() -> String {
 
 fn default_title_bar() -> String {
   "system".to_owned()
+}
+
+fn default_open_mode() -> String {
+  "window".to_owned()
 }
 
 fn default_width() -> u32 {

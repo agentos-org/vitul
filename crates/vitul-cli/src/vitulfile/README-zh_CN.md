@@ -117,6 +117,7 @@ run:
     NODE_ENV: production
 
 agentos:
+  openMode: window
   titleBar: system
   defaultWidth: 1200
   defaultHeight: 800
@@ -177,6 +178,8 @@ agentos:
 - `agentos.rpcDiscovery: runtime` 会让 process App 启用 AgentOS 动态 OpenTool 函数发现。
   应用需要在 `rpcBasePath` 下提供有效的 OpenTool `load`、`call` 和 `streamCall` 路由。
   函数默认关闭；用户需要先在 AgentOS 设置中逐个启用，Chat 才能调用。默认值为 `static`。
+- `agentos.openMode` 可设为 `window` 或 `workspace`，默认是 `window`。
+  `workspace` 会在当前 AgentOS Workspace 中最大化打开应用。
 - `agentos.permissions` 支持 `native.window-control`、`native.file-dialogs`、
   `native.clipboard`、`native.notifications`、`native.external-links` 和
   `native.sidecars`，仅适用于 process 应用。远程 CEF 页面不能申请这些原生能力。

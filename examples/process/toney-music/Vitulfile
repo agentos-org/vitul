@@ -41,6 +41,7 @@ run:
   frontendEntry: /apps/toney-music/index.html
 
 agentos:
+  openMode: workspace
   titleBar: system
   permissions: [native.audio, native.audio.exclusive, native.tray]
   rpcBasePath: /opentool

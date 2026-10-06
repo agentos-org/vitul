@@ -9,6 +9,10 @@ that also packages as an AgentOS process app. It keeps the AgentOS Frame Video
 interface and uses a Rust OpenTool backend for the media library and video
 streaming.
 
+[Dockge](dockge/README.md) packages the unmodified upstream app as a standalone
+Native AgentOS `.agt`; its source snapshot and build script live together in
+that example directory.
+
 ## AgentOS app profiles
 
 [process](process/README.md) groups AgentOS process app examples. Process is the

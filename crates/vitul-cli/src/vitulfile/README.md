@@ -130,6 +130,7 @@ run:
     NODE_ENV: production
 
 agentos:
+  openMode: window
   titleBar: system
   defaultWidth: 1200
   defaultHeight: 800
@@ -198,6 +199,8 @@ agentos:
   `call`, and `streamCall` routes. Functions start disabled and must be enabled
   individually in AgentOS Settings before Chat can call them; the default is
   `static`.
+- `agentos.openMode` accepts `window` or `workspace` and defaults to `window`.
+  `workspace` opens the app maximized in the current AgentOS Workspace.
 - `agentos.permissions` accepts `native.window-control`, `native.file-dialogs`,
   `native.clipboard`, `native.notifications`, `native.external-links`, and
   `native.sidecars` for process apps. Remote CEF pages cannot request these

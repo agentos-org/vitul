@@ -1,0 +1,35 @@
+{
+  "manifestVersion": 1,
+  "appType": "process",
+  "architecture": "arm64",
+  "bundleId": "com.agentos.dockge",
+  "name": "Dockge",
+  "name_zh": "Dockge",
+  "version": "1.5.0-agentos.1",
+  "description": "A standalone Dockge app for managing Docker Compose stacks.",
+  "description_zh": "独立的 Docker Compose 项目管理应用。",
+  "execution": {
+    "mode": "native"
+  },
+  "data": {
+    "persistent": true
+  },
+  "run": {
+    "type": "process",
+    "entry": "start.sh",
+    "port": 15001,
+    "healthCheck": "/",
+    "readyTimeout": 45,
+    "autoStart": false
+  },
+  "frontend": {
+    "entry": "/"
+  },
+  "open": {
+    "mode": "workspace",
+    "defaultWidth": 1200,
+    "defaultHeight": 820,
+    "minWidth": 760,
+    "minHeight": 560
+  }
+}

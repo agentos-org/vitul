@@ -77,6 +77,9 @@ Closing the CEF window leaves `musicd`, the audio session, and the tray controls
 running; stopping or uninstalling the App ends playback and removes the tray
 icon.
 
+Toney Music opens maximized in the current AgentOS Workspace instead of an
+external browser.
+
 ## CUE sheets
 
 Import one `.cue` file together with the single supported audio file it names.

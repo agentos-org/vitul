@@ -49,6 +49,8 @@ the video locally in the frontend. `agentos.bundleId` keeps the original AgentOS
 app's Chinese name and descriptions. The desktop build uses the Vitul native
 dialog.
 
+The generated AgentOS app opens maximized in the current Workspace.
+
 The build machine needs Node.js and pnpm for Vite, plus Rust for the backend.
 The installed package runs the Rust backend and WebView assets; it has no
 Python or Node.js application runtime dependency.

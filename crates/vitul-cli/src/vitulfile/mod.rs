@@ -77,6 +77,9 @@ impl Vitulfile {
     {
       bail!("app.version may contain only letters, numbers, `.`, `+`, `-`, and `_`");
     }
+    if !matches!(self.agentos.open_mode.as_str(), "window" | "workspace") {
+      bail!("agentos.openMode must be `window` or `workspace`");
+    }
     if !matches!(self.agentos.title_bar.as_str(), "system" | "overlay") {
       bail!("agentos.titleBar must be `system` or `overlay`");
     }
@@ -291,9 +294,9 @@ pub fn init(project_root: &Path, app_type: AppType, remote_url: Option<&str>) ->
   };
   let agentos_fields = match app_type {
     AppType::Process => {
-      "agentos:\n  titleBar: system\n  permissions: []\n  rpcBasePath: /opentool\n  rpcDiscovery: static\n"
+      "agentos:\n  openMode: window\n  titleBar: system\n  permissions: []\n  rpcBasePath: /opentool\n  rpcDiscovery: static\n"
     }
-    AppType::RemoteWeb => "agentos:\n  titleBar: system\n",
+    AppType::RemoteWeb => "agentos:\n  openMode: window\n  titleBar: system\n",
   };
   let contents = format!(
     "schemaVersion: 1\ntargets:\n  - agentos/arm64\napp:\n  type: {}\n  id: com.example.{}\n  name: {}\n  version: 0.1.0\n{}{}",

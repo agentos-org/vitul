@@ -128,6 +128,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
     None => agentos_bundle_id(&config)?,
   };
   let permissions = agentos_permissions(project_root)?;
+  let open_mode = agentos_open_mode(project_root)?;
   let title_bar = agentos_title_bar(project_root)?;
   let rpc_discovery = agentos_rpc_discovery(project_root)?;
   let port = agentos_port(project_root)?;
@@ -223,7 +224,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
       "basePath": "/opentool"
     },
     "open": {
-      "mode": "window",
+      "mode": open_mode,
       "titleBar": title_bar,
       "defaultWidth": 960,
       "defaultHeight": 680
@@ -319,6 +320,33 @@ fn is_agentos_icon_path(path: &str) -> bool {
         .iter()
         .any(|supported| extension.eq_ignore_ascii_case(supported))
     })
+}
+
+fn agentos_open_mode(project_root: &Path) -> Result<String> {
+  let config_path = project_root.join("vitul.conf.json");
+  if !config_path.is_file() {
+    return Ok("window".to_owned());
+  }
+  let config: Value =
+    serde_json::from_slice(&fs::read(&config_path).context("failed to read vitul.conf.json")?)
+      .context("failed to parse vitul.conf.json")?;
+  let Some(open) = config
+    .get("agentos")
+    .and_then(|agentos| agentos.get("open"))
+  else {
+    return Ok("window".to_owned());
+  };
+  let open = open
+    .as_object()
+    .context("agentos.open must be an object")?;
+  let Some(mode) = open.get("mode") else {
+    return Ok("window".to_owned());
+  };
+  match mode.as_str() {
+    Some("window") => Ok("window".to_owned()),
+    Some("workspace") => Ok("workspace".to_owned()),
+    _ => bail!("agentos.open.mode must be `window` or `workspace`"),
+  }
 }
 
 fn agentos_title_bar(project_root: &Path) -> Result<String> {
