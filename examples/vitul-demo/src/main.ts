@@ -165,14 +165,16 @@ const isAgentOSWebUI =
   || launchParams.get('agentosRuntime') === 'webshell'
 const systemDarkPreference = window.matchMedia('(prefers-color-scheme: dark)')
 let languagePreference = readPreference<LanguagePreference>(
-  'window-lab-language',
+  'vitul-demo-language',
   'system',
-  ['system', 'en', 'zh']
+  ['system', 'en', 'zh'],
+  'window-lab-language'
 )
 let themePreference = readPreference<ThemePreference>(
-  'window-lab-theme',
+  'vitul-demo-theme',
   host.context.appearance ?? 'system',
-  ['system', 'light', 'dark', 'ocean']
+  ['system', 'light', 'dark', 'ocean'],
+  'window-lab-theme'
 )
 let locale = resolveLocale(languagePreference, host.context)
 let maximized = false
@@ -209,11 +211,21 @@ for (const button of [
 function readPreference<T extends string>(
   key: string,
   fallback: T,
-  values: readonly T[]
+  values: readonly T[],
+  legacyKey?: string
 ): T {
   try {
     const value = localStorage.getItem(key)
     if (value && values.includes(value as T)) return value as T
+    const legacyValue = legacyKey ? localStorage.getItem(legacyKey) : null
+    if (legacyValue && values.includes(legacyValue as T)) {
+      try {
+        localStorage.setItem(key, legacyValue)
+      } catch {
+        /* Keep using the saved preference if migration is unavailable. */
+      }
+      return legacyValue as T
+    }
   } catch {
     // Use the host or system preference when local storage is unavailable.
   }
@@ -451,7 +463,7 @@ closeButton.addEventListener('click', () => void runWindowAction('close'))
 languageSelect.addEventListener('change', () => {
   languagePreference = languageSelect.value as LanguagePreference
   try {
-    localStorage.setItem('window-lab-language', languagePreference)
+    localStorage.setItem('vitul-demo-language', languagePreference)
   } catch {
     /* Optional preference. */
   }
@@ -462,7 +474,7 @@ languageSelect.addEventListener('change', () => {
 themeSelect.addEventListener('change', () => {
   themePreference = themeSelect.value as ThemePreference
   try {
-    localStorage.setItem('window-lab-theme', themePreference)
+    localStorage.setItem('vitul-demo-theme', themePreference)
   } catch {
     /* Optional preference. */
   }

@@ -4,7 +4,7 @@ packages:
   - packages/cli
   - crates/tauri-schema-worker
   - tests/fixtures/desktop-api
-  - examples/window-lab
+  - examples/vitul-demo
   - examples/process/frame-video
 
 allowBuilds:

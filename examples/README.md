@@ -1,7 +1,7 @@
 # Vitul examples
 
 Vitul's native application flow uses OpenTool for application operations and the
-host API for system features. Start with [window-lab](window-lab/README.md),
+host API for system features. Start with [Vitul Demo](vitul-demo/README.md),
 which demonstrates both in a compact desktop and AgentOS app.
 
 [process/frame-video](process/frame-video/README.md) is a larger native example

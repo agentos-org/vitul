@@ -30,12 +30,12 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/window-lab/icon.png",
-      "icons/window-lab/32x32.png",
-      "icons/window-lab/128x128.png",
-      "icons/window-lab/128x128@2x.png",
-      "icons/window-lab/icon.icns",
-      "icons/window-lab/icon.ico"
+      "icons/vitul-demo/icon.png",
+      "icons/vitul-demo/32x32.png",
+      "icons/vitul-demo/128x128.png",
+      "icons/vitul-demo/128x128@2x.png",
+      "icons/vitul-demo/icon.icns",
+      "icons/vitul-demo/icon.ico"
     ]
   }
 }

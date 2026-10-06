@@ -80,12 +80,12 @@ jobs:
           pnpm build:cli:debug
 
       - name: Build the native Vitul example as an AgentOS app
-        run: pnpm --dir examples/window-lab vitul build --target agentos-arm64
+        run: pnpm --dir examples/vitul-demo vitul build --target agentos-arm64
 
       - name: Validate the generated .agt package
         shell: bash
         run: |
-          artifact=$(find examples/window-lab/dist -maxdepth 1 -type f -name '*-agentos-arm64.agt' -print -quit)
+          artifact=$(find examples/vitul-demo/dist -maxdepth 1 -type f -name '*-agentos-arm64.agt' -print -quit)
           test -n "$artifact"
 
           tar -tzf "$artifact" | grep -Eq '^\./app\.json$'
