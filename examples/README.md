@@ -13,6 +13,10 @@ streaming.
 Native AgentOS `.agt`; its source snapshot and build script live together in
 that example directory.
 
+[Gitea](gitea/README.md) packages the official Gitea binary as a standalone
+AgentOS `.agt` that runs in the container sandbox. The example bundles Git and
+keeps all writable state in the app's persistent data directory.
+
 ## AgentOS app profiles
 
 [process](process/README.md) groups AgentOS process app examples. Process is the

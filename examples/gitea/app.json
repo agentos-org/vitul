@@ -1,0 +1,35 @@
+{
+  "manifestVersion": 1,
+  "appType": "process",
+  "architecture": "arm64",
+  "bundleId": "com.agentos.gitea",
+  "name": "Gitea",
+  "name_zh": "Gitea",
+  "version": "1.27.3-agentos.2",
+  "description": "A sandboxed, standalone Gitea Git service.",
+  "description_zh": "独立运行于沙盒中的 Gitea Git 服务。",
+  "execution": {
+    "mode": "container"
+  },
+  "data": {
+    "persistent": true
+  },
+  "run": {
+    "type": "process",
+    "entry": "start.sh",
+    "port": 3000,
+    "healthCheck": "/",
+    "readyTimeout": 60,
+    "autoStart": false
+  },
+  "frontend": {
+    "entry": "/"
+  },
+  "open": {
+    "mode": "workspace",
+    "defaultWidth": 1360,
+    "defaultHeight": 900,
+    "minWidth": 900,
+    "minHeight": 620
+  }
+}

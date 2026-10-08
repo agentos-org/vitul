@@ -8,6 +8,8 @@ AgentOS process 应用。它保留 AgentOS Frame Video 界面，并用 Rust Open
 
 [Dockge](dockge/README-zh_CN.md) 将未修改的上游应用打包为独立 Native AgentOS `.agt`；上游源码快照和打包脚本都位于该示例目录中。
 
+[Gitea](gitea/README-zh_CN.md) 将官方 Gitea 二进制打包为独立 AgentOS `.agt`，并在容器沙盒中运行。示例会把 Git 一并打包，所有可写数据都保存在应用持久化目录中。
+
 ## AgentOS 应用类型
 
 [process](process/README-zh_CN.md) 集中放置 AgentOS process 应用示例。process 是应用打包类型，OpenTool
