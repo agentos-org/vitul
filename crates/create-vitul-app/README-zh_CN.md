@@ -8,5 +8,5 @@
 `src-vitul/vitul.conf.json` 桌面配置、本地 OpenTool 后端、宿主 IPC 桥接代码，
 以及平台相关的项目文档。
 
-此源码位于 `vendor/create-vitul-app`，由 Vitul 主仓库统一维护。桌面 API
-依赖保留兼容接口；继承源码中的版权与许可证声明保持原样。
+此 crate 位于 `crates/create-vitul-app`，由 Vitul 主仓库统一维护，源自上游
+`create-tauri-app`。桌面 API 依赖保留兼容接口；继承源码中的版权与许可证声明保持原样。

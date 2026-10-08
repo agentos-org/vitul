@@ -15,7 +15,7 @@ path = "src/cargo_vitul_main.rs"
 
 [dependencies]
 anyhow = "1"
-create-vitul-app = { path = "../../vendor/create-vitul-app" }
+create-vitul-app = { path = "../create-vitul-app" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"

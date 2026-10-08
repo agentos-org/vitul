@@ -143,8 +143,8 @@ public GitHub repositories are listed here.
   Rust crate names remain compatible with the existing runtime and plugin ecosystem.
 - `packages/` contains the compatible JavaScript API (`@tauri-apps/api`) and
   the Vitul CLI package (`@vitul/cli`).
-- `vendor/create-vitul-app/` contains the upstream-based project scaffold used
-  by `vitul init`.
+- `crates/create-vitul-app/` contains the internal scaffold crate used by
+  `vitul init`, derived from the upstream `create-tauri-app` project.
 
 Vitul keeps compatible configuration schemas, API behavior, and desktop tooling
 internally. New projects use Vitul filenames, origins, and commands; the only

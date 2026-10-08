@@ -9,6 +9,7 @@ The current OpenTool starter uses the `vanilla-ts` frontend. Vitul then adds
 the `src-vitul/vitul.conf.json` desktop configuration, the local OpenTool
 backend, the host IPC bridge, and platform-specific project documentation.
 
-This source lives in `vendor/create-vitul-app` and is maintained as part of the
-Vitul repository. Its desktop API dependencies retain compatible interfaces;
-the original license and copyright notices remain with the inherited source.
+This crate lives in `crates/create-vitul-app` and is maintained as part of the
+Vitul repository. It derives from the upstream `create-tauri-app` project. Its
+desktop API dependencies retain compatible interfaces; the original license
+and copyright notices remain with the inherited source.

@@ -25,7 +25,7 @@ AgentOS 应用后端与前端使用同一个服务来源。manifest 声明 `rpc.
 - `crates/vitul-cli/` 实现 `vitul init`、`vitul dev` 和 AgentOS `.agt` 打包目标。
 - `vitul` 与 `cargo vitul` 是仅有的面向用户的命令行入口。
 - 桌面运行时需要时，Vitul 在内部调用兼容 Tauri 的工具。新项目使用 Vitul 文件名、来源地址、包名和命令名，同时保留兼容的配置 schema 与 API 行为。
-- `vendor/create-vitul-app/` 提供上游项目脚手架，Vitul 生成器会在其基础上定制 OpenTool 优先的项目。
+- `crates/create-vitul-app/` 是源自上游 `create-tauri-app` 的内部脚手架 crate，Vitul 生成器会在其基础上定制 OpenTool 优先的项目。
 - `crates/tauri-*` 包含兼容的桌面运行时、CLI、构建支持和 bundler。Vitul 保留这些底层名称与接口，以兼容现有项目和插件。
 - `packages/` 包含兼容的前端 API 和 CLI 包。
 

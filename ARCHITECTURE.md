@@ -46,8 +46,9 @@ messages; host IPC is a separate channel for system actions.
 - Tauri-compatible tooling is called internally by Vitul where needed. New
   projects use Vitul filenames, origins, packages, and command names while
   preserving compatible config schemas and API behavior.
-- `vendor/create-vitul-app/` supplies the upstream-based scaffold that the
-  Vitul generator customizes into an OpenTool-first project.
+- `crates/create-vitul-app/` is the internal scaffold crate, derived from the
+  upstream `create-tauri-app` project and customized into an OpenTool-first
+  project by the Vitul generator.
 - `crates/tauri-*` contain the compatible desktop runtime, CLI, build support,
   and bundler. Vitul keeps their established names and interfaces for existing
   projects and plugins.

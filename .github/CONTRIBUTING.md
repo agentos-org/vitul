@@ -16,7 +16,7 @@ Node.js declared by the package you are working on.
 
 - `crates/vitul-cli` implements the Vitul command, project initialization,
   OpenTool integration, and AgentOS packaging.
-- `vendor/create-vitul-app` contains the frontend template engine called by
+- `crates/create-vitul-app` contains the frontend template engine called by
   `vitul init`.
 - `crates/tauri-*` and `packages/api` provide the Tauri-compatible desktop
   runtime and JavaScript API. Their public names and protocol identifiers are

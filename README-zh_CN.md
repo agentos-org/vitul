@@ -98,7 +98,7 @@ Vitul 前端只有在需要调用 AgentOS Gateway API 时才需要在代码中�
 - `crates/vitul-cli/` 包含 Vitul 项目生成器、开发运行器和 AgentOS 打包器。
 - `crates/tauri-*` 是兼容桌面引擎；其 Cargo package 和 Rust crate 名称为兼容现有运行时和插件生态而保留。
 - `packages/` 包含兼容的 JavaScript API（`@tauri-apps/api`）和 Vitul CLI 包（`@vitul/cli`）。
-- `vendor/create-vitul-app/` 是 `vitul init` 使用的上游项目脚手架。
+- `crates/create-vitul-app/` 是 `vitul init` 使用的内部脚手架 crate，源自上游 `create-tauri-app`，由 Vitul 仓库统一维护。
 
 Vitul 在内部复用兼容的配置 schema、API 行为和桌面工具。新项目使用 Vitul 文件名、来源地址和命令；对用户公开的 CLI 命令只有 `vitul` 和 `cargo vitul`。兼容的 JavaScript API 仍使用 `@tauri-apps/api` 导入路径，CLI 包名则是 `@vitul/cli`。Vitul 自有功能放在 `crates/vitul-*`；现有 `crates/tauri-*` 目录和 Rust crate 身份表示兼容引擎。继承代码的版权和许可证声明保持原样。
 
