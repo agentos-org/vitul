@@ -37,10 +37,10 @@ resolver = "3"
 exclude = [
   "crates/create-vitul-app",
   "tests/fixtures/desktop-api/backend",
-  "examples/process/frame-video/backend",
-  "examples/process/frame-video/src-vitul",
-  "examples/vitul-demo/backend",
-  "examples/vitul-demo/src-vitul",
+  "examples/agentos/process/frame-video/backend",
+  "examples/agentos/process/frame-video/src-vitul",
+  "examples/starter/vitul-demo/backend",
+  "examples/starter/vitul-demo/src-vitul",
 ]
 
 [workspace.package]

@@ -10,7 +10,7 @@
     "vitul": "vitul"
   },
   "dependencies": {
-    "@tauri-apps/api": "../../packages/api/dist"
+    "@tauri-apps/api": "../../../packages/api/dist"
   },
   "devDependencies": {
     "@vitul/cli": "^2",

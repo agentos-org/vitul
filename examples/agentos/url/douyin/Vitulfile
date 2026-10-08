@@ -1,0 +1,19 @@
+schemaVersion: 1
+target: agentos/arm64
+
+app:
+  type: remote-web
+  id: com.douyin
+  name: Douyin
+  name_zh: 抖音
+  version: 1.0.0
+  description: Douyin's hosted short-video platform.
+  description_zh: 抖音短视频平台。
+  icon: icon.png
+
+web:
+  url: https://douyin.com
+
+agentos:
+  openMode: workspace
+  titleBar: system

@@ -2,10 +2,10 @@
 # Build a standalone Dockge .agt package for a Linux AgentOS target.
 #
 # Usage:
-#   DOCKGE_PLATFORM=linux/arm64 ./examples/dockge/build.sh
-#   DOCKGE_PLATFORM=linux/amd64 ./examples/dockge/build.sh
+#   DOCKGE_PLATFORM=linux/arm64 ./examples/agentos/process/dockge/build.sh
+#   DOCKGE_PLATFORM=linux/amd64 ./examples/agentos/process/dockge/build.sh
 #
-# The unmodified Dockge 1.5.0 source is vendored under examples/dockge/vendor/dockge
+# The unmodified Dockge 1.5.0 source is vendored under examples/agentos/process/dockge/vendor/dockge
 # and copied to a temporary directory before dependency installation and
 # frontend compilation. No upstream source files are patched or rewritten.
 

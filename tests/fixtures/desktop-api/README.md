@@ -5,7 +5,7 @@ compatibility suite. It uses src-vitul/ and vitul.conf.json; its greet business
 operation is served by the Rust OpenTool backend, while the suite exercises the
 supported system API surface.
 
-For a native application example, see [Vitul Demo](../../../examples/vitul-demo/README.md).
+For a native application example, see [Vitul Demo](../../../examples/starter/vitul-demo/README.md).
 
 ## Run
 

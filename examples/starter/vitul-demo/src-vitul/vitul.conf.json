@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../crates/tauri-cli/config.schema.json",
+  "$schema": "../../../../crates/tauri-cli/config.schema.json",
   "productName": "Vitul Demo",
   "version": "0.1.4",
   "identifier": "com.litevar.agentos.vitul.demo",

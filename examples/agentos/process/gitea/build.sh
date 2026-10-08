@@ -2,8 +2,8 @@
 # Build a standalone sandboxed Gitea .agt package for AgentOS.
 #
 # Usage:
-#   GITEA_PLATFORM=linux/arm64 ./examples/gitea/build.sh
-#   GITEA_PLATFORM=linux/amd64 ./examples/gitea/build.sh
+#   GITEA_PLATFORM=linux/arm64 ./examples/agentos/process/gitea/build.sh
+#   GITEA_PLATFORM=linux/amd64 ./examples/agentos/process/gitea/build.sh
 
 set -euo pipefail
 export COPYFILE_DISABLE="${COPYFILE_DISABLE:-1}"

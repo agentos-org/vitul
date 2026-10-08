@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../crates/tauri-cli/config.schema.json",
+  "$schema": "../../../../../crates/tauri-cli/config.schema.json",
   "productName": "Frame Video",
   "version": "0.2.0",
   "identifier": "com.litevar.agentos.frameVideo",

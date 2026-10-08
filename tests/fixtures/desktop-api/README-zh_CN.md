@@ -4,7 +4,7 @@
 vitul.conf.json；greet 业务操作由 Rust OpenTool 后端提供，测试套件则覆盖受支持的
 系统 API。
 
-原生应用示例请看 [Vitul Demo](../../../examples/vitul-demo/README-zh_CN.md)。
+原生应用示例请看 [Vitul Demo](../../../examples/starter/vitul-demo/README-zh_CN.md)。
 
 ## 运行
 

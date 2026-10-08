@@ -218,11 +218,11 @@ importers:
         specifier: ^8.1.4
         version: 8.1.4(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0)
 
-  examples/process/frame-video:
+  examples/agentos/process/frame-video:
     dependencies:
       '@tauri-apps/api':
-        specifier: ../../../packages/api/dist
-        version: link:../../../packages/api/dist
+        specifier: ../../../../packages/api/dist
+        version: link:../../../../packages/api/dist
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@19.2.4)
@@ -249,8 +249,8 @@ importers:
         specifier: ^6.0.2
         version: 6.1.1(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0))
       '@vitul/cli':
-        specifier: link:../../../packages/cli
-        version: link:../../../packages/cli
+        specifier: link:../../../../packages/cli
+        version: link:../../../../packages/cli
       tailwindcss:
         specifier: ^4.3.1
         version: 4.3.3
@@ -261,15 +261,15 @@ importers:
         specifier: ^8.1.4
         version: 8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0)
 
-  examples/vitul-demo:
+  examples/starter/vitul-demo:
     dependencies:
       '@tauri-apps/api':
-        specifier: ../../packages/api/dist
-        version: link:../../packages/api/dist
+        specifier: ../../../packages/api/dist
+        version: link:../../../packages/api/dist
     devDependencies:
       '@vitul/cli':
         specifier: ^2
-        version: link:../../packages/cli
+        version: link:../../../packages/cli
       typescript:
         specifier: ~6.0.3
         version: 6.0.3

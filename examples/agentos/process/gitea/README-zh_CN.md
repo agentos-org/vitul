@@ -18,12 +18,12 @@ SQLite 支持；构建脚本会在打包前核对各架构对应的官方 SHA-25
 一次构建一个 Linux 架构：
 
 ~~~sh
-GITEA_PLATFORM=linux/arm64 ./examples/gitea/build.sh
-GITEA_PLATFORM=linux/amd64 ./examples/gitea/build.sh
+GITEA_PLATFORM=linux/arm64 ./examples/agentos/process/gitea/build.sh
+GITEA_PLATFORM=linux/amd64 ./examples/agentos/process/gitea/build.sh
 ~~~
 
 请在 Vitul 仓库根目录运行。默认产物为
-`examples/gitea/dist/gitea-arm64.agt` 和 `examples/gitea/dist/gitea-x64.agt`。
+`examples/agentos/process/gitea/dist/gitea-arm64.agt` 和 `examples/agentos/process/gitea/dist/gitea-x64.agt`。
 构建需要 Go 来编译托盘 helper，并需要 Docker 为对应架构的 AgentOS 容器准备 Git 和运行时库。
 `GITEA_BINARY`、`GITEA_CACHE_DIR`、`GITEA_OUTPUT` 和 `GITEA_BUILD_IMAGE` 可分别覆盖
 Gitea 二进制、缓存目录、输出路径和 Ubuntu 构建镜像；`GIT_RUNTIME_CACHE_DIR` 可覆盖 Git

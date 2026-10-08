@@ -1,0 +1,19 @@
+schemaVersion: 1
+target: agentos/arm64
+
+app:
+  type: remote-web
+  id: com.github
+  name: GitHub
+  name_zh: GitHub
+  version: 1.0.0
+  description: GitHub's hosted code collaboration platform.
+  description_zh: GitHub 在线代码托管与协作平台。
+  icon: icon.png
+
+web:
+  url: https://github.com
+
+agentos:
+  openMode: workspace
+  titleBar: system

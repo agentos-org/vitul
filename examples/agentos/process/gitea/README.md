@@ -24,12 +24,12 @@ each supported architecture before packaging it.
 Build one Linux architecture at a time:
 
 ~~~sh
-GITEA_PLATFORM=linux/arm64 ./examples/gitea/build.sh
-GITEA_PLATFORM=linux/amd64 ./examples/gitea/build.sh
+GITEA_PLATFORM=linux/arm64 ./examples/agentos/process/gitea/build.sh
+GITEA_PLATFORM=linux/amd64 ./examples/agentos/process/gitea/build.sh
 ~~~
 
 Run these commands from the Vitul repository root. The default outputs are
-`examples/gitea/dist/gitea-arm64.agt` and `examples/gitea/dist/gitea-x64.agt`.
+`examples/agentos/process/gitea/dist/gitea-arm64.agt` and `examples/agentos/process/gitea/dist/gitea-x64.agt`.
 The build needs Go to compile the tray helper and Docker to stage Git and its
 runtime libraries for the matching AgentOS container architecture. `GITEA_BINARY`, `GITEA_CACHE_DIR`,
 `GIT_RUNTIME_CACHE_DIR`, `GITEA_OUTPUT`, and `GITEA_BUILD_IMAGE` can override

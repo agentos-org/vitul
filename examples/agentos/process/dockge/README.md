@@ -7,10 +7,10 @@ The vendored source version is **1.5.0**, from the [official upstream tag](https
 Build one Linux architecture at a time:
 
 ~~~sh
-DOCKGE_PLATFORM=linux/arm64 ./examples/dockge/build.sh
-DOCKGE_PLATFORM=linux/amd64 ./examples/dockge/build.sh
+DOCKGE_PLATFORM=linux/arm64 ./examples/agentos/process/dockge/build.sh
+DOCKGE_PLATFORM=linux/amd64 ./examples/agentos/process/dockge/build.sh
 ~~~
 
-Run these commands from the Vitul repository root. The default outputs are `examples/dockge/dist/dockge-arm64.agt` and `examples/dockge/dist/dockge-x64.agt`. Container builds use Docker and the pinned Node.js 22 image; npm downloads production dependencies for the selected Linux architecture. `DOCKGE_NPM_CACHE_DIR` and `DOCKGE_OUTPUT` can override the cache and output paths.
+Run these commands from the Vitul repository root. The default outputs are `examples/agentos/process/dockge/dist/dockge-arm64.agt` and `examples/agentos/process/dockge/dist/dockge-x64.agt`. Container builds use Docker and the pinned Node.js 22 image; npm downloads production dependencies for the selected Linux architecture. `DOCKGE_NPM_CACHE_DIR` and `DOCKGE_OUTPUT` can override the cache and output paths.
 
 Install the resulting `.agt` through Agent Store. Dockge opens maximized in the current AgentOS Workspace. Native execution runs with AgentOS administrator privileges and requires explicit high-risk approval. Dockge uses the host Docker Engine and Docker Compose V2. Its backend binds to loopback on port 15001, and its database and stacks are stored under the app's persistent `DATA_DIR`.

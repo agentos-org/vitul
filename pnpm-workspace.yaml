@@ -4,8 +4,8 @@ packages:
   - packages/cli
   - crates/tauri-schema-worker
   - tests/fixtures/desktop-api
-  - examples/vitul-demo
-  - examples/process/frame-video
+  - examples/starter/vitul-demo
+  - examples/agentos/process/frame-video
 
 allowBuilds:
   # appium's postinstall only auto-installs drivers for global installs; ours
