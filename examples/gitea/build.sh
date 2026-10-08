@@ -17,11 +17,13 @@ GITEA_CURL_DIRECT="${GITEA_CURL_DIRECT:-false}"
 case "$GITEA_PLATFORM" in
   linux/arm64)
     APP_ARCH="arm64"
+    TRAY_ARCH="arm64"
     UPSTREAM_ARCH="arm64"
     GITEA_SHA256="04c086d36dba793546e331484a9da34571763efdfa77dc526cc98e0f10917e7b"
     ;;
   linux/amd64)
     APP_ARCH="x64"
+    TRAY_ARCH="amd64"
     UPSTREAM_ARCH="amd64"
     GITEA_SHA256="4da93c2c10b6980c359bcb86d5573ebfd7770e2e151756534edee24c8c12d971"
     ;;
@@ -43,6 +45,7 @@ fail() {
 
 command -v curl >/dev/null 2>&1 || fail "curl is required"
 command -v docker >/dev/null 2>&1 || fail "docker is required to bundle Git for the AgentOS container runtime"
+command -v go >/dev/null 2>&1 || fail "Go is required to build the AgentOS tray helper"
 command -v tar >/dev/null 2>&1 || fail "tar is required"
 if command -v sha256sum >/dev/null 2>&1; then
   SHA256_CHECK=sha256sum
@@ -53,6 +56,7 @@ else
 fi
 [[ -f "$SCRIPT_DIR/app.json" ]] || fail "missing package manifest: $SCRIPT_DIR/app.json"
 [[ -f "$SCRIPT_DIR/start.sh" ]] || fail "missing app entrypoint: $SCRIPT_DIR/start.sh"
+[[ -f "$SCRIPT_DIR/tray.go" ]] || fail "missing AgentOS tray helper source: $SCRIPT_DIR/tray.go"
 [[ -f "$SCRIPT_DIR/icon.png" ]] || fail "missing package icon: $SCRIPT_DIR/icon.png"
 
 mkdir -p "$GITEA_CACHE_DIR"
@@ -127,6 +131,10 @@ cp "$GITEA_BINARY" "$PACKAGE_DIR/gitea"
 chmod 0755 "$PACKAGE_DIR/gitea"
 cp "$SCRIPT_DIR/start.sh" "$PACKAGE_DIR/start.sh"
 chmod 0755 "$PACKAGE_DIR/start.sh"
+echo "==> Build AgentOS tray helper ($TRAY_ARCH)"
+GOOS=linux GOARCH="$TRAY_ARCH" CGO_ENABLED=0 \
+  go build -trimpath -ldflags="-s -w" -o "$PACKAGE_DIR/tray" "$SCRIPT_DIR/tray.go"
+chmod 0755 "$PACKAGE_DIR/tray"
 cp "$SCRIPT_DIR/icon.png" "$PACKAGE_DIR/icon.png"
 cp "$SCRIPT_DIR/LICENSE" "$PACKAGE_DIR/LICENSE"
 cp -R "$GIT_ROOT/." "$PACKAGE_DIR/git/"
@@ -138,6 +146,7 @@ tar -czf "$GITEA_OUTPUT" -C "$PACKAGE_DIR" .
 tar -tzf "$GITEA_OUTPUT" >/dev/null
 tar -tzf "$GITEA_OUTPUT" | grep -Fxq "./app.json" || fail "package is missing root app.json"
 tar -tzf "$GITEA_OUTPUT" | grep -Fxq "./gitea" || fail "package is missing the Gitea binary"
+tar -tzf "$GITEA_OUTPUT" | grep -Fxq "./tray" || fail "package is missing the AgentOS tray helper"
 tar -tzf "$GITEA_OUTPUT" | grep -Fxq "./git/usr/bin/git" || fail "package is missing Git"
 tar -tzf "$GITEA_OUTPUT" | grep -Fxq "./git/usr/share/git-core/templates/description" || fail "package is missing Git templates"
 

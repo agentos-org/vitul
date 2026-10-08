@@ -6,6 +6,12 @@ repositories, uploads, sessions, logs, home directory, and temporary files stay
 under the app's persistent `DATA_DIR`. Git is bundled for use inside the
 sandbox, so the host does not need Git installed.
 
+The package declares AgentOS's `native.tray` capability. A small statically
+compiled Go helper registers the packaged Gitea icon with the AgentOS Shell
+and consumes tray events while the backend runs. Closing the Workspace window
+leaves Gitea and its tray icon running; the Shell tray menu can reopen Gitea or
+exit it. The helper does not modify the upstream Gitea executable.
+
 The build uses **Gitea 1.27.3** from the [official download host](https://dl.gitea.com/gitea/1.27.3/).
 The [1.27.3 release](https://blog.gitea.com/release-of-1.27.3/) includes security
 fixes that are absent from the cached Gitea 1.26.4 copy in the older AgentOS
@@ -24,8 +30,8 @@ GITEA_PLATFORM=linux/amd64 ./examples/gitea/build.sh
 
 Run these commands from the Vitul repository root. The default outputs are
 `examples/gitea/dist/gitea-arm64.agt` and `examples/gitea/dist/gitea-x64.agt`.
-The build needs Docker to stage Git and its runtime libraries for the matching
-AgentOS container architecture. `GITEA_BINARY`, `GITEA_CACHE_DIR`,
+The build needs Go to compile the tray helper and Docker to stage Git and its
+runtime libraries for the matching AgentOS container architecture. `GITEA_BINARY`, `GITEA_CACHE_DIR`,
 `GIT_RUNTIME_CACHE_DIR`, `GITEA_OUTPUT`, and `GITEA_BUILD_IMAGE` can override
 the downloaded binary, caches, output path, and Ubuntu build image. Set
 `GITEA_CURL_DIRECT=true` to bypass configured curl proxies when downloading

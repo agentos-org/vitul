@@ -4,6 +4,10 @@
 AgentOS 容器沙盒中；数据库、配置、仓库、上传文件、会话、日志、用户目录和临时文件
 都保存在应用持久化的 `DATA_DIR` 下。Git 也会打包进沙盒，宿主机无需安装 Git。
 
+包清单声明了 AgentOS 的 `native.tray` 能力。包内静态编译的小型 Go helper 会将 Gitea 图标注册到
+AgentOS Shell，并在后端运行期间接收托盘事件。关闭 Workspace 窗口后，Gitea 和托盘图标会继续运行；
+可从 Shell 托盘菜单重新打开 Gitea 或退出应用。这个 helper 不会修改 Gitea 上游可执行文件。
+
 构建使用[官方站点](https://dl.gitea.com/gitea/1.27.3/)发布的 **Gitea 1.27.3**。
 [1.27.3 版本](https://blog.gitea.com/release-of-1.27.3/)包含旧 AgentOS checkout 缓存的
 Gitea 1.26.4 尚未包含的安全修复；上游将不高于 1.26.4 的版本列为
@@ -20,7 +24,7 @@ GITEA_PLATFORM=linux/amd64 ./examples/gitea/build.sh
 
 请在 Vitul 仓库根目录运行。默认产物为
 `examples/gitea/dist/gitea-arm64.agt` 和 `examples/gitea/dist/gitea-x64.agt`。
-构建需要 Docker，为对应架构的 AgentOS 容器准备 Git 和运行时库。
+构建需要 Go 来编译托盘 helper，并需要 Docker 为对应架构的 AgentOS 容器准备 Git 和运行时库。
 `GITEA_BINARY`、`GITEA_CACHE_DIR`、`GITEA_OUTPUT` 和 `GITEA_BUILD_IMAGE` 可分别覆盖
 Gitea 二进制、缓存目录、输出路径和 Ubuntu 构建镜像；`GIT_RUNTIME_CACHE_DIR` 可覆盖 Git
 运行时缓存目录。下载二进制时如需绕过 curl 代理，可设置 `GITEA_CURL_DIRECT=true`。

@@ -2,10 +2,10 @@
   "manifestVersion": 1,
   "appType": "process",
   "architecture": "arm64",
-  "bundleId": "com.agentos.gitea",
+  "bundleId": "com.gitea.gitea",
   "name": "Gitea",
   "name_zh": "Gitea",
-  "version": "1.27.3-agentos.2",
+  "version": "1.27.3-agentos.4",
   "description": "A sandboxed, standalone Gitea Git service.",
   "description_zh": "独立运行于沙盒中的 Gitea Git 服务。",
   "execution": {
@@ -22,6 +22,7 @@
     "readyTimeout": 60,
     "autoStart": false
   },
+  "permissions": ["native.tray"],
   "frontend": {
     "entry": "/"
   },

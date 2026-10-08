@@ -140,8 +140,43 @@ fi
 chmod 0600 "$TEMP_INI"
 mv "$TEMP_INI" "$APP_INI"
 
-exec "$APP_DIR/gitea" web \
+TRAY_PID=""
+GITEA_PID=""
+
+stop_children() {
+  trap - EXIT TERM INT
+  if [[ -n "$GITEA_PID" ]] && kill -0 "$GITEA_PID" 2>/dev/null; then
+    kill -TERM "$GITEA_PID" 2>/dev/null || true
+  fi
+  if [[ -n "$TRAY_PID" ]] && kill -0 "$TRAY_PID" 2>/dev/null; then
+    kill -TERM "$TRAY_PID" 2>/dev/null || true
+  fi
+  if [[ -n "$GITEA_PID" ]]; then
+    wait "$GITEA_PID" 2>/dev/null || true
+  fi
+  if [[ -n "$TRAY_PID" ]]; then
+    wait "$TRAY_PID" 2>/dev/null || true
+  fi
+}
+
+trap stop_children EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+
+if [[ -n "${AGENTOS_TRAY_SOCKET:-}" ]]; then
+  if [[ -x "$APP_DIR/tray" ]]; then
+    "$APP_DIR/tray" &
+    TRAY_PID=$!
+  else
+    echo "WARNING: AgentOS tray helper is missing; tray integration is disabled" >&2
+  fi
+fi
+
+"$APP_DIR/gitea" web \
   --work-path "$DATA_DIR" \
   --custom-path "$GITEA_CUSTOM" \
   --config "$APP_INI" \
-  --port "$PORT"
+  --port "$PORT" &
+GITEA_PID=$!
+
+wait "$GITEA_PID"
