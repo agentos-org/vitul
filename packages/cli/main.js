@@ -4,7 +4,7 @@
 
 const { run, runVitul, logError } = require('./index')
 
-function runWith(runFn, args, binName) {
+function runWith(runFn, args, ...nativeArgs) {
   return new Promise((resolve, reject) => {
     const callback = (error, res) => {
       if (error) {
@@ -13,14 +13,10 @@ function runWith(runFn, args, binName) {
         resolve(res)
       }
     }
-    if (binName === undefined) {
-      runFn(args, callback)
-    } else {
-      runFn(args, binName, callback)
-    }
+    runFn(args, ...nativeArgs, callback)
   })
 }
 
-module.exports.run = (args, binName) => runWith(run, args, binName)
+module.exports.run = (args, binName) => runWith(run, args, binName ?? null)
 module.exports.runVitul = (args) => runWith(runVitul, args)
 module.exports.logError = logError
