@@ -203,7 +203,7 @@ importers:
         specifier: ^66.7.5
         version: 66.7.5
       '@litevar/vitul-cli':
-        specifier: ^2.12.0
+        specifier: ^2
         version: link:../../../packages/cli
       sortablejs:
         specifier: ^1.15.7
@@ -268,7 +268,7 @@ importers:
         version: link:../../../packages/api/dist
     devDependencies:
       '@litevar/vitul-cli':
-        specifier: ^2
+        specifier: ^2.12.0
         version: link:../../../packages/cli
       typescript:
         specifier: ~6.0.3
