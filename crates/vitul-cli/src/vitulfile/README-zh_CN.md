@@ -69,6 +69,17 @@ vitul build --target agentos
 remote-web 不包含平台相关的应用进程，因此始终只生成一个声明
 `architecture: any` 的包。其目标声明仅用于校验允许使用的 Vitul 构建目标。
 
+## 应用图标
+
+可选的 `app.icon` 指向项目目录内的 PNG 或 SVG 文件。Vitul 会将其复制到安装包根目录，
+命名为 `icon.png` 或 `icon.svg`；AgentOS 支持这两种格式。扩展名不区分大小写。
+
+```yaml
+app:
+  # 其他应用字段……
+  icon: assets/app-icon.svg
+```
+
 `vitul agentos init --path <目录>` 可以将文件写入另一个项目目录。本地应用的初始
 配置使用 `./bin/server` 和 `bin/server` 作为示例启动命令与产物路径。验证和构建前，
 请根据项目修改它们。`inspect` 会指出初始配置中尚未满足的项目，方便继续填写。

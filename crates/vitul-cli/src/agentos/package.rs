@@ -1,4 +1,4 @@
-use crate::vitulfile::{Config, VitulfileAppType};
+use crate::vitulfile::{Config, VitulfileAppType, agentos_icon_filename};
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 use std::{
@@ -190,7 +190,9 @@ fn stage_package(
   }
 
   if let Some(icon) = &config.app.icon {
-    fs::copy(project_root.join(icon), staging_root.join("icon.png"))
+    let filename = agentos_icon_filename(icon)
+      .context("app.icon must point to a PNG or SVG file")?;
+    fs::copy(project_root.join(icon), staging_root.join(filename))
       .with_context(|| format!("could not package app icon {}", icon.display()))?;
   }
 

@@ -7231,16 +7231,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "resources"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
 name = "restart"
 version = "0.1.0"
 dependencies = [
@@ -9183,17 +9173,6 @@ dependencies = [
  "tokio",
  "which",
  "win32job",
-]
-
-[[package]]
-name = "tauri-file-associations-demo"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "url",
 ]
 
 [[package]]

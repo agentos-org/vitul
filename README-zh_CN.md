@@ -80,7 +80,8 @@ vitul build --target agentos
 
 线上 HTTPS 网站使用 `vitul agentos init --type remote-web --url https://example.com`；
 AgentOS 会在内嵌 CEF WebApp 窗口中打开它。详见
-[Vitulfile 中文说明](crates/vitul-cli/src/vitulfile/README-zh_CN.md)。
+[Vitulfile 中文说明](crates/vitul-cli/src/vitulfile/README-zh_CN.md)。Vitulfile 的
+`app.icon` 和旧版 AgentOS 构建中的 `bundle.icon` 均支持 PNG 与 SVG 图标。
 
 ## AgentOS SDK
 

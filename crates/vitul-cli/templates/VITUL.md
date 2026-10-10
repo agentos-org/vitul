@@ -38,6 +38,8 @@ The AgentOS `bundleId` comes from `identifier` in
 `src-vitul/vitul.conf.json`. Set `agentos.port` in the project-root config to
 choose the backend's container-internal port from 1 to 65535; it defaults to
 9627.
+Set `bundle.icon` in `src-vitul/vitul.conf.json` to a PNG or SVG asset to
+include it in the AgentOS package as `icon.png` or `icon.svg`.
 
 ## Application APIs
 

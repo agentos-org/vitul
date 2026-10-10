@@ -14,6 +14,17 @@ pub const FILE_NAME: &str = "Vitulfile";
 
 pub use schema::{AppType as VitulfileAppType, Vitulfile as Config};
 
+pub(crate) fn agentos_icon_filename(icon: &Path) -> Option<&'static str> {
+  let extension = icon.extension()?.to_str()?;
+  if extension.eq_ignore_ascii_case("png") {
+    Some("icon.png")
+  } else if extension.eq_ignore_ascii_case("svg") {
+    Some("icon.svg")
+  } else {
+    None
+  }
+}
+
 impl Vitulfile {
   pub fn load(project_root: &Path, file: Option<&Path>) -> Result<Self> {
     let path = file
@@ -118,13 +129,8 @@ impl Vitulfile {
     }
     if let Some(icon) = &self.app.icon {
       let icon_path = ensure_project_file(project_root, icon, "app.icon")?;
-      if !icon_path.is_file()
-        || !icon
-          .extension()
-          .and_then(|extension| extension.to_str())
-          .is_some_and(|extension| extension.eq_ignore_ascii_case("png"))
-      {
-        bail!("app.icon must point to a PNG file");
+      if !icon_path.is_file() || agentos_icon_filename(icon).is_none() {
+        bail!("app.icon must point to a PNG or SVG file");
       }
     }
 

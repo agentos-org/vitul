@@ -79,6 +79,18 @@ Remote-web apps always produce one `architecture: any` package because they
 contain no platform-specific app process. Their target declaration only
 controls which Vitul target selectors are accepted.
 
+## App icon
+
+Set the optional `app.icon` to a project-relative PNG or SVG file. Vitul copies
+it to the package root as `icon.png` or `icon.svg`; AgentOS supports both
+formats. The extension is case-insensitive.
+
+```yaml
+app:
+  # Other app fields...
+  icon: assets/app-icon.svg
+```
+
 `vitul agentos init --path <DIR>` writes the file in another project
 directory. The process starter uses `./bin/server` and `bin/server` as example
 command and artifact paths. Edit these for the project before validation and

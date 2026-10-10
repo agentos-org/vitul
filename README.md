@@ -115,7 +115,9 @@ Process packages are written as
 `dist/<app>-<version>-agentos-any.agt`. See the
 [Vitulfile guide](crates/vitul-cli/src/vitulfile/README.md) or
 [简体中文说明](crates/vitul-cli/src/vitulfile/README-zh_CN.md) for config
-examples, build behavior, and limitations.
+examples, build behavior, and limitations. Both Vitulfile `app.icon` and the
+legacy AgentOS `bundle.icon` setting accept PNG and SVG assets for `.agt`
+packages.
 
 ## AgentOS SDKs
 

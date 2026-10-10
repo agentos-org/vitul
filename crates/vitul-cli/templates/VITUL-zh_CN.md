@@ -22,6 +22,8 @@ Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS �
 在项目根目录的 `vitul.conf.json` 中设置 `agentos.open.titleBar` 为 `system` 或 `overlay`，选择 AgentOS App 内容相对于 Shell 标题栏的布局，默认值为 `system`。该设置会写入生成的 AgentOS `app.json`；宿主会报告实际生效的模式。Shell 管理的窗口会继续由 Shell 管理并绘制窗口控件。
 
 AgentOS 的 `bundleId` 来自 `src-vitul/vitul.conf.json` 中的 `identifier`。可以在项目根目录的 `vitul.conf.json` 设置 `agentos.port`，指定范围为 1–65535 的容器内后端端口；默认值为 `9627`。
+在 `src-vitul/vitul.conf.json` 的 `bundle.icon` 中指定 PNG 或 SVG 文件，即可将其作为
+`icon.png` 或 `icon.svg` 放入 AgentOS 安装包。
 
 ## 应用 API
 
