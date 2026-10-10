@@ -1,0 +1,27 @@
+{
+  "name": "create-vitul-app",
+  "version": "0.1.0",
+  "description": "Create a Vitul application",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentos-org/vitul.git",
+    "directory": "packages/create-vitul-app"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "create-vitul-app": "bin/create-vitul-app.js"
+  },
+  "files": [
+    "bin/create-vitul-app.js",
+    "README.md"
+  ],
+  "dependencies": {
+    "@litevar/vitul-cli": "^2.12.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

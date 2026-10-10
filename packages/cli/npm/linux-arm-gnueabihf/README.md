@@ -1,3 +1,3 @@
-# `@vitul/cli-linux-arm-gnueabihf`
+# `@litevar/vitul-cli-linux-arm-gnueabihf`
 
-This is the **armv7-unknown-linux-gnueabihf** binary for `@vitul/cli`
+This is the **armv7-unknown-linux-gnueabihf** binary for `@litevar/vitul-cli`

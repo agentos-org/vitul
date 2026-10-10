@@ -1,7 +1,12 @@
 {
-  "name": "@vitul/cli",
+  "name": "@litevar/vitul-cli",
   "version": "2.12.0",
   "description": "Vitul CLI for OpenTool-first apps, derived from Tauri 2 tooling",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentos-org/vitul.git",
+    "directory": "packages/cli"
+  },
   "type": "commonjs",
   "contributors": [
     "Tauri Programme within The Commons Conservancy"

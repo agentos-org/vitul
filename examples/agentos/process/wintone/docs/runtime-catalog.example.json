@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "version": "replace-with-curated-bundle-version",
+  "hostArchitecture": "aarch64",
+  "wineVersion": "replace-with-wine-version",
+  "fexVersion": "replace-with-fex-version",
+  "artifact": {
+    "url": "https://downloads.example.invalid/wintone-runtime-aarch64.tar.zst",
+    "format": "tar.zst",
+    "sha256": "replace-with-64-character-sha256",
+    "maxBytes": 4294967296
+  },
+  "wineCommand": ["wine/bin/wine64"],
+  "winebootCommand": ["wine/bin/wineboot", "-u"],
+  "fexCommand": ["fex/bin/FEX"],
+  "fexRootfs": "fex/rootfs.sqsh"
+}

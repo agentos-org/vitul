@@ -1,3 +1,3 @@
-# `@vitul/cli-linux-x64-gnu`
+# `@litevar/vitul-cli-linux-x64-gnu`
 
-This is the **x86_64-unknown-linux-gnu** binary for `@vitul/cli`
+This is the **x86_64-unknown-linux-gnu** binary for `@litevar/vitul-cli`

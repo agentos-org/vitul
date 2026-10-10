@@ -1,12 +1,13 @@
 mod agentos;
 mod dev;
 mod init;
+mod project_config;
 mod vitulfile;
 
 use anyhow::Context;
 use std::{ffi::OsString, path::PathBuf};
 
-const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  init <PROJECT>     Create an OpenTool-first Vitul project\n  agentos <COMMAND>  Create and inspect Vitulfile-based AgentOS packages\n  dev                Run a desktop app with its OpenTool backend\n  build              Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                     Run Tauri-compatible tooling through Vitul\n\nTARGETS:\n  Desktop targets use Vitul's Tauri-compatible runtime.\n  agentos             Build every target declared in Vitulfile\n  agentos/arm64       Build an AgentOS ARM64 .agt package from Vitulfile\n  agentos/x64         Build an AgentOS x64 .agt package from Vitulfile\n  agentos-arm64       Compatibility alias for existing Vitul projects\n\nCOMPATIBILITY:\n  Tauri-compatible desktop tooling is invoked internally by Vitul.\n";
+const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  create <PROJECT>    Create an OpenTool-first Vitul project\n  init <PROJECT>      Alias for create\n  agentos <COMMAND>   Inspect or validate AgentOS packaging config\n  dev                 Run a desktop app with its OpenTool backend\n  build               Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                      Run desktop and mobile tooling through Vitul\n\nTARGETS:\n  agentos             Build every declared AgentOS target\n  agentos/arm64       Build an AgentOS ARM64 .agt package\n  agentos/x64         Build an AgentOS x64 .agt package\n\nCONFIGURATION:\n  New Vitul apps use one root vitul.conf.json.\n  Standalone web projects can use a Vitulfile.\n";
 
 pub fn run() -> anyhow::Result<()> {
   let args = std::env::args_os().skip(1).collect::<Vec<_>>();
@@ -26,7 +27,7 @@ pub fn run_vitul_with_args(args: Vec<OsString>) -> anyhow::Result<()> {
   match command.as_ref() {
     "-h" | "--help" | "help" => print!("{HELP}"),
     "-V" | "--version" => println!("vitul {}", env!("CARGO_PKG_VERSION")),
-    "init" => init::run(args)?,
+    "create" | "init" => init::run(args)?,
     "agentos" => agentos::run(args)?,
     "dev" => dev::run(args)?,
     "build" => run_build(args)?,
@@ -69,12 +70,21 @@ fn is_vitul_project(root: &std::path::Path) -> bool {
 
 fn run_build(args: Vec<OsString>) -> anyhow::Result<()> {
   match option_value(&args, "--target", "-t").as_deref() {
-    Some("agentos") => agentos::build_vitulfile(&project_root()?, "agentos"),
+    Some("agentos") => {
+      let root = project_root()?;
+      if project_config::is_unified(&root) || root.join(vitulfile::FILE_NAME).is_file() {
+        agentos::build_vitulfile(&root, "agentos")
+      } else if is_vitul_project(&root) {
+        agentos::legacy::build_arm64(&root)
+      } else {
+        agentos::build_vitulfile(&root, "agentos")
+      }
+    }
     Some("agentos/arm64") => build_agentos_arm64(&project_root()?),
     Some("agentos/x64") => agentos::build_vitulfile(&project_root()?, "agentos/x64"),
     Some("agentos-arm64") => {
       let root = project_root()?;
-      if root.join(vitulfile::FILE_NAME).is_file() {
+      if project_config::is_unified(&root) || root.join(vitulfile::FILE_NAME).is_file() {
         agentos::build_vitulfile(&root, "agentos/arm64")
       } else {
         agentos::legacy::build_arm64(&root)
@@ -86,7 +96,7 @@ fn run_build(args: Vec<OsString>) -> anyhow::Result<()> {
 }
 
 fn build_agentos_arm64(root: &std::path::Path) -> anyhow::Result<()> {
-  if root.join(vitulfile::FILE_NAME).is_file() {
+  if project_config::is_unified(root) || root.join(vitulfile::FILE_NAME).is_file() {
     agentos::build_vitulfile(root, "agentos/arm64")
   } else if is_vitul_project(root) {
     agentos::legacy::build_arm64(root)
@@ -96,6 +106,7 @@ fn build_agentos_arm64(root: &std::path::Path) -> anyhow::Result<()> {
 }
 
 fn run_tauri(command: &str, args: Vec<OsString>, bin_name: &str) -> anyhow::Result<()> {
+  project_config::write_runtime_config(&project_root()?)?;
   let mut forwarded = Vec::with_capacity(args.len() + 1);
   forwarded.push(OsString::from(command));
   forwarded.extend(args);

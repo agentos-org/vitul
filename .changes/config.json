@@ -202,7 +202,7 @@
         "cargo build --manifest-path ../tauri-schema-generator/Cargo.toml"
       ]
     },
-    "@vitul/cli": {
+    "@litevar/vitul-cli": {
       "path": "./packages/cli",
       "manager": "javascript",
       "dependencies": ["tauri-cli"],

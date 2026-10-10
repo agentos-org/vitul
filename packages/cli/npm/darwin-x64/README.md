@@ -1,3 +1,3 @@
-# `@vitul/cli-darwin-x64`
+# `@litevar/vitul-cli-darwin-x64`
 
-This is the **x86_64-apple-darwin** binary for `@vitul/cli`
+This is the **x86_64-apple-darwin** binary for `@litevar/vitul-cli`

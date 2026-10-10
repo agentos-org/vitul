@@ -99,7 +99,7 @@ jobs:
       - name: build @tauri-apps/api
         run: pnpm build:api
 
-      - name: build @vitul/cli
+      - name: build @litevar/vitul-cli
         # Debug profile: the suite only drives the CLI, and a debug CLI reuses the cached
         # dependencies instead of a from-scratch LTO build (5 minutes on this runner).
         run: pnpm build:cli:debug
@@ -201,7 +201,7 @@ jobs:
       - name: build @tauri-apps/api
         run: pnpm build:api
 
-      - name: build @vitul/cli
+      - name: build @litevar/vitul-cli
         # Debug profile: the suite only drives the CLI, and a debug CLI reuses the cached
         # dependencies instead of a from-scratch LTO build (10 minutes on this runner).
         run: pnpm build:cli:debug

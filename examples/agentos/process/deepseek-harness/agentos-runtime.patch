@@ -1,0 +1,60 @@
+diff --git a/packages/client/ui-settings/src/client/index.ts b/packages/client/ui-settings/src/client/index.ts
+--- a/packages/client/ui-settings/src/client/index.ts
++++ b/packages/client/ui-settings/src/client/index.ts
+@@ -36,6 +36,9 @@ export function apply(ctx: Context): void {
+   const schema = new SettingsSchemaService(ctx)
+   // Every form uses the persistence mode resolved from the connected Host.
+-  const persistence = ctx.remote.$host.isLoopback ? 'host' : 'memory'
++  const agentOSRemoteSettings = (globalThis as typeof globalThis & {
++    __DSH_AGENTOS_REMOTE_SETTINGS__?: boolean
++  }).__DSH_AGENTOS_REMOTE_SETTINGS__ === true
++  const persistence = ctx.remote.$host.isLoopback || agentOSRemoteSettings ? 'host' : 'memory'
+   const mirror = new SettingsDescribeMirror(ctx, persistence)
+   ctx.effect(() => {
+     const disposers = [
+diff --git a/packages/boot/app-boot/src/package-meta.ts b/packages/boot/app-boot/src/package-meta.ts
+--- a/packages/boot/app-boot/src/package-meta.ts
++++ b/packages/boot/app-boot/src/package-meta.ts
+@@ -13,6 +13,12 @@
+ 
+ /** Maximum raw icon bytes admitted to plugin metadata. */
+ const MAX_ICON_BYTES = 256 * 1024
++const AGENTOS_PLUGIN_ICON_PACKAGES = new Set([
++  '@deepseek-ai/dsh-experimental-agent-team-profile',
++  '@deepseek-ai/dsh-experimental-auto-review',
++  '@deepseek-ai/dsh-experimental-inspector-profile',
++  '@deepseek-ai/dsh-experimental-voice-input-bundle',
++])
+ const ICON_MEDIA_TYPES = new Map([
+   ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.jpg', 'image/jpeg'],
+   ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'],
+@@ -32,10 +38,26 @@
+     label = manifestPath
+     const root = realpathSync(dirname(manifestPath))
+     target = resolve(root, icon)
+-    const local = relative(root, realpathSync(target))
+-    if (local === '..' || local.startsWith(`..${sep}`) || isAbsolute(local)) {
+-      throw new Error(`${label}: icon must remain inside its manifest directory`)
++    let sidecar = false
++    try {
++      target = realpathSync(target)
++    } catch (error) {
++      const code = (error as NodeJS.ErrnoException | null)?.code
++      const iconRoot = process.env.DSH_AGENTOS_PLUGIN_ICON_DIR
++      if ((code !== 'ENOENT' && code !== 'ENOTDIR') || iconRoot === undefined
++        || !AGENTOS_PLUGIN_ICON_PACKAGES.has(packageName)) throw error
++      const packageDirectory = realpathSync(join(iconRoot, packageName))
++      if (readObject(join(packageDirectory, 'package.json')).name !== packageName) throw error
++      target = realpathSync(join(packageDirectory, 'icon.svg'))
++      assertPackageOwned(target, packageName)
++      sidecar = true
+     }
++    if (!sidecar) {
++      const local = relative(root, target)
++      if (local === '..' || local.startsWith(`..${sep}`) || isAbsolute(local)) {
++        throw new Error(`${label}: icon must remain inside its manifest directory`)
++      }
++    }
+   } else {
+     const exported = optionalResourcePath(`${specifier}/icon`, parentURL)
+     if (exported === undefined) return undefined

@@ -1,3 +1,3 @@
-# `@vitul/cli-darwin-arm64`
+# `@litevar/vitul-cli-darwin-arm64`
 
-This is the **aarch64-apple-darwin** binary for `@vitul/cli`
+This is the **aarch64-apple-darwin** binary for `@litevar/vitul-cli`

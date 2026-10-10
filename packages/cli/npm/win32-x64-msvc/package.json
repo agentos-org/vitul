@@ -1,5 +1,5 @@
 {
-  "name": "@vitul/cli-win32-x64-msvc",
+  "name": "@litevar/vitul-cli-win32-x64-msvc",
   "version": "0.0.0",
   "cpu": [
     "x64"

@@ -15,7 +15,6 @@ const FRONTEND_HOST: &str = include_str!("../templates/host.ts");
 const DESKTOP_HOST: &str = include_str!("../templates/desktop-host.ts");
 const VITUL_LIB: &str = include_str!("../templates/vitul-lib.rs");
 const VITE_CONFIG: &str = include_str!("../templates/vite.config.ts");
-const VITUL_CONFIG: &str = include_str!("../templates/vitul.conf.json");
 const PROJECT_README: &str = include_str!("../templates/VITUL.md");
 const PROJECT_README_ZH_CN: &str = include_str!("../templates/VITUL-zh_CN.md");
 
@@ -24,7 +23,7 @@ pub fn run(mut args: Vec<OsString>) -> Result<()> {
     .iter()
     .any(|arg| arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v")
   {
-    create_vitul_app::run(args, Some("vitul init".to_owned()), None);
+    create_vitul_app::run(args, Some("vitul create".to_owned()), None);
     return Ok(());
   }
 
@@ -42,7 +41,7 @@ pub fn run(mut args: Vec<OsString>) -> Result<()> {
     bail!("the OpenTool starter currently supports the `vanilla-ts` template");
   }
 
-  create_vitul_app::run(args, Some("vitul init".to_owned()), None);
+  create_vitul_app::run(args, Some("vitul create".to_owned()), None);
   let project_root = std::env::current_dir()?.join(project_name);
   rename_generated_runtime_dir(&project_root)?;
   rename_generated_config(&project_root)?;
@@ -89,7 +88,7 @@ fn rename_generated_config(project_root: &Path) -> Result<()> {
 fn reject_tauri_version_option(args: &[OsString]) -> Result<()> {
   if has_option(args, "--tauri-version", "") {
     bail!(
-      "`--tauri-version` is not a Vitul option; `vitul init` selects the supported desktop runtime automatically"
+      "`--tauri-version` is not a Vitul option; `vitul create` selects the supported desktop runtime automatically"
     );
   }
   Ok(())
@@ -181,7 +180,6 @@ fn scaffold(project_root: &Path) -> Result<()> {
   write_file(project_root, "src/desktop-host.ts", DESKTOP_HOST)?;
   write_file(project_root, "src-vitul/src/lib.rs", VITUL_LIB)?;
   write_file(project_root, "vite.config.ts", VITE_CONFIG)?;
-  write_file(project_root, "vitul.conf.json", VITUL_CONFIG)?;
   write_file(project_root, "README.md", PROJECT_README)?;
   write_file(project_root, "README-zh_CN.md", PROJECT_README_ZH_CN)?;
   write_file(project_root, "VITUL.md", PROJECT_README)?;
@@ -208,10 +206,12 @@ fn scaffold(project_root: &Path) -> Result<()> {
     *title = serde_json::Value::String("Vitul OpenTool App".into());
   }
   fs::write(
-    vitul_config_path,
+    &vitul_config_path,
     serde_json::to_vec_pretty(&config).context("failed to encode desktop runtime config")?,
   )
   .context("failed to update generated desktop runtime config")?;
+  crate::project_config::create_project_config(project_root)?;
+  ignore_generated_runtime_config(project_root)?;
 
   println!(
     "Created OpenTool-first Vitul project at {}",
@@ -231,6 +231,21 @@ fn remove_unused_frontend_assets(project_root: &Path) -> Result<()> {
     }
   }
   Ok(())
+}
+
+fn ignore_generated_runtime_config(project_root: &Path) -> Result<()> {
+  let path = project_root.join(".gitignore");
+  let mut contents = fs::read_to_string(&path).unwrap_or_default();
+  for entry in ["/src-vitul/vitul.conf.json", "/agentos-build/"] {
+    if !contents.lines().any(|line| line.trim() == entry) {
+      if !contents.is_empty() && !contents.ends_with('\n') {
+        contents.push('\n');
+      }
+      contents.push_str(entry);
+      contents.push('\n');
+    }
+  }
+  fs::write(&path, contents).with_context(|| format!("failed to update {}", path.display()))
 }
 
 fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
@@ -260,7 +275,10 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
     .and_then(serde_json::Value::as_object_mut)
     .context("generated package.json has no devDependencies object")?;
   dev_dependencies.remove("@tauri-apps/cli");
-  dev_dependencies.remove("@vitul/cli");
+  dev_dependencies.insert(
+    "@litevar/vitul-cli".to_owned(),
+    serde_json::Value::String("^2.12.0".into()),
+  );
   if let Some(scripts) = package
     .get_mut("scripts")
     .and_then(serde_json::Value::as_object_mut)
@@ -285,7 +303,7 @@ mod tests {
   use std::fs;
 
   #[test]
-  fn generated_project_uses_installed_rust_cli_without_unpublished_npm_wrapper() {
+  fn generated_project_uses_local_vitul_cli() {
     let project = tempfile::tempdir().unwrap();
     fs::write(
       project.path().join("package.json"),
@@ -293,7 +311,7 @@ mod tests {
         "dependencies": {},
         "devDependencies": {
           "@tauri-apps/cli": "^2",
-          "@vitul/cli": "^2",
+          "@litevar/vitul-cli": "^2",
           "vite": "^8"
         },
         "scripts": {
@@ -309,7 +327,7 @@ mod tests {
     let package: serde_json::Value =
       serde_json::from_slice(&fs::read(project.path().join("package.json")).unwrap()).unwrap();
     assert!(package["devDependencies"].get("@tauri-apps/cli").is_none());
-    assert!(package["devDependencies"].get("@vitul/cli").is_none());
+    assert_eq!(package["devDependencies"]["@litevar/vitul-cli"], "^2.12.0");
     assert_eq!(package["scripts"]["vitul"], "vitul");
     assert!(package["scripts"].get("tauri").is_none());
   }

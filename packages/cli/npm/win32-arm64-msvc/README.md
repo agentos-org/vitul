@@ -1,3 +1,3 @@
-# `@vitul/cli-win32-arm64-msvc`
+# `@litevar/vitul-cli-win32-arm64-msvc`
 
-This is the **aarch64-pc-windows-msvc** binary for `@vitul/cli`
+This is the **aarch64-pc-windows-msvc** binary for `@litevar/vitul-cli`

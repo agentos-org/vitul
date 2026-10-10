@@ -1,0 +1,27 @@
+{
+  "name": "vitul",
+  "version": "0.1.0",
+  "description": "Vitul CLI for creating and building Vitul applications",
+  "license": "Apache-2.0 OR MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agentos-org/vitul.git",
+    "directory": "packages/vitul"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "vitul": "bin/vitul.js"
+  },
+  "files": [
+    "bin/vitul.js",
+    "README.md"
+  ],
+  "dependencies": {
+    "@litevar/vitul-cli": "^2.12.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

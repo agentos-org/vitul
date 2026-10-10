@@ -5,10 +5,11 @@ an installable AgentOS `.agt` package. It is for projects that already have a
 frontend, backend, or hosted website and need an AgentOS manifest, launch
 description, and package archive.
 
-This is a separate Vitul CLI module. It is **not** a Rust project format and
-does not require `backend/Cargo.toml`, Tauri, or a Rust intermediary. A local
-app runs its own configured process. The original `vitul init` workflow for
-creating a new Vitul desktop app remains separate.
+This is a standalone packaging mode in the Vitul CLI. It is **not** a Rust
+project format and does not require `backend/Cargo.toml`, Tauri, or a Rust
+intermediary. A local app runs its own configured process. Projects created
+with `vitul create` keep desktop, mobile, and AgentOS settings in the root
+`vitul.conf.json`; use Vitulfile for an independent web project.
 
 ## Supported profiles
 
@@ -214,9 +215,12 @@ agentos:
 - `agentos.openMode` accepts `window` or `workspace` and defaults to `window`.
   `workspace` opens the app maximized in the current AgentOS Workspace.
 - `agentos.permissions` accepts `native.window-control`, `native.file-dialogs`,
-  `native.clipboard`, `native.notifications`, `native.external-links`, and
-  `native.sidecars` for process apps. Remote CEF pages cannot request these
-  native capabilities.
+  `native.clipboard`, `native.notifications`, `native.external-links`,
+  `native.sidecars`, `native.external-wayland`, and
+  `native.external-wayland.network` for process apps. External Wayland sessions
+  let AgentOS host independent Linux graphical processes; network access is
+  granted only to sessions that request it. Remote CEF pages cannot request
+  these native capabilities.
 - Dockage and Gitea are candidate apps to package with this format, not
   guaranteed turnkey targets. Their host Docker access, Git/runtime
   dependencies, persistence, and architecture-specific builds need to be
@@ -224,9 +228,10 @@ agentos:
 
 ## Relationship to Vitul projects
 
-The new-app workflow still uses `vitul init`, `vitul.conf.json`, and its Rust
-backend. `Vitulfile` is for packaging an existing web app as an AgentOS app.
-When a project has `Vitulfile`, `vitul build --target agentos` or a specific
-AgentOS architecture uses this module. The existing `agentos-arm64`
-compatibility target continues to build older Vitul projects that do not have
-a `Vitulfile`.
+New projects created with `vitul create` keep desktop, mobile, and AgentOS
+settings in one root `vitul.conf.json`. The CLI projects desktop fields into an
+ignored runtime config under `src-vitul/`; users edit the root file.
+
+`Vitulfile` remains available for packaging standalone web projects that do not
+use the Vitul app scaffold. `vitul build --target agentos` reads the root Vitul
+config when present and reads `Vitulfile` for those standalone projects.

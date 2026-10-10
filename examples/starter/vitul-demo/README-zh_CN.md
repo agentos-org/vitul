@@ -46,21 +46,24 @@ Android SDK 工具链；iOS 需要 macOS 和 Xcode。
 
 桌面构建使用平台原生打包格式：默认情况下，macOS 生成 `.app` 应用包和
 `.dmg` 磁盘映像；Windows 生成 `.msi` 安装包和 NSIS `.exe` 安装程序。可以在
-`src-vitul/vitul.conf.json` 的 `bundle.targets` 中选择桌面打包格式。
+项目根目录 `vitul.conf.json` 的 `bundle.targets` 中选择桌面打包格式。运行桌面或
+移动 CLI 时，Vitul 会在 `src-vitul/` 下生成被忽略的运行时配置。
 
 vitul dev 会先使用操作系统分配的 loopback 端口启动 Rust OpenTool 后端，再打开
 桌面应用。Vite 开发服务器会把 /opentool 请求转发给后端。
 
-可安装的 AgentOS `.agt` 包使用 manifest v1，支持 ARM64 和 x64；当前 Vitul
-打包器构建 ARM64 包。OpenTool 使用独立的 `rpc.version: 2` 绑定版本。项目根目录的
-`vitul.conf.json` 用来设置 AgentOS 标题栏布局、容器端口和宿主权限。本示例请求
-`overlay`、默认容器端口 `9627` 和 `native.window-control`。AgentOS 会分配 loopback
-宿主端口并映射到容器端口；同一已安装 App 的多个窗口共享后端。以下命令使用 Docker 构建 ARM64 包：
+可安装的 AgentOS `.agt` 包使用 manifest v1，支持 ARM64 和 x64。OpenTool 使用独立的
+`rpc.version: 2` 绑定版本。项目根目录 `vitul.conf.json` 统一设置桌面、移动和 AgentOS
+选项，包括标题栏布局、容器端口和宿主权限。本示例请求 `overlay`、默认容器端口
+`9627` 和 `native.window-control`。AgentOS 会分配 loopback 宿主端口并映射到容器端口；
+同一已安装 App 的多个窗口共享后端。使用 Docker 构建配置中声明的两个架构：
 
-    pnpm vitul build --target agentos-arm64
+    pnpm vitul build --target agentos
+
+也可以使用 `--target agentos/arm64` 或 `--target agentos/x64` 单独构建一个架构。
 
 打包器会将标题栏模式写入生成的 `app.json`，其中 `bundleId` 来自
-`src-vitul/vitul.conf.json` 的 `identifier`，并将 `.agt` 应用包写入 `dist/`。
+项目根目录 `vitul.conf.json` 的 `identifier`，并将 `.agt` 应用包写入 `dist/`。
 Rust 后端在 AgentOS 环境下遵守 1 MiB OpenTool 请求体上限；其他宿主仍使用
 OpenTool SDK 的 16 MiB 默认值。
 

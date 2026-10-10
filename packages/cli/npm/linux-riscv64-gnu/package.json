@@ -1,5 +1,5 @@
 {
-  "name": "@vitul/cli-linux-riscv64-gnu",
+  "name": "@litevar/vitul-cli-linux-riscv64-gnu",
   "version": "0.0.0",
   "cpu": [
     "riscv64"

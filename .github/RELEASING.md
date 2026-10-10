@@ -5,16 +5,33 @@ Publish Vitul releases on
 version, support, and release requirements in
 [`docs/MAINTENANCE.md`](../docs/MAINTENANCE.md).
 
-The Rust CLI is currently installed from a Vitul source checkout with
-`cargo install --path crates/vitul-cli --locked`. The optional `@vitul/cli` npm
-package is not published yet, and generated projects do not depend on it.
+The Rust CLI can be installed from a Vitul source checkout with
+`cargo install --path crates/vitul-cli --locked`. The npm command packages are
+`vitul` and `create-vitul-app`; both depend on the native `@litevar/vitul-cli` package.
+Generated projects use `@litevar/vitul-cli` as a development dependency.
 
 `.github/workflows/publish-cli-js.yml` builds and tests the native bindings for
-`@vitul/cli`. After the npm package is created and its GitHub Actions trusted
-publisher is configured, a maintainer can publish it by creating a GitHub
-release and manually dispatching the workflow with that release ID. Do not
-dispatch it before the package version mapping, registry ownership, and clean
-installation have been checked.
+`@litevar/vitul-cli`. Its `napi prepublish` step publishes the platform packages
+(`@litevar/vitul-cli-<target>`) before publishing the root package. Configure a
+GitHub Actions trusted publisher for the root and every target package, using
+`agentos-org/vitul` and `publish-cli-js.yml`.
+
+npm requires a package to exist before a trusted publisher can be configured,
+so the first release needs an authenticated bootstrap publish for the root and
+platform packages. Both publish workflows accept the repository Actions secret
+`NPM_TOKEN` for this initial release. After publishing, configure trusted
+publishers for every package; npm will use OIDC when the workflow is trusted.
+Configure them shortly before the next release: npm expires a new trusted
+publisher configuration unless its first publish succeeds within two days.
+Remove the token secret after confirming an OIDC publish. Do not dispatch the
+workflow before registry ownership, version mapping, and clean installation
+have been checked.
+
+After `@litevar/vitul-cli@2.12.0` is available in npm, manually dispatch
+`.github/workflows/publish-vitul-commands.yml` to publish `vitul` and
+`create-vitul-app`. Bootstrap each package once so it exists, then configure
+trusted publishing for both packages with `agentos-org/vitul` and
+`publish-vitul-commands.yml` before dispatching subsequent releases.
 
 The inherited Covector and Rust CLI publishing workflows still target upstream
 identities. Do not use them to publish Vitul packages. A release is ready only

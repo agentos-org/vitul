@@ -1,0 +1,35 @@
+{
+  "manifestVersion": 1,
+  "appType": "process",
+  "architecture": "arm64",
+  "bundleId": "ai.deepseek.harness",
+  "name": "DeepSeek Harness",
+  "name_zh": "DeepSeek Harness",
+  "version": "0.2.1-alpha.1-agentos.10",
+  "description": "A sandboxed DeepSeek Harness coding agent.",
+  "description_zh": "运行在 AgentOS 容器沙盒中的 DeepSeek Harness 编程智能体。",
+  "execution": {
+    "mode": "container"
+  },
+  "data": {
+    "persistent": true
+  },
+  "run": {
+    "type": "process",
+    "entry": "start.sh",
+    "port": 3080,
+    "healthCheck": "/healthz",
+    "readyTimeout": 180,
+    "autoStart": false
+  },
+  "frontend": {
+    "entry": "/"
+  },
+  "open": {
+    "mode": "workspace",
+    "defaultWidth": 1440,
+    "defaultHeight": 960,
+    "minWidth": 1000,
+    "minHeight": 700
+  }
+}

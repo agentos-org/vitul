@@ -33,14 +33,20 @@ pub fn run(args: &[OsString]) -> Result<()> {
   }
 
   let vitulfile = root.join(FILE_NAME);
-  if vitulfile.is_file() {
-    let source = fs::read_to_string(&vitulfile)
-      .with_context(|| format!("could not read {}", vitulfile.display()))?;
-    let config: Vitulfile = serde_yaml::from_str(&source)
-      .with_context(|| format!("could not parse {}", vitulfile.display()))?;
+  if vitulfile.is_file() || crate::project_config::is_unified(&root) {
+    let config = if crate::project_config::is_unified(&root) {
+      Vitulfile::load(&root, None)?
+    } else {
+      let source = fs::read_to_string(&vitulfile)
+        .with_context(|| format!("could not read {}", vitulfile.display()))?;
+      serde_yaml::from_str(&source)
+        .with_context(|| format!("could not parse {}", vitulfile.display()))?
+    };
+    let unified = crate::project_config::is_unified(&root);
+    let label = if unified { "AgentOS config" } else { "Vitulfile" };
     match config.validate(&root) {
-      Ok(()) => println!("Vitulfile: valid"),
-      Err(error) => println!("Vitulfile: needs attention: {error}"),
+      Ok(()) => println!("{label}: valid"),
+      Err(error) => println!("{label}: needs attention: {error}"),
     }
     println!("App: {} ({})", config.app.name, config.app.id);
     println!(

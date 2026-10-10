@@ -202,7 +202,7 @@ importers:
       '@unocss/extractor-svelte':
         specifier: ^66.7.5
         version: 66.7.5
-      '@vitul/cli':
+      '@litevar/vitul-cli':
         specifier: ^2
         version: link:../../../packages/cli
       sortablejs:
@@ -248,7 +248,7 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.0.2
         version: 6.1.1(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0))
-      '@vitul/cli':
+      '@litevar/vitul-cli':
         specifier: link:../../../../packages/cli
         version: link:../../../../packages/cli
       tailwindcss:
@@ -267,7 +267,7 @@ importers:
         specifier: ../../../packages/api/dist
         version: link:../../../packages/api/dist
     devDependencies:
-      '@vitul/cli':
+      '@litevar/vitul-cli':
         specifier: ^2
         version: link:../../../packages/cli
       typescript:
@@ -387,6 +387,18 @@ importers:
       vitest:
         specifier: ^5.0.0
         version: 5.0.0(@types/node@24.11.0)(vite@8.1.4(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0))
+
+  packages/create-vitul-app:
+    dependencies:
+      '@litevar/vitul-cli':
+        specifier: ^2.12.0
+        version: link:../cli
+
+  packages/vitul:
+    dependencies:
+      '@litevar/vitul-cli':
+        specifier: ^2.12.0
+        version: link:../cli
 
 packages:
 

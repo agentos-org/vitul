@@ -52,27 +52,31 @@ require macOS and Xcode.
 
 Desktop builds use native package formats: macOS produces an `.app` bundle and
 `.dmg` image by default; Windows produces `.msi` and NSIS `.exe` installers.
-The `bundle.targets` setting in `src-vitul/vitul.conf.json` selects the desktop
-formats.
+The `bundle.targets` setting in the project-root `vitul.conf.json` selects the
+desktop formats. Vitul generates the ignored runtime projection under
+`src-vitul/` when the desktop or mobile CLI runs.
 
 Vitul dev starts the Rust OpenTool backend on an operating-system-assigned
 loopback port before opening the desktop app. The Vite development server
 proxies /opentool to that backend.
 
-Installable AgentOS `.agt` packages use manifest v1 and support ARM64 and x64;
-the current Vitul packager builds ARM64 packages. OpenTool uses the separate
-`rpc.version: 2` binding. The project-root `vitul.conf.json` selects the
-AgentOS title bar layout, container port, and requested host permissions. This
-example requests `overlay`, port `9627`, and `native.window-control`. AgentOS
-assigns a loopback host port and maps it to the configured container port;
-windows for the same installed App share the backend. The command below builds
-an ARM64 package with Docker:
+Installable AgentOS `.agt` packages use manifest v1 and support ARM64 and x64.
+OpenTool uses the separate `rpc.version: 2` binding. The project-root
+`vitul.conf.json` selects desktop, mobile, and AgentOS settings, including the
+title bar layout, container port, and requested host permissions. This example
+requests `overlay`, port `9627`, and `native.window-control`. AgentOS assigns a
+loopback host port and maps it to the configured container port; windows for
+the same installed App share the backend. Build both declared architectures
+with Docker:
 
-    pnpm vitul build --target agentos-arm64
+    pnpm vitul build --target agentos
+
+Build one architecture with `--target agentos/arm64` or
+`--target agentos/x64`.
 
 The package builder writes the title bar preference to the generated `app.json`
 and writes the `.agt` package to `dist/`. Its manifest `bundleId` comes from the
-`identifier` in `src-vitul/vitul.conf.json`.
+`identifier` in the project-root `vitul.conf.json`.
 The Rust backend enforces AgentOS's 1 MiB OpenTool request limit when it runs
 inside AgentOS; on other hosts it retains the OpenTool SDK's 16 MiB default.
 

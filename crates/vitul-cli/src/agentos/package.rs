@@ -49,6 +49,7 @@ pub fn build(project_root: &Path, requested_target: &str) -> Result<()> {
     );
     if config.app.app_type == VitulfileAppType::Process {
       run_build_steps(&project_root, &config, target)?;
+      build_project_backend(&project_root, architecture)?;
     }
 
     let archive_name = format!(
@@ -91,6 +92,113 @@ pub fn build(project_root: &Path, requested_target: &str) -> Result<()> {
     })?;
     println!("AgentOS package created: {}", archive_path.display());
   }
+  Ok(())
+}
+
+fn build_project_backend(project_root: &Path, architecture: &str) -> Result<()> {
+  if !crate::project_config::is_unified(project_root) {
+    return Ok(());
+  }
+  let project = crate::project_config::root_config(project_root)?;
+  let Some(backend) = project.get("backend").and_then(Value::as_object) else {
+    return Ok(());
+  };
+  if backend.get("type").and_then(Value::as_str) != Some("opentool") {
+    bail!("backend.type must be `opentool` when AgentOS process packaging uses the Rust backend");
+  }
+  let manifest = backend
+    .get("manifest")
+    .and_then(Value::as_str)
+    .context("backend.manifest is required")?;
+  let manifest_path = Path::new(manifest);
+  if manifest_path.is_absolute()
+    || manifest_path
+      .components()
+      .any(|component| !matches!(component, Component::Normal(_)))
+  {
+    bail!("backend.manifest must be a relative project path");
+  }
+  let binary = backend
+    .get("binary")
+    .and_then(Value::as_str)
+    .filter(|binary| !binary.is_empty())
+    .context("backend.binary is required")?;
+  if binary.contains('/') || binary.contains('\\') || binary.contains('\0') {
+    bail!("backend.binary must be a Cargo binary target name");
+  }
+  let (platform, rust_target) = match architecture {
+    "arm64" => ("linux/arm64", "aarch64-unknown-linux-gnu"),
+    "x64" => ("linux/amd64", "x86_64-unknown-linux-gnu"),
+    _ => bail!("unsupported AgentOS architecture `{architecture}`"),
+  };
+  let image = project
+    .get("agentos")
+    .and_then(|agentos| agentos.get("buildImage"))
+    .and_then(Value::as_str)
+    .filter(|image| !image.trim().is_empty())
+    .unwrap_or("rust:1.90-bookworm");
+  let mount = format!("{}:/workspace", project_root.display());
+  let manifest_relative = manifest_path
+    .components()
+    .map(|component| component.as_os_str().to_string_lossy())
+    .collect::<Vec<_>>()
+    .join("/");
+  let container_manifest = format!("/workspace/{manifest_relative}");
+  let target_dir = project_root.join("agentos-build/cargo-target");
+  fs::create_dir_all(&target_dir)
+    .with_context(|| format!("could not create {}", target_dir.display()))?;
+  let mut command = Command::new("docker");
+  command
+    .args([
+      "run",
+      "--rm",
+      "--platform",
+      platform,
+      "-v",
+      &mount,
+      "-w",
+      "/workspace",
+    ])
+    .args([
+      "--env",
+      "CARGO_TARGET_DIR=/workspace/agentos-build/cargo-target",
+    ])
+    .arg(image)
+    .args([
+      "cargo",
+      "build",
+      "--release",
+      "--target",
+      rust_target,
+      "--manifest-path",
+    ])
+    .arg(&container_manifest)
+    .args(["--bin", binary]);
+  let status = command
+    .status()
+    .context("failed to start Docker while building the AgentOS Rust backend")?;
+  if !status.success() {
+    bail!("building the AgentOS Rust backend in Docker failed with {status}");
+  }
+
+  let built_binary = target_dir.join(rust_target).join("release").join(binary);
+  if !built_binary.is_file() {
+    bail!(
+      "AgentOS backend binary was not produced at {}",
+      built_binary.display()
+    );
+  }
+  let staged_binary = project_root.join("agentos-build/bin").join(binary);
+  if let Some(parent) = staged_binary.parent() {
+    fs::create_dir_all(parent).with_context(|| format!("could not create {}", parent.display()))?;
+  }
+  fs::copy(&built_binary, &staged_binary).with_context(|| {
+    format!(
+      "could not copy AgentOS backend from {} to {}",
+      built_binary.display(),
+      staged_binary.display()
+    )
+  })?;
   Ok(())
 }
 
@@ -190,18 +298,113 @@ fn stage_package(
   }
 
   if let Some(icon) = &config.app.icon {
-    let filename = agentos_icon_filename(icon)
-      .context("app.icon must point to a PNG or SVG file")?;
+    let filename =
+      agentos_icon_filename(icon).context("app.icon must point to a PNG or SVG file")?;
     fs::copy(project_root.join(icon), staging_root.join(filename))
       .with_context(|| format!("could not package app icon {}", icon.display()))?;
   }
 
-  let manifest = manifest(config, architecture)?;
+  let mut manifest = manifest(config, architecture)?;
+  let sidecars = collect_sidecars(project_root, staging_root, architecture)?;
+  if !sidecars.is_empty() {
+    if !config
+      .agentos
+      .permissions
+      .iter()
+      .any(|permission| permission == "native.sidecars")
+    {
+      bail!(
+        "bundle.externalBin declares AgentOS sidecars; add `native.sidecars` to `agentos.permissions` in vitul.conf.json"
+      );
+    }
+    manifest["sidecars"] = json!(sidecars);
+  }
   let manifest_bytes =
     serde_json::to_vec_pretty(&manifest).context("could not encode AgentOS app.json")?;
   fs::write(staging_root.join("app.json"), manifest_bytes)
     .context("could not write AgentOS app.json")?;
   Ok(())
+}
+
+fn collect_sidecars(
+  project_root: &Path,
+  staging_root: &Path,
+  architecture: &str,
+) -> Result<Vec<Value>> {
+  if !crate::project_config::is_unified(project_root) {
+    return Ok(Vec::new());
+  }
+  let project = crate::project_config::root_config(project_root)?;
+  let Some(external_bins) = project
+    .get("bundle")
+    .and_then(|bundle| bundle.get("externalBin"))
+  else {
+    return Ok(Vec::new());
+  };
+  let external_bins = external_bins
+    .as_array()
+    .context("bundle.externalBin must be an array of sidecar base paths")?;
+  let rust_target = match architecture {
+    "arm64" => "aarch64-unknown-linux-gnu",
+    "x64" => "x86_64-unknown-linux-gnu",
+    "any" => return Ok(Vec::new()),
+    _ => bail!("unsupported AgentOS architecture `{architecture}`"),
+  };
+  let mut names = std::collections::BTreeSet::new();
+  let mut entries = Vec::with_capacity(external_bins.len());
+  for external_bin in external_bins {
+    let base = external_bin
+      .as_str()
+      .context("bundle.externalBin entries must be strings")?;
+    let base_path = Path::new(base);
+    if base_path.is_absolute()
+      || base_path
+        .components()
+        .any(|component| !matches!(component, Component::Normal(_)))
+    {
+      bail!("bundle.externalBin entries must be safe project-relative paths");
+    }
+    let name = base_path
+      .file_name()
+      .and_then(|name| name.to_str())
+      .context("bundle.externalBin path has no valid filename")?
+      .to_owned();
+    if !valid_sidecar_name(&name) {
+      bail!("AgentOS sidecar name `{name}` must match `^[a-z][a-z0-9-]{{0,31}}$`");
+    }
+    if !names.insert(name.clone()) {
+      bail!("bundle.externalBin contains duplicate AgentOS sidecar name `{name}`");
+    }
+    let mut source_name = name.clone();
+    source_name.push('-');
+    source_name.push_str(rust_target);
+    let source = base_path.with_file_name(source_name);
+    let source = project_root.join(source);
+    if !source.is_file() {
+      bail!(
+        "AgentOS {architecture} sidecar is missing: {} (bundle.externalBin entries require the target suffix `-{rust_target}`)",
+        source.display()
+      );
+    }
+    let relative_entry = format!("sidecars/{name}");
+    let destination = staging_root.join(&relative_entry);
+    if let Some(parent) = destination.parent() {
+      fs::create_dir_all(parent).context("could not create AgentOS sidecar directory")?;
+    }
+    fs::copy(&source, &destination)
+      .with_context(|| format!("could not copy AgentOS sidecar from {}", source.display()))?;
+    entries.push(json!({ "name": name, "executable": relative_entry }));
+  }
+  Ok(entries)
+}
+
+fn valid_sidecar_name(name: &str) -> bool {
+  let bytes = name.as_bytes();
+  (1..=32).contains(&bytes.len())
+    && bytes[0].is_ascii_lowercase()
+    && bytes[1..]
+      .iter()
+      .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
 }
 
 fn manifest(config: &Config, architecture: &str) -> Result<Value> {

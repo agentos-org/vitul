@@ -166,10 +166,10 @@ jobs:
           repository: tauri-apps/tauri-docs
           event-type: update-docs
 
-      - name: Trigger `@vitul/cli` publishing workflow
+      - name: Trigger `@litevar/vitul-cli` publishing workflow
         if: |
           steps.covector.outputs.successfulPublish == 'true' &&
-          contains(steps.covector.outputs.packagesPublished, '@vitul/cli')
+          contains(steps.covector.outputs.packagesPublished, '@litevar/vitul-cli')
         run: gh workflow run 31554138 -r dev -f releaseId=${{ steps.covector.outputs['-vitul-cli-releaseId'] }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,36 @@
+{
+  "manifestVersion": 1,
+  "appType": "process",
+  "architecture": "arm64",
+  "bundleId": "com.onlyoffice.docs-agentos",
+  "name": "ONLYOFFICE Docs",
+  "name_zh": "ONLYOFFICE 文档",
+  "version": "9.4.0-agentos.15",
+  "description": "A complete ONLYOFFICE Docs Community service running inside the AgentOS app container sandbox.",
+  "description_zh": "完整的 ONLYOFFICE Docs Community 服务，运行于 AgentOS 应用容器沙盒内。",
+  "execution": {
+    "mode": "container"
+  },
+  "data": {
+    "persistent": true
+  },
+  "run": {
+    "type": "process",
+    "entry": "start.sh",
+    "port": 3000,
+    "healthCheck": "/health",
+    "readyTimeout": 300,
+    "autoStart": false
+  },
+  "permissions": [],
+  "frontend": {
+    "entry": "/"
+  },
+  "open": {
+    "mode": "workspace",
+    "defaultWidth": 1360,
+    "defaultHeight": 900,
+    "minWidth": 900,
+    "minHeight": 620
+  }
+}

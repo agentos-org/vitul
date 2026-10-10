@@ -18,56 +18,75 @@ Vitul 是一套以 OpenTool 为核心的应用开发工具链。macOS、Windows�
 
 ## 熟悉 Tauri？
 
-Vitul 是一套独立维护、源自 Tauri 2 的 OpenTool 优先工具链。其兼容桌面运行时、API 和 CLI 改编自 [Tauri 2 上游源码仓库](https://github.com/tauri-apps/tauri)，并保留继承代码中的版权和许可证声明。Vitul 在此基础上增加了自己的项目流程、AgentOS 目标和 OpenTool 业务调用模式；它不是 Tauri 官方项目：
+Vitul 是一套独立维护、源自 [Tauri 2 上游源码仓库](https://github.com/tauri-apps/tauri) 的 OpenTool 优先工具链，并保留继承代码中的版权和许可证声明。Vitul 沿用熟悉的 Tauri 命令和项目习惯，同时定义自己的项目格式、API、插件支持范围和 AgentOS 流程。它不是 Tauri 官方项目，也不会自动导入已有 Tauri App：
 
 | 方面         | Tauri                                                   | Vitul                                                                                                    |
 | ------------ | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 基础定位     | 桌面应用框架                                            | 基于 Tauri 2 兼容运行时、API 和配置模型构建的 OpenTool 优先工具链                                        |
+| 基础定位     | 桌面应用框架                                            | 源自 Tauri 2 代码的 OpenTool 优先工具链                                                                  |
 | 桌面 UI      | 系统 WebView                                            | macOS 和 Windows 同样使用系统 WebView                                                                    |
 | 命令行       | `tauri`、`cargo tauri`                                  | `vitul`、`cargo vitul`                                                                                   |
-| 桌面配置路径 | `src-tauri/tauri.conf.json`                             | `src-vitul/vitul.conf.json`                                                                              |
+| 项目配置路径 | `src-tauri/tauri.conf.json`                             | 项目根目录的 `vitul.conf.json`                                                                           |
 | 前端调用     | 通常通过 IPC 命令处理宿主和应用操作                     | 宿主 IPC 处理系统操作；OpenTool JSON-RPC 处理业务操作                                                    |
 | 构建目标     | Linux、macOS、Windows 桌面应用；Android 和 iOS 移动应用 | macOS/Windows 桌面应用、Android/iOS 移动应用，以及 manifest 架构支持 ARM64 和 x64 的 AgentOS `.agt` 应用 |
-| API 与插件   | Tauri API 及其插件生态                                  | 兼容的 Rust/JavaScript API 和受支持的兼容插件；具体功能请确认 Vitul 支持情况                             |
+| API 与插件   | Tauri API 及其插件生态                                  | 以 Vitul 自身支持范围为准；共享源码不代表兼容 Tauri 功能或插件                                            |
 
-你已有的 Rust、WebView、窗口、权限和打包经验都可以沿用。创建新应用时从 `vitul init` 开始；Vitul 使用自己的命令和项目文件，因此不会自动把 Tauri 项目的 `src-tauri` 目录识别为 Vitul 项目。Android 和 iOS 使用系统 WebView 与 Tauri IPC；Vitul 通过 IPC 传递 OpenTool 请求格式，并使用 Tauri Channel 传递流事件。移动后端链接进 App，在原生进程内运行。移动构建需要对应的平台工具链，iOS 构建需要 macOS 和 Xcode。详见 [Tauri 移动端前置要求](https://v2.tauri.app/start/prerequisites/)。
+你已有的 Rust、WebView、窗口、权限、打包和 CLI 使用习惯都可以沿用。使用 `vitul create` 或 `npm create vitul-app` 创建新应用。Vitul 使用自己的项目格式，不会导入或自动转换已有的 Tauri 项目。Android 和 iOS 使用系统 WebView 与 Tauri IPC；Vitul 通过 IPC 传递 OpenTool 请求格式，并使用 Tauri Channel 传递流事件。移动后端链接进 App，在原生进程内运行。移动构建需要对应的平台工具链，iOS 构建需要 macOS 和 Xcode。详见 [Tauri 移动端前置要求](https://v2.tauri.app/start/prerequisites/)。
 
 ## 创建并运行应用
 
-从公开源码安装 Vitul CLI，然后创建以 OpenTool 为核心的应用：
+npm 包名为 `vitul` 和 `create-vitul-app`。包发布后，可这样创建以 OpenTool 为核心的应用：
+
+```sh
+npm create vitul-app@latest my-app
+cd my-app
+npm install
+npm run vitul dev
+```
+
+也可以全局安装 CLI，再使用熟悉的 `vitul create` 流程：
+
+```sh
+npm install --global vitul
+vitul create my-app
+```
+
+npm 包正式发布前，可从源码构建 CLI：
 
 ```sh
 git clone https://github.com/agentos-org/vitul.git
 cd vitul
 cargo install --path crates/vitul-cli --locked
-vitul init my-app
+vitul create my-app
 cd my-app
+# npm 包发布前，请从 package.json 的 devDependencies 中移除 @litevar/vitul-cli
 pnpm install
 ```
 
-Rust CLI 会安装项目脚本所使用的 `vitul` 命令。可选的 `@vitul/cli` JavaScript 包目前尚未发布；新项目不依赖该包，而是使用已安装的 Rust CLI。
+`vitul` 命令和脚手架生成的 `vitul` 项目脚本使用同一套 CLI。npm 包的源码位于 `packages/vitul`、`packages/create-vitul-app` 和 `packages/cli`；完成发布后即可通过 npm 安装。
 
 根据应用运行的平台，选择对应命令和构建环境：
 
 | 目标平台               | 命令                                                                                                                   | 运行时与构建产物                                                                                                       | 构建条件                                                                                                                                    |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| AgentOS（ARM64 / x64） | `pnpm vitul build --target agentos-arm64`                                                                              | 使用 AgentOS 内嵌的 Chromium WebView；v2 `.agt` manifest 支持 ARM64 和 x64。Shell 启动时为后端分配动态 loopback 端口。 | 当前 Vitul 打包器可在配有 Docker 的 ARM64 Mac 上构建 ARM64 包。                                                                             |
+| AgentOS（ARM64 / x64） | `pnpm vitul build --target agentos`                                                                                    | 使用 AgentOS 内嵌的 Chromium WebView；v1 `.agt` manifest 支持 ARM64 和 x64。Shell 启动时为后端分配动态 loopback 端口。 | Docker 会为每个已声明的 Linux 架构构建 Rust 后端。                                                                                          |
 | Android                | 开发：`pnpm vitul android dev`<br>APK：`pnpm vitul android build --apk`<br>Play 商店：`pnpm vitul android build --aab` | 使用系统 Android WebView；生成 `.apk` 或 `.aab`。OpenTool 后端运行在 App 进程内，通过 Tauri IPC 通信。                 | 需要 Android Studio、Android SDK/NDK 和 Android Rust target。                                                                               |
 | iOS                    | 开发：`pnpm vitul ios dev`<br>构建：`pnpm vitul ios build`                                                             | 使用系统 WKWebView；生成 `.ipa`。OpenTool 后端运行在 App 进程内，通过 Tauri IPC 通信。                                 | 需要 macOS、Xcode 和 iOS Rust target。                                                                                                      |
 | Windows                | 开发：`pnpm vitul dev`<br>构建：`pnpm vitul build`                                                                     | 使用系统 WebView2；默认生成 `.msi` 安装包和 NSIS `.exe` 安装程序。                                                     | 在 Windows 上构建；需要 Rust MSVC 工具链、Node.js/pnpm、Visual Studio C++ Build Tools（“使用 C++ 的桌面开发”工作负载）和 WebView2 Runtime。 |
 | macOS                  | 开发：`pnpm vitul dev`<br>构建：`pnpm vitul build`                                                                     | 使用系统 WebView；默认生成 `.app` 应用包和 `.dmg` 磁盘映像。                                                           | 在 macOS 上构建；需要 Rust、Node.js/pnpm 和 Xcode Command Line Tools（`xcode-select --install`）。                                          |
 
-桌面产物格式可以通过 `src-vitul/vitul.conf.json` 中的 `bundle.targets` 选择。可安装的
-AgentOS `.agt` 使用 manifest v1，支持 ARM64 和 x64；AgentOS 会将动态分配的 loopback
-宿主端口映射到 `agentos.port` 指定的容器内端口（默认 `9627`）。旧版
-`agentos-arm64` 命令为 Vitul 原生项目生成 ARM64 包；独立的 Vitulfile 打包流程支持
-现有项目构建 ARM64 和 x64 包。相关命令不
+新建项目在根目录的 `vitul.conf.json` 中统一配置桌面、移动和 AgentOS 设置。
+使用 `bundle.targets` 选择桌面产物格式，使用 `agentos.targets` 声明 AgentOS 架构。
+运行桌面或移动工具时，Vitul 会在 `src-vitul/` 下生成运行时配置；开发者只需编辑
+根目录配置。已有项目可以继续使用原有运行时配置。独立的 Vitulfile 打包流程支持
+为现有项目构建 ARM64 和 x64 包。AgentOS `.agt` 使用 manifest v1，支持 ARM64 和 x64；
+AgentOS 会将动态分配的 loopback 宿主端口映射到 `agentos.port` 指定的容器内端口
+（默认 `9627`）。相关命令不
 构建基于 Ubuntu 24 的系统镜像或 AgentOS Desktop 宿主应用；这两者由 AgentOS 自己的
 项目构建。
 
 ### 使用 Vitulfile 打包已有 Web 项目
 
-`Vitulfile` 面向已有前后端项目和线上网站，不要求项目使用 Rust 或 Tauri。process
+`Vitulfile` 面向独立的已有前后端项目和线上网站，不要求项目使用 Rust 或 Tauri。process
 项目可在 `targets` 中声明 `agentos/arm64`、`agentos/x64` 或两者，然后执行：
 
 ```sh
@@ -85,7 +104,7 @@ AgentOS 会在内嵌 CEF WebApp 窗口中打开它。详见
 
 ## AgentOS SDK
 
-AgentOS SDK 是调用 AgentOS Gateway API 的客户端库。建议作为对应语言的应用依赖使用，不要把 SDK 源码复制进 Vitul。`vitul init` 生成的项目会在 `package.json` 中预置 TypeScript SDK；默认脚手架不会主动调用它：
+AgentOS SDK 是调用 AgentOS Gateway API 的客户端库。建议作为对应语言的应用依赖使用，不要把 SDK 源码复制进 Vitul。`vitul create` 生成的项目会在 `package.json` 中预置 TypeScript SDK；默认脚手架不会主动调用它：
 
 | 语言       | 包                                                                | 适用场景                                             |
 | ---------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
@@ -97,11 +116,11 @@ Vitul 前端只有在需要调用 AgentOS Gateway API 时才需要在代码中�
 ## 仓库结构
 
 - `crates/vitul-cli/` 包含 Vitul 项目生成器、开发运行器和 AgentOS 打包器。
-- `crates/tauri-*` 是兼容桌面引擎；其 Cargo package 和 Rust crate 名称为兼容现有运行时和插件生态而保留。
-- `packages/` 包含兼容的 JavaScript API（`@tauri-apps/api`）和 Vitul CLI 包（`@vitul/cli`）。
-- `crates/create-vitul-app/` 是 `vitul init` 使用的内部脚手架 crate，源自上游 `create-tauri-app`，由 Vitul 仓库统一维护。
+- `crates/tauri-*` 包含从 Tauri 派生的桌面运行时代码；Cargo package 和 Rust crate 名称为当前引擎保留。
+- `packages/` 包含 JavaScript API 包（`@tauri-apps/api`）和 Vitul CLI 包（`@litevar/vitul-cli`）。
+- `crates/create-vitul-app/` 是 `vitul create` 使用的内部脚手架 crate，源自上游 `create-tauri-app`，由 Vitul 仓库统一维护。
 
-Vitul 在内部复用兼容的配置 schema、API 行为和桌面工具。新项目使用 Vitul 文件名、来源地址和命令；对用户公开的 CLI 命令只有 `vitul` 和 `cargo vitul`。兼容的 JavaScript API 仍使用 `@tauri-apps/api` 导入路径，CLI 包名则是 `@vitul/cli`。Vitul 自有功能放在 `crates/vitul-*`；现有 `crates/tauri-*` 目录和 Rust crate 身份表示兼容引擎。继承代码的版权和许可证声明保持原样。
+Vitul 在内部复用部分 Tauri 源码和工具。新项目使用 Vitul 文件名和命令；对用户公开的 CLI 入口为 `vitul`、`cargo vitul` 和 `create-vitul-app`。当前 JavaScript API 包为继承的运行时模块保留了 `@tauri-apps/api` 包名，但这不表示现有 Tauri App 或插件可以不经修改直接运行。Vitul 自有功能放在 `crates/vitul-*`；继承代码保留原有版权和许可证声明。
 
 ## 项目状态
 

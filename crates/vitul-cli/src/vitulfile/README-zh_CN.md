@@ -4,9 +4,10 @@
 `.agt` 包。它面向已经有前端、后端或线上网站，并需要 AgentOS manifest、启动
 描述和安装包的项目。
 
-这是 Vitul CLI 中独立的打包模块。它**不是 Rust 项目配置**，不要求项目包含
+这是 Vitul CLI 中用于独立 Web 项目的打包模式。它**不是 Rust 项目配置**，不要求项目包含
 `backend/Cargo.toml`、Tauri，也不需要 Rust 中转服务。本地应用由配置指定的项目
-自身进程提供服务。原有的 `vitul init` 新建 Vitul 桌面应用流程仍然独立保留。
+自身进程提供服务。通过 `vitul create` 创建的项目则在根目录 `vitul.conf.json` 中
+统一保存桌面、移动和 AgentOS 设置。
 
 ## 支持的应用类型
 
@@ -192,14 +193,18 @@ agentos:
 - `agentos.openMode` 可设为 `window` 或 `workspace`，默认是 `window`。
   `workspace` 会在当前 AgentOS Workspace 中最大化打开应用。
 - `agentos.permissions` 支持 `native.window-control`、`native.file-dialogs`、
-  `native.clipboard`、`native.notifications`、`native.external-links` 和
-  `native.sidecars`，仅适用于 process 应用。远程 CEF 页面不能申请这些原生能力。
+  `native.clipboard`、`native.notifications`、`native.external-links`、
+  `native.sidecars`、`native.external-wayland` 和 `native.external-wayland.network`，仅适用于 process 应用。
+  外部 Wayland 会话权限用于创建由 AgentOS 承载的独立 Linux 图形进程；网络权限只在会话请求联网时生效。
+  远程 CEF 页面不能申请这些原生能力。
 - Dockage 和 Gitea 是此格式的候选打包项目，不代表已经开箱即用。Docker 宿主访问、
   Git 和运行时依赖、数据持久化，以及 ARM64 构建都需要针对 AgentOS 配置。
 
 ## 与 Vitul 项目的关系
 
-新建 Vitul 应用仍使用 `vitul init`、`vitul.conf.json` 和 Rust 后端。
-`Vitulfile` 用于将现有 Web 应用打包为 AgentOS 应用。项目存在 `Vitulfile` 时，
-`vitul build --target agentos` 或指定单个 AgentOS 架构会使用本模块。对于没有 `Vitulfile` 的旧 Vitul 项目，
-原有的 `agentos-arm64` 兼容目标仍会调用其打包流程。
+通过 `vitul create` 新建的项目将桌面、移动和 AgentOS 设置保存在根目录的
+`vitul.conf.json` 中。CLI 会从桌面配置生成位于 `src-vitul/` 的运行时文件，
+并将它加入忽略列表；开发者只需编辑根配置。
+
+`Vitulfile` 仍可用于把未采用 Vitul 脚手架的独立 Web 项目打包为 AgentOS 应用。
+`vitul build --target agentos` 会读取 Vitul 根配置；独立项目则继续读取 `Vitulfile`。

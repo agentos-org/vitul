@@ -1,3 +1,3 @@
-# `@vitul/cli-linux-riscv64-gnu`
+# `@litevar/vitul-cli-linux-riscv64-gnu`
 
-This is the **riscv64gc-unknown-linux-gnu** binary for `@vitul/cli`
+This is the **riscv64gc-unknown-linux-gnu** binary for `@litevar/vitul-cli`

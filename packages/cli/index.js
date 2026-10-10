@@ -79,8 +79,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-android-arm64')
-        const bindingPackageVersion = require('@vitul/cli-android-arm64/package.json').version
+        const binding = require('@litevar/vitul-cli-android-arm64')
+        const bindingPackageVersion = require('@litevar/vitul-cli-android-arm64/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -95,8 +95,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-android-arm-eabi')
-        const bindingPackageVersion = require('@vitul/cli-android-arm-eabi/package.json').version
+        const binding = require('@litevar/vitul-cli-android-arm-eabi')
+        const bindingPackageVersion = require('@litevar/vitul-cli-android-arm-eabi/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -116,8 +116,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-win32-x64-gnu')
-        const bindingPackageVersion = require('@vitul/cli-win32-x64-gnu/package.json').version
+        const binding = require('@litevar/vitul-cli-win32-x64-gnu')
+        const bindingPackageVersion = require('@litevar/vitul-cli-win32-x64-gnu/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -132,8 +132,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-win32-x64-msvc')
-        const bindingPackageVersion = require('@vitul/cli-win32-x64-msvc/package.json').version
+        const binding = require('@litevar/vitul-cli-win32-x64-msvc')
+        const bindingPackageVersion = require('@litevar/vitul-cli-win32-x64-msvc/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -149,8 +149,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-win32-ia32-msvc')
-        const bindingPackageVersion = require('@vitul/cli-win32-ia32-msvc/package.json').version
+        const binding = require('@litevar/vitul-cli-win32-ia32-msvc')
+        const bindingPackageVersion = require('@litevar/vitul-cli-win32-ia32-msvc/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -165,8 +165,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-win32-arm64-msvc')
-        const bindingPackageVersion = require('@vitul/cli-win32-arm64-msvc/package.json').version
+        const binding = require('@litevar/vitul-cli-win32-arm64-msvc')
+        const bindingPackageVersion = require('@litevar/vitul-cli-win32-arm64-msvc/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -184,8 +184,8 @@ function requireNative() {
       loadErrors.push(e)
     }
     try {
-      const binding = require('@vitul/cli-darwin-universal')
-      const bindingPackageVersion = require('@vitul/cli-darwin-universal/package.json').version
+      const binding = require('@litevar/vitul-cli-darwin-universal')
+      const bindingPackageVersion = require('@litevar/vitul-cli-darwin-universal/package.json').version
       if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
         throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
       }
@@ -200,8 +200,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-darwin-x64')
-        const bindingPackageVersion = require('@vitul/cli-darwin-x64/package.json').version
+        const binding = require('@litevar/vitul-cli-darwin-x64')
+        const bindingPackageVersion = require('@litevar/vitul-cli-darwin-x64/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -216,8 +216,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-darwin-arm64')
-        const bindingPackageVersion = require('@vitul/cli-darwin-arm64/package.json').version
+        const binding = require('@litevar/vitul-cli-darwin-arm64')
+        const bindingPackageVersion = require('@litevar/vitul-cli-darwin-arm64/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -236,8 +236,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-freebsd-x64')
-        const bindingPackageVersion = require('@vitul/cli-freebsd-x64/package.json').version
+        const binding = require('@litevar/vitul-cli-freebsd-x64')
+        const bindingPackageVersion = require('@litevar/vitul-cli-freebsd-x64/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -252,8 +252,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-freebsd-arm64')
-        const bindingPackageVersion = require('@vitul/cli-freebsd-arm64/package.json').version
+        const binding = require('@litevar/vitul-cli-freebsd-arm64')
+        const bindingPackageVersion = require('@litevar/vitul-cli-freebsd-arm64/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -273,8 +273,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-x64-musl')
-          const bindingPackageVersion = require('@vitul/cli-linux-x64-musl/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-x64-musl')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-x64-musl/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -289,8 +289,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-x64-gnu')
-          const bindingPackageVersion = require('@vitul/cli-linux-x64-gnu/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-x64-gnu')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-x64-gnu/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -307,8 +307,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-arm64-musl')
-          const bindingPackageVersion = require('@vitul/cli-linux-arm64-musl/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-arm64-musl')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-arm64-musl/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -323,8 +323,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-arm64-gnu')
-          const bindingPackageVersion = require('@vitul/cli-linux-arm64-gnu/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-arm64-gnu')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-arm64-gnu/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -341,8 +341,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-arm-musleabihf')
-          const bindingPackageVersion = require('@vitul/cli-linux-arm-musleabihf/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-arm-musleabihf')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-arm-musleabihf/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -357,8 +357,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-arm-gnueabihf')
-          const bindingPackageVersion = require('@vitul/cli-linux-arm-gnueabihf/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-arm-gnueabihf')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-arm-gnueabihf/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -375,8 +375,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-loong64-musl')
-          const bindingPackageVersion = require('@vitul/cli-linux-loong64-musl/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-loong64-musl')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-loong64-musl/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -391,8 +391,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-loong64-gnu')
-          const bindingPackageVersion = require('@vitul/cli-linux-loong64-gnu/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-loong64-gnu')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-loong64-gnu/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -409,8 +409,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-riscv64-musl')
-          const bindingPackageVersion = require('@vitul/cli-linux-riscv64-musl/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-riscv64-musl')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-riscv64-musl/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -425,8 +425,8 @@ function requireNative() {
           loadErrors.push(e)
         }
         try {
-          const binding = require('@vitul/cli-linux-riscv64-gnu')
-          const bindingPackageVersion = require('@vitul/cli-linux-riscv64-gnu/package.json').version
+          const binding = require('@litevar/vitul-cli-linux-riscv64-gnu')
+          const bindingPackageVersion = require('@litevar/vitul-cli-linux-riscv64-gnu/package.json').version
           if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
             throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
@@ -442,8 +442,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-linux-ppc64-gnu')
-        const bindingPackageVersion = require('@vitul/cli-linux-ppc64-gnu/package.json').version
+        const binding = require('@litevar/vitul-cli-linux-ppc64-gnu')
+        const bindingPackageVersion = require('@litevar/vitul-cli-linux-ppc64-gnu/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -458,8 +458,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-linux-s390x-gnu')
-        const bindingPackageVersion = require('@vitul/cli-linux-s390x-gnu/package.json').version
+        const binding = require('@litevar/vitul-cli-linux-s390x-gnu')
+        const bindingPackageVersion = require('@litevar/vitul-cli-linux-s390x-gnu/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -478,8 +478,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-openharmony-arm64')
-        const bindingPackageVersion = require('@vitul/cli-openharmony-arm64/package.json').version
+        const binding = require('@litevar/vitul-cli-openharmony-arm64')
+        const bindingPackageVersion = require('@litevar/vitul-cli-openharmony-arm64/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -494,8 +494,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-openharmony-x64')
-        const bindingPackageVersion = require('@vitul/cli-openharmony-x64/package.json').version
+        const binding = require('@litevar/vitul-cli-openharmony-x64')
+        const bindingPackageVersion = require('@litevar/vitul-cli-openharmony-x64/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -510,8 +510,8 @@ function requireNative() {
         loadErrors.push(e)
       }
       try {
-        const binding = require('@vitul/cli-openharmony-arm')
-        const bindingPackageVersion = require('@vitul/cli-openharmony-arm/package.json').version
+        const binding = require('@litevar/vitul-cli-openharmony-arm')
+        const bindingPackageVersion = require('@litevar/vitul-cli-openharmony-arm/package.json').version
         if (bindingPackageVersion !== '2.12.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
@@ -647,16 +647,16 @@ if (!nativeBinding || forceWasi) {
     let candidateError = null
     let candidateFailed = false
     try {
-      candidateError = __napiWasiResolveCandidate('@vitul/cli-wasm32-wasi', true, undefined)
+      candidateError = __napiWasiResolveCandidate('@litevar/vitul-cli-wasm32-wasi', true, undefined)
       candidateFailed = candidateError !== null
       if (!candidateFailed) {
         if (process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          const bindingPackageVersion = require('@vitul/cli-wasm32-wasi/package.json').version
+          const bindingPackageVersion = require('@litevar/vitul-cli-wasm32-wasi/package.json').version
           if (bindingPackageVersion !== '2.12.0') {
             throw new Error(`WASI binding package version mismatch, expected 2.12.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
         }
-        wasiBinding = require('@vitul/cli-wasm32-wasi')
+        wasiBinding = require('@litevar/vitul-cli-wasm32-wasi')
         nativeBinding = wasiBinding
         wasiBindingLoaded = true
       }

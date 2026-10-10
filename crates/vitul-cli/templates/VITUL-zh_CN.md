@@ -6,23 +6,22 @@ Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS �
 
 ## 命令
 
-- `pnpm install`：安装前端、宿主 API 和 AgentOS TypeScript SDK 依赖。Rust CLI 需单独安装；项目脚本会调用 `PATH` 中的 `vitul` 命令。
+- `pnpm install`：安装前端、宿主 API、AgentOS TypeScript SDK 和项目本地 Vitul CLI。
 - `pnpm vitul dev`：构建并启动 OpenTool 后端，使用操作系统分配的 loopback 端口，然后启动 Vitul 桌面应用。
 - `pnpm vitul build`：通过兼容 CLI 构建桌面应用。
 - `pnpm vitul android dev` 和 `pnpm vitul ios dev`：通过兼容移动 CLI 在设备或模拟器上运行应用。
 - `pnpm vitul android build --apk`：构建 Android APK；使用 `--aab` 构建 Android App Bundle。`pnpm vitul ios build` 构建 iOS IPA。
-- Rust CLI 在 `PATH` 中时，也可以运行 `vitul dev` 和 `vitul build`。
-- 桌面构建生成平台原生安装产物：默认情况下，macOS 生成 `.app` 应用包和 `.dmg` 磁盘映像；Windows 生成 `.msi` 安装包和 NSIS `.exe` 安装程序。可以在 `src-vitul/vitul.conf.json` 的 `bundle.targets` 中选择桌面打包格式。
-- `vitul build --target agentos-arm64`：构建 Web 资源，并在 Docker 中构建 ARM64 Linux 后端，最后把 AgentOS `.agt` 包写入 `dist/`。
-- 可安装的 AgentOS `.agt` 包使用 manifest v1，支持 ARM64 和 x64；当前 Vitul
-  打包器构建 ARM64 包。OpenTool 使用独立的 `rpc.version: 2` 绑定版本。
+- 桌面构建生成平台原生安装产物：默认情况下，macOS 生成 `.app` 应用包和 `.dmg` 磁盘映像；Windows 生成 `.msi` 安装包和 NSIS `.exe` 安装程序。可以在根目录 `vitul.conf.json` 的 `bundle.targets` 中选择桌面打包格式。
+- `vitul build --target agentos/arm64`：构建 Web 资源，并在 Docker 中构建 ARM64 Linux 后端，最后把 AgentOS `.agt` 包写入 `dist/`。
+- `vitul build --target agentos/x64`：构建 x64 Linux 后端和 `.agt` 包。
+- 可安装的 AgentOS `.agt` 包使用 manifest v1，支持 ARM64 和 x64。OpenTool 使用独立的 `rpc.version: 2` 绑定版本。
 
 设置 `VITUL_AGENTOS_BUILD_IMAGE` 可以覆盖容器镜像；也可以修改 `vitul.conf.json` 中的 `agentos.buildImage`。
 
-在项目根目录的 `vitul.conf.json` 中设置 `agentos.open.titleBar` 为 `system` 或 `overlay`，选择 AgentOS App 内容相对于 Shell 标题栏的布局，默认值为 `system`。该设置会写入生成的 AgentOS `app.json`；宿主会报告实际生效的模式。Shell 管理的窗口会继续由 Shell 管理并绘制窗口控件。
+在根目录 `vitul.conf.json` 的 `agentos.open.titleBar` 中设置 `system` 或 `overlay`，选择 AgentOS App 内容相对于 Shell 标题栏的布局，默认值为 `system`。该设置会写入生成的 AgentOS `app.json`；宿主会报告实际生效的模式。Shell 管理的窗口会继续由 Shell 管理并绘制窗口控件。
 
-AgentOS 的 `bundleId` 来自 `src-vitul/vitul.conf.json` 中的 `identifier`。可以在项目根目录的 `vitul.conf.json` 设置 `agentos.port`，指定范围为 1–65535 的容器内后端端口；默认值为 `9627`。
-在 `src-vitul/vitul.conf.json` 的 `bundle.icon` 中指定 PNG 或 SVG 文件，即可将其作为
+AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件设置 `agentos.port`，指定范围为 1–65535 的容器内后端端口；默认值为 `9627`。
+在根目录 `vitul.conf.json` 的 `bundle.icon` 中指定 PNG 或 SVG 文件，即可将其作为
 `icon.png` 或 `icon.svg` 放入 AgentOS 安装包。
 
 ## 应用 API
@@ -39,7 +38,7 @@ Android 和 iOS 通过原生 IPC 调用嵌入 App 原生进程的 OpenTool 路�
 
 ## Sidecar
 
-通过兼容的 `bundle.externalBin` 配置项声明 sidecar，配置文件位于 `src-vitul/vitul.conf.json`。桌面构建会保留带目标后缀的 sidecar 文件；AgentOS ARM64 构建器会将对应的 ARM64 Linux 二进制文件收集到 `.agt` 包的 `sidecars/` 目录中。
+通过兼容的 `bundle.externalBin` 配置项声明 sidecar，配置文件位于根目录 `vitul.conf.json`。桌面构建会保留带目标后缀的 sidecar 文件；AgentOS 打包器会将对应架构的 Linux 二进制文件收集到 `.agt` 包的 `sidecars/` 目录中。
 
 AgentOS 中的 sidecar 逻辑名称取自配置路径的 basename，必须匹配 `[a-z][a-z0-9-]{0,31}`；例如 `binaries/worker` 对应 `worker`。通过统一宿主 API 启动 sidecar：`host.sidecar.spawn("binaries/worker", ["--version"])`，并调用返回句柄的 `kill()` 停止进程。
 

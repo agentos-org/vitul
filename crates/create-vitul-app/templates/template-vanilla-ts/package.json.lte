@@ -14,7 +14,7 @@
     "@tauri-apps/plugin-opener": "^2"{% endif %}
   },
   "devDependencies": {
-    "@vitul/cli": "^2",
+    "@litevar/vitul-cli": "^2",
 		"vite": "^8.0.16",
     "typescript": "~6.0.3"
   }

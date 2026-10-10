@@ -1,0 +1,49 @@
+name: publish Vitul npm commands
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  check-cli:
+    name: Check native CLI release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Require the native CLI release
+        run: npm view @litevar/vitul-cli@2.12.0 version
+
+  publish:
+    name: Publish ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    needs: check-cli
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: vitul
+            directory: packages/vitul
+          - package: create-vitul-app
+            directory: packages/create-vitul-app
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Review package contents
+        run: npm pack --dry-run
+        working-directory: ${{ matrix.directory }}
+      - name: Publish with provenance
+        run: npm publish --access public --provenance
+        working-directory: ${{ matrix.directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

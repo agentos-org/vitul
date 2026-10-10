@@ -1,3 +1,3 @@
-# `@vitul/cli-linux-arm64-musl`
+# `@litevar/vitul-cli-linux-arm64-musl`
 
-This is the **aarch64-unknown-linux-musl** binary for `@vitul/cli`
+This is the **aarch64-unknown-linux-musl** binary for `@litevar/vitul-cli`

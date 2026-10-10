@@ -2,6 +2,8 @@ packages:
   - packages/api
   - packages/api-e2e
   - packages/cli
+  - packages/vitul
+  - packages/create-vitul-app
   - crates/tauri-schema-worker
   - tests/fixtures/desktop-api
   - examples/starter/vitul-demo

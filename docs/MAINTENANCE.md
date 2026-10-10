@@ -18,24 +18,27 @@ The project maintainer is [@LiteVar](https://github.com/LiteVar).
   lines will not receive routine fixes.
 - Security fixes are handled through the latest supported release. There is no
   guaranteed disclosure or patch SLA.
-- Runtime and API package versions may reflect the compatible Tauri baseline.
-  They are not, by themselves, a statement that Vitul is a stable 2.x product.
-  Each Vitul release must publish a version map for the CLI, API, runtime, and
-  generated templates.
-- The Rust CLI (`vitul-cli`) is currently version `0.1.0`; the optional
-  JavaScript wrapper source is at `2.12.0` and is not published on npm. Generated
-  projects use the Rust CLI and do not depend on the unpublished wrapper.
+- Runtime and API package versions may reflect Vitul's Tauri-derived source
+  baseline. This records source lineage and does not promise Tauri app, API, or
+  plugin compatibility. Each Vitul release must publish a version map for the
+  CLI, API, runtime, and generated templates.
+- The Rust CLI (`vitul-cli`) is currently version `0.1.0`; the JavaScript CLI
+  binding source is at `2.12.0`. New generated projects use `@litevar/vitul-cli` as a
+  development dependency; npm publication is prepared but still requires
+  registry ownership and trusted-publisher setup.
 
 ### Version map for this source snapshot
 
 | Component                                                                          | Source version | Meaning                                                                     |
 | ---------------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------- |
 | Vitul Rust CLI (`vitul-cli`)                                                       | `0.1.0`        | Vitul's current preview CLI version.                                        |
-| Core desktop compatibility runtime (`tauri`, `tauri-runtime`, `tauri-runtime-wry`) | `2.12.0`       | Compatible runtime baseline; supporting crates can have their own versions. |
-| JavaScript host API (`@tauri-apps/api`)                                            | `2.12.0`       | Compatible import and package identity retained for existing API users.     |
-| Optional JavaScript CLI (`@vitul/cli`)                                             | `2.12.0`       | Source wrapper only; not published to npm.                                  |
+| Core desktop runtime source (`tauri`, `tauri-runtime`, `tauri-runtime-wry`)         | `2.12.0`       | Tauri-derived source baseline; not a compatibility commitment.              |
+| JavaScript host API (`@tauri-apps/api`)                                            | `2.12.0`       | Inherited package identity; not a promise that Tauri apps or plugins work.   |
+| JavaScript CLI binding (`@litevar/vitul-cli`)                                              | `2.12.0`       | Source package for Vitul's npm commands; publication setup is pending.        |
+| Global npm command (`vitul`)                                                       | `0.1.0`        | Wrapper package for the `vitul` executable.                                  |
+| npm project creator (`create-vitul-app`)                                           | `0.1.0`        | Wrapper package for `npm create vitul-app`.                                  |
 | Generated app and backend defaults                                                 | `0.1.0`        | Starter app versions, independent of the Vitul CLI version.                 |
-| AgentOS app manifest                                                               | `2`            | Manifest schema version, independent of the Vitul release version.          |
+| AgentOS app manifest                                                               | `1`            | Manifest schema version, independent of the Vitul release version.          |
 
 The workspace lockfiles are authoritative for exact dependency versions. Each
 Vitul release must update this map when any listed version changes.
@@ -63,7 +66,7 @@ Vitul release must update this map when any listed version changes.
 - Every release includes a changelog, supported-platform statement, tested
   toolchain information, and checksums for downloadable artifacts. GitHub
   Releases are the public distribution record.
-- The `@vitul/cli` npm binding workflow is configured but requires the package
+- The `@litevar/vitul-cli` npm binding workflow is configured but requires the package
   to be created and its GitHub Actions trusted publisher to be configured. The
   Rust CLI is installed from a Vitul source checkout until then.
 - Do not publish packages using the inherited Rust CLI or Covector workflows;

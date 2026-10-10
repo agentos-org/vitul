@@ -8,7 +8,7 @@ it in an embedded WebView based on Chromium.
 
 ## Commands
 
-- `pnpm install` installs the frontend, host API, and AgentOS TypeScript SDK dependencies. Install the Rust CLI separately; project scripts use its `vitul` executable from `PATH`.
+- `pnpm install` installs the frontend, host API, AgentOS TypeScript SDK, and the local Vitul CLI.
 - `pnpm vitul dev` builds and starts the OpenTool backend on an OS-assigned loopback
   port, then starts the Vitul desktop app.
 - `pnpm vitul build` builds a desktop app through the compatible CLI.
@@ -19,15 +19,16 @@ it in an embedded WebView based on Chromium.
 - `vitul dev` and `vitul build` are also available when the Rust CLI is on PATH.
 - Desktop builds produce native packages: by default macOS builds an `.app`
   bundle and `.dmg` image; Windows builds `.msi` and NSIS `.exe` installers.
-  Set `bundle.targets` in `src-vitul/vitul.conf.json` to choose desktop formats.
-- `vitul build --target agentos-arm64` builds the web assets and ARM64 Linux
+  Set `bundle.targets` in the root `vitul.conf.json` to choose desktop formats.
+- `vitul build --target agentos/arm64` builds the web assets and ARM64 Linux
   backend in Docker, then writes an AgentOS `.agt` archive to `dist/`.
+- `vitul build --target agentos/x64` builds the x64 Linux backend and package.
 - Installable AgentOS `.agt` packages use manifest v1 and support ARM64 and
-  x64; the current Vitul packager builds ARM64 packages. OpenTool uses the
+  x64. OpenTool uses the
   separate `rpc.version: 2` binding.
 
 Set `VITUL_AGENTOS_BUILD_IMAGE` to override the container image, or change
-`agentos.buildImage` in `vitul.conf.json`.
+`agentos.buildImage` in the root `vitul.conf.json`.
 
 Set `agentos.open.titleBar` in the project-root `vitul.conf.json` to `system`
 or `overlay` to choose how the AgentOS App content is laid out relative to the
@@ -35,10 +36,10 @@ Shell title bar. The default is `system`. This preference is written to the
 generated AgentOS `app.json`; the host reports the mode it actually applies.
 Shell-managed windows keep Shell-owned controls above App content.
 The AgentOS `bundleId` comes from `identifier` in
-`src-vitul/vitul.conf.json`. Set `agentos.port` in the project-root config to
+the root `vitul.conf.json`. Set `agentos.port` in the same file to
 choose the backend's container-internal port from 1 to 65535; it defaults to
 9627.
-Set `bundle.icon` in `src-vitul/vitul.conf.json` to a PNG or SVG asset to
+Set `bundle.icon` in the root `vitul.conf.json` to a PNG or SVG asset to
 include it in the AgentOS package as `icon.png` or `icon.svg`.
 
 ## Application APIs
@@ -74,8 +75,8 @@ per business operation.
 
 ## Sidecars
 
-Declare sidecars through the compatible `bundle.externalBin` setting in
-`src-vitul/vitul.conf.json`. Desktop builds keep the expected target-suffixed
+Declare sidecars through the compatible `bundle.externalBin` setting in the
+root `vitul.conf.json`. Desktop builds keep the expected target-suffixed
 sidecar files. The AgentOS ARM64 builder collects the matching ARM64 Linux
 binaries into the `.agt` archive's `sidecars/` directory. AgentOS sidecar names
 come from each configured path's basename and must match

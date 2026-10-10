@@ -1,14 +1,81 @@
 {
-  "schemaVersion": 1,
+  "$schema": "https://schema.vitul.app/config/2.12.0",
+  "schemaVersion": 2,
+  "productName": "Vitul Demo",
+  "version": "0.1.4",
+  "identifier": "com.litevar.agentos.vitul.demo",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Vitul Demo",
+        "width": 800,
+        "height": 600,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 16, "y": 18 }
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "src-vitul/icons/vitul-demo/icon.png",
+      "src-vitul/icons/vitul-demo/32x32.png",
+      "src-vitul/icons/vitul-demo/128x128.png",
+      "src-vitul/icons/vitul-demo/128x128@2x.png",
+      "src-vitul/icons/vitul-demo/icon.icns",
+      "src-vitul/icons/vitul-demo/icon.ico"
+    ]
+  },
   "backend": {
     "type": "opentool",
     "manifest": "backend/Cargo.toml",
     "binary": "vitul-backend"
   },
   "agentos": {
+    "type": "process",
+    "targets": ["agentos/arm64", "agentos/x64"],
     "buildImage": "rust:1.90-bookworm",
-    "port": 9627,
     "permissions": ["native.window-control"],
-    "open": { "titleBar": "overlay" }
+    "port": 9627,
+    "open": {
+      "mode": "window",
+      "titleBar": "overlay",
+      "defaultWidth": 800,
+      "defaultHeight": 600,
+      "minWidth": 520,
+      "minHeight": 360
+    },
+    "rpc": { "basePath": "/opentool", "discovery": "static" },
+    "run": {
+      "command": "./bin/vitul-backend",
+      "args": [],
+      "port": 9627,
+      "healthCheck": "/opentool/version",
+      "readyTimeout": 60,
+      "frontendEntry": "/",
+      "env": { "HOST": "0.0.0.0", "PORT": "9627" }
+    },
+    "build": {
+      "steps": [{ "command": "pnpm", "args": ["run", "build"] }],
+      "artifacts": [
+        { "from": "dist", "to": "web" },
+        {
+          "from": "agentos-build/bin/vitul-backend",
+          "to": "bin/vitul-backend"
+        }
+      ]
+    },
+    "data": { "persistent": false }
   }
 }

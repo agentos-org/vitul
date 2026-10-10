@@ -6,6 +6,9 @@
 
 - [Dockge](dockge/README-zh_CN.md)：将未修改的上游应用打包为原生 AgentOS 应用；打包脚本和上游源码位于同一目录。
 - [Gitea](gitea/README-zh_CN.md)：打包官方 Gitea 二进制，并在容器沙盒中运行。关闭 Workspace 窗口后，tray helper 会让服务继续运行。
+- [DeepSeek Harness](deepseek-harness/README-zh_CN.md)：将上游 Web 智能体打包为 Linux 容器应用，保存工作区数据，并适配首次登录 token。
+- [ONLYOFFICE Docs](only-office/README-zh_CN.md)：构建一个小型容器沙盒适配应用，连接独立运行的官方 Community Docs 容器。
+- [WinTone 温易通](wintone/README-zh_CN.md)：Windows 应用管理器原型，可导入并管理暂存的 EXE/MSI 安装包。
 - [Toney Music](toney-music/README-zh_CN.md)：通过 Vitulfile 打包 React/Vite 前端和 Rust `musicd` 后端，并提供运行时发现的 OpenTool 方法。
 - [Frame Video](frame-video/README-zh_CN.md)：Vitul 桌面原生应用和 AgentOS process 包，使用 Rust OpenTool 后端管理本地视频库。
 

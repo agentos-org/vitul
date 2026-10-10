@@ -15,14 +15,18 @@ pub fn run(args: &[OsString]) -> Result<()> {
     .as_ref()
     .map(|file| root.join(file))
     .unwrap_or_else(|| root.join(FILE_NAME));
-  if !path.is_file() {
+  if !path.is_file() && !(file.is_none() && crate::project_config::is_unified(&root)) {
     bail!(
       "{} is missing; run `vitul agentos init` to create it",
       path.display()
     );
   }
   let config = Vitulfile::load(&root, file.as_deref())?;
-  println!("Vitulfile is valid for {}", config.target_summary());
+  if crate::project_config::is_unified(&root) {
+    println!("AgentOS config is valid for {}", config.target_summary());
+  } else {
+    println!("Vitulfile is valid for {}", config.target_summary());
+  }
   Ok(())
 }
 

@@ -1,5 +1,5 @@
 {
-  "name": "@vitul/cli-linux-arm64-musl",
+  "name": "@litevar/vitul-cli-linux-arm64-musl",
   "version": "0.0.0",
   "cpu": [
     "arm64"

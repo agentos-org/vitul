@@ -57,16 +57,17 @@ jobs:
       - name: Test Vitul CLI
         run: cargo test -p vitul-cli --locked
 
-      - name: Build Vitul CLI and smoke-test `vitul init`
+      - name: Build Vitul CLI and smoke-test project creation
         run: |
           cargo build -p vitul-cli --locked
           project_dir=$(mktemp -d)
           cd "$project_dir"
-          "$GITHUB_WORKSPACE/target/debug/vitul" init vitul-ci-init --yes --manager pnpm
-          test -f vitul-ci-init/src-vitul/vitul.conf.json
+          "$GITHUB_WORKSPACE/target/debug/vitul" create vitul-ci-init --yes --manager pnpm
+          test -f vitul-ci-init/vitul.conf.json
+          test ! -f vitul-ci-init/src-vitul/vitul.conf.json
           test -f vitul-ci-init/backend/Cargo.toml
           test -f vitul-ci-init/src/opentool.ts
-          python3 -c 'import json; p=json.load(open("vitul-ci-init/package.json")); assert "@vitul/cli" not in p.get("devDependencies", {}); assert p["scripts"]["vitul"] == "vitul"'
+          python3 -c 'import json, os; path="vitul-ci-init/package.json"; p=json.load(open(path)); assert p["devDependencies"]["@litevar/vitul-cli"] == "^2.12.0"; p["devDependencies"]["@litevar/vitul-cli"]="file:"+os.path.join(os.environ["GITHUB_WORKSPACE"], "packages/cli"); json.dump(p, open(path, "w"), indent=2); assert p["scripts"]["vitul"] == "vitul"'
           pnpm --dir "$project_dir/vitul-ci-init" install
           PATH="$GITHUB_WORKSPACE/target/debug:$PATH" pnpm --dir "$project_dir/vitul-ci-init" run vitul --version
           pnpm --dir "$project_dir/vitul-ci-init" run build
@@ -80,7 +81,7 @@ jobs:
           pnpm build:cli:debug
 
       - name: Build the native Vitul example as an AgentOS app
-        run: pnpm --dir examples/starter/vitul-demo vitul build --target agentos-arm64
+        run: pnpm --dir examples/starter/vitul-demo vitul build --target agentos/arm64
 
       - name: Validate the generated .agt package
         shell: bash
@@ -90,14 +91,14 @@ jobs:
 
           tar -tzf "$artifact" | grep -Eq '^\./app\.json$'
           tar -tzf "$artifact" | grep -Eq '^\./web/index\.html$'
-          tar -tzf "$artifact" | grep -Eq '^\./backend/vitul-backend$'
+          tar -tzf "$artifact" | grep -Eq '^\./bin/vitul-backend$'
 
           manifest=$(tar -xOzf "$artifact" ./app.json)
           printf '%s' "$manifest" | jq --exit-status '
-            .manifestVersion == 2 and
+            .manifestVersion == 1 and
             .architecture == "arm64" and
             .run.type == "process" and
-            .run.port == 0 and
+            .run.port == 9627 and
             .run.healthCheck == "/opentool/version" and
             .frontend.entry == "/" and
             .rpc.protocol == "opentool" and
@@ -108,5 +109,5 @@ jobs:
 
           package_dir=$(mktemp -d)
           tar -xzf "$artifact" -C "$package_dir"
-          readelf -h "$package_dir/backend/vitul-backend" | grep -Eq 'Machine:.*AArch64'
+          readelf -h "$package_dir/bin/vitul-backend" | grep -Eq 'Machine:.*AArch64'
           echo "Validated $artifact"

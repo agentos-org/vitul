@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-License-Identifier: MIT
 
-name: test `@vitul/cli`
+name: test `@litevar/vitul-cli`
 
 on:
   push:

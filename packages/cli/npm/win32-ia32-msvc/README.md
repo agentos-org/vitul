@@ -1,3 +1,3 @@
-# `@vitul/cli-win32-ia32-msvc`
+# `@litevar/vitul-cli-win32-ia32-msvc`
 
-This is the **i686-pc-windows-msvc** binary for `@vitul/cli`
+This is the **i686-pc-windows-msvc** binary for `@litevar/vitul-cli`

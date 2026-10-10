@@ -27,6 +27,9 @@ pub(crate) fn agentos_icon_filename(icon: &Path) -> Option<&'static str> {
 
 impl Vitulfile {
   pub fn load(project_root: &Path, file: Option<&Path>) -> Result<Self> {
+    if file.is_none() && crate::project_config::is_unified(project_root) {
+      return crate::project_config::package_config(project_root);
+    }
     let path = file
       .map(|file| {
         if file.is_absolute() {
@@ -121,6 +124,8 @@ impl Vitulfile {
       "native.audio",
       "native.audio.exclusive",
       "native.tray",
+      "native.external-wayland",
+      "native.external-wayland.network",
     ];
     for permission in &self.agentos.permissions {
       if !SUPPORTED_PERMISSIONS.contains(&permission.as_str()) {
@@ -257,6 +262,11 @@ impl Vitulfile {
 }
 
 pub fn init(project_root: &Path, app_type: AppType, remote_url: Option<&str>) -> Result<PathBuf> {
+  if crate::project_config::is_unified(project_root) {
+    bail!(
+      "this project already has a root vitul.conf.json; configure AgentOS under its `agentos` section"
+    );
+  }
   let path = project_root.join(FILE_NAME);
   if path.exists() {
     bail!("{} already exists", path.display());
