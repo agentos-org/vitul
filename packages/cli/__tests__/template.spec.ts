@@ -6,12 +6,12 @@ import { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import {
   existsSync,
+  mkdtempSync,
   readFileSync,
-  writeFileSync,
-  rmSync,
-  renameSync
+  rmSync
 } from 'node:fs'
-import { beforeAll, describe, it } from 'vitest'
+import { tmpdir } from 'node:os'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 // Build CLI before tests, for local usage only.
 // CI builds the CLI on different platforms and architectures
@@ -22,57 +22,38 @@ if (!process.env.CI) {
   })
 }
 
-describe('[CLI] @litevar/vitul-cli template', () => {
-  it('init a project and builds it', { timeout: 15 * 60 * 1000 }, async () => {
+describe('[CLI] @litevar/vitul-cli', () => {
+  it('creates an OpenTool-first Vitul project', { timeout: 15 * 60 * 1000 }, async () => {
     const cwd = process.cwd()
-    const fixturePath = resolve(__dirname, './fixtures/empty')
-    const tauriFixturePath = resolve(fixturePath, 'src-tauri')
-    const outPath = resolve(tauriFixturePath, 'target')
-    const cacheOutPath = resolve(fixturePath, 'target')
+    const testRoot = mkdtempSync(resolve(tmpdir(), 'vitul-cli-test-'))
+    try {
+      process.chdir(testRoot)
 
-    process.chdir(fixturePath)
+      const cli = await import('../main.js')
+      await cli.runVitul(['--version'])
+      await cli.runVitul([
+        'create',
+        'vitul-demo',
+        '--manager',
+        'pnpm',
+        '--template',
+        'vanilla-ts',
+        '--yes',
+        '--identifier',
+        'com.vitul.demo'
+      ])
 
-    const outExists = existsSync(outPath)
-    if (outExists) {
-      if (existsSync(cacheOutPath)) {
-        rmSync(cacheOutPath, { recursive: true, force: true })
-      }
-      renameSync(outPath, cacheOutPath)
+      const projectRoot = resolve(testRoot, 'vitul-demo')
+      const projectConfig = JSON.parse(
+        readFileSync(resolve(projectRoot, 'vitul.conf.json'), 'utf8')
+      )
+      expect(projectConfig.schemaVersion).toBe(2)
+      expect(existsSync(resolve(projectRoot, 'backend/Cargo.toml'))).toBe(true)
+      expect(existsSync(resolve(projectRoot, 'src-vitul/src/lib.rs'))).toBe(true)
+    } finally {
+      process.chdir(cwd)
+      rmSync(testRoot, { recursive: true, force: true })
     }
-
-    const cli = await import('../main.js')
-
-    await cli.run([
-      'init',
-      '-vv',
-      '--directory',
-      process.cwd(),
-      '--force',
-      '--tauri-path',
-      resolve(__dirname, '../../..'),
-      '--before-build-command',
-      '',
-      '--before-dev-command',
-      '',
-      '--ci'
-    ])
-
-    if (outExists) {
-      renameSync(cacheOutPath, outPath)
-    }
-
-    process.chdir(tauriFixturePath)
-
-    const manifestPath = resolve(tauriFixturePath, 'Cargo.toml')
-    const manifestFile = readFileSync(manifestPath).toString()
-    writeFileSync(manifestPath, `workspace = { }\n${manifestFile}`)
-
-    const configPath = resolve(tauriFixturePath, 'tauri.conf.json')
-    const config = readFileSync(configPath).toString()
-    writeFileSync(configPath, config.replace('com.tauri.dev', 'com.tauri.test'))
-
-    await cli.run(['build', '-vv'])
-    process.chdir(cwd)
   })
 })
 
