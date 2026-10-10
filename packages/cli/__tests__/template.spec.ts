@@ -87,7 +87,7 @@ describe('[CLI] @litevar/vitul-cli', () => {
         )
         expect(
           existsSync(resolve(projectRoot, 'src-vitul/vitul.conf.json'))
-        ).toBe(true)
+        ).toBe(false)
         expect(
           existsSync(resolve(projectRoot, 'src-vitul/tauri.conf.json'))
         ).toBe(false)
@@ -99,7 +99,7 @@ describe('[CLI] @litevar/vitul-cli', () => {
         expect(runtimeBuildRs).toContain(
           'failed to prepare the generated Vitul runtime config'
         )
-        expect(runtimeLibRs).toContain('error while running Vitul application')
+        expect(runtimeLibRs).toContain('error while building Vitul application')
         expect(backendMain).toContain(
           'Box<dyn std::error::Error + Send + Sync>'
         )
