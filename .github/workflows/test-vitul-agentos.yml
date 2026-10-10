@@ -67,7 +67,7 @@ jobs:
           export CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target"
           "$GITHUB_WORKSPACE/target/debug/vitul" create . --yes --manager npm --template vanilla-ts --identifier com.litevar.agentos.timeMemo --product-name "Time Memo" --window-title "Time Memo"
           test -f vitul.conf.json
-          test -f src-vitul/vitul.conf.json
+          test ! -f src-vitul/vitul.conf.json
           test ! -f src-vitul/tauri.conf.json
           test -f backend/Cargo.toml
           test -f src/opentool.ts
