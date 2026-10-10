@@ -21,7 +21,7 @@ use serde_json::Value as JsonValue;
 use std::{fs, path::Path, process::Command};
 
 #[derive(Debug, Parser)]
-#[clap(about = "Add a tauri plugin to the project")]
+#[clap(about = "Add a desktop plugin to the Vitul project")]
 pub struct Options {
   /// The plugin to add.
   pub plugin: String,
@@ -208,7 +208,7 @@ pub fn run(options: Options, dirs: &Dirs) -> Result<()> {
     builder_code.normal().green(),
     r#".invoke_handler(tauri::generate_handler![])
      .run(tauri::generate_context!())
-     .expect("error while running tauri application");"#
+     .expect("error while running Vitul application");"#
       .dimmed(),
   );
 

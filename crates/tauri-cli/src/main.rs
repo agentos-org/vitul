@@ -4,7 +4,7 @@
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", windows)))]
 fn main() {
-  println!("The Tauri CLI is not supported on this platform");
+  println!("Vitul desktop tooling is not supported on this platform");
   std::process::exit(1);
 }
 
@@ -39,5 +39,5 @@ fn main() {
     }
   };
 
-  tauri_cli::run(args, bin_name)
+  vitul_desktop_cli::run(args, bin_name)
 }

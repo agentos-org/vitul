@@ -176,12 +176,12 @@ fn get_verbosity(cli_verbose: u8) -> u8 {
     .unwrap_or(cli_verbose)
 }
 
-/// Run the Tauri CLI with the passed arguments, exiting if an error occurs.
+/// Run the Vitul desktop CLI with the passed arguments, exiting if an error occurs.
 ///
 /// The passed arguments should have the binary argument(s) stripped out before being passed.
 ///
 /// e.g.
-/// 1. `tauri-cli 1 2 3` -> `1 2 3`
+/// 1. `vitul-desktop-cli 1 2 3` -> `1 2 3`
 /// 2. `cargo tauri 1 2 3` -> `1 2 3`
 /// 3. `node tauri.js 1 2 3` -> `1 2 3`
 ///
@@ -199,7 +199,7 @@ where
   }
 }
 
-/// Run the Tauri CLI with the passed arguments.
+/// Run the Vitul desktop CLI with the passed arguments.
 ///
 /// It is similar to [`run`], but instead of exiting on an error, it returns a result.
 pub fn try_run<I, A>(args: I, bin_name: Option<String>) -> Result<()>

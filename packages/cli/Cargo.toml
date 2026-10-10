@@ -1,6 +1,6 @@
 [package]
 edition = "2024"
-name = "tauri-cli-node"
+name = "vitul-cli-node"
 version = "0.0.0"
 
 [lib]
@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 anyhow = "1"
 napi = "3.12.2"
 napi-derive = "3.6.3"
-tauri-cli = { path = "../../crates/tauri-cli", default-features = false }
+vitul-desktop-cli = { path = "../../crates/tauri-cli", default-features = false }
 vitul-cli = { path = "../../crates/vitul-cli" }
 log = "0.4.21"
 
@@ -18,9 +18,9 @@ log = "0.4.21"
 napi-build = "2.4.1"
 
 [features]
-default = ["tauri-cli/default"]
-native-tls = ["tauri-cli/native-tls"]
-native-tls-vendored = ["tauri-cli/native-tls-vendored"]
+default = ["vitul-desktop-cli/default"]
+native-tls = ["vitul-desktop-cli/native-tls"]
+native-tls-vendored = ["vitul-desktop-cli/native-tls-vendored"]
 
 [lints]
 workspace = true

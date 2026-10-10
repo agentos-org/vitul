@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.12.1]
+
+### Bug Fixes
+
+- Fixed generated Vitul projects so the frontend root, desktop runtime configuration, and Rust project directories work together without manual path or config-file workarounds. The scaffold now derives package and app names from the project name, sets the configured window title and bundle identifier, and includes working OpenTool backend RPC/CORS defaults.
+
 ## [2.12.0]
 
 ### New Features

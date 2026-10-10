@@ -46,23 +46,34 @@ npm run vitul dev
 也可以全局安装 CLI，再使用熟悉的 `vitul create` 流程：
 
 ```sh
-npm install --global vitul
-vitul create my-app
+npm install --global @litevar/vitul-cli
+mkdir time-memo && cd time-memo
+vitul create . --manager npm --template vanilla-ts \
+  --identifier com.example.timeMemo --yes
+npm install
+npm run build
+npm run vitul dev
 ```
 
-npm 包正式发布前，可从源码构建 CLI：
+也可以使用 `--product-name "Time Memo"` 设置应用显示名，使用
+`--window-title "Time Memo"` 单独覆盖桌面窗口标题。默认包名取自项目目录名；
+默认显示名和窗口标题使用目录名的标题格式。`--identifier` 会按原值写入配置。
+
+如需使用尚未发布到 npm 的仓库源码改动，可从源码构建 CLI：
 
 ```sh
 git clone https://github.com/agentos-org/vitul.git
 cd vitul
 cargo install --path crates/vitul-cli --locked
-vitul create my-app
-cd my-app
-# npm 包发布前，请从 package.json 的 devDependencies 中移除 @litevar/vitul-cli
-pnpm install
+mkdir ../my-app && cd ../my-app
+vitul create . --manager npm --template vanilla-ts --identifier com.example.myApp --yes
+npm pkg delete devDependencies.@litevar/vitul-cli
+npm install
+npm run build
+npm run vitul dev
 ```
 
-`vitul` 命令和脚手架生成的 `vitul` 项目脚本使用同一套 CLI。npm 包的源码位于 `packages/vitul`、`packages/create-vitul-app` 和 `packages/cli`；完成发布后即可通过 npm 安装。
+脚手架默认会加入已发布的 CLI 依赖。按上面的命令移除该依赖后，npm 脚本会使用从此仓库安装的 `vitul` 可执行文件。
 
 根据应用运行的平台，选择对应命令和构建环境：
 
@@ -76,7 +87,7 @@ pnpm install
 
 新建项目在根目录的 `vitul.conf.json` 中统一配置桌面、移动和 AgentOS 设置。
 使用 `bundle.targets` 选择桌面产物格式，使用 `agentos.targets` 声明 AgentOS 架构。
-运行桌面或移动工具时，Vitul 会在 `src-vitul/` 下生成运行时配置；开发者只需编辑
+运行桌面或移动工具时，Vitul 会在 `src-vitul/` 下生成并忽略运行时配置；开发者只需编辑
 根目录配置。已有项目可以继续使用原有运行时配置。独立的 Vitulfile 打包流程支持
 为现有项目构建 ARM64 和 x64 包。AgentOS `.agt` 使用 manifest v1，支持 ARM64 和 x64；
 AgentOS 会将动态分配的 loopback 宿主端口映射到 `agentos.port` 指定的容器内端口

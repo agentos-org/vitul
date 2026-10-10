@@ -579,12 +579,17 @@ fn fetch_options(target: Target, tauri_dir: &Path) -> Result<CliOptions> {
     let (tx, rx) = WsTransportClientBuilder::default()
       .build(url)
       .await
-      .with_context(|| format!("failed to connect to the Tauri CLI; {}", not_running()))?;
+      .with_context(|| {
+        format!(
+          "failed to connect to the Vitul desktop CLI; {}",
+          not_running()
+        )
+      })?;
     let client: Client = ClientBuilder::default().build_with_tokio(tx, rx);
     client
       .request("options", rpc_params![info.token])
       .await
-      .context("failed to request options from the Tauri CLI")
+      .context("failed to request options from the Vitul desktop CLI")
   })
 }
 

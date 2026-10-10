@@ -8,7 +8,7 @@
 //!
 //! ## Stability
 //!
-//! As it's intended to be used primarily in `tauri-cli`, the public API does not strictly adhere to SemVer.
+//! As it's intended to be used primarily in the Vitul desktop CLI, the public API does not strictly adhere to SemVer.
 //! For example, minor releases may add new struct fields and change or remove Error enum variants.
 //!
 //! ## Platform support

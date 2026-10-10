@@ -263,10 +263,7 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
 }
 
 fn copy_agentos_icon(config: &Value, runtime_dir: &Path, staging_root: &Path) -> Result<()> {
-  let Some(icon_config) = config
-    .get("bundle")
-    .and_then(|bundle| bundle.get("icon"))
-  else {
+  let Some(icon_config) = config.get("bundle").and_then(|bundle| bundle.get("icon")) else {
     return Ok(());
   };
   let icon_paths = match icon_config {
@@ -294,7 +291,10 @@ fn copy_agentos_icon(config: &Value, runtime_dir: &Path, staging_root: &Path) ->
 
   let source = runtime_dir.join(selected_icon);
   if !source.is_file() {
-    bail!("configured AgentOS app icon is missing: {}", source.display());
+    bail!(
+      "configured AgentOS app icon is missing: {}",
+      source.display()
+    );
   }
   let extension = Path::new(selected_icon)
     .extension()
@@ -336,9 +336,7 @@ fn agentos_open_mode(project_root: &Path) -> Result<String> {
   else {
     return Ok("window".to_owned());
   };
-  let open = open
-    .as_object()
-    .context("agentos.open must be an object")?;
+  let open = open.as_object().context("agentos.open must be an object")?;
   let Some(mode) = open.get("mode") else {
     return Ok("window".to_owned());
   };
@@ -363,9 +361,7 @@ fn agentos_title_bar(project_root: &Path) -> Result<String> {
   else {
     return Ok("system".to_owned());
   };
-  let open = open
-    .as_object()
-    .context("agentos.open must be an object")?;
+  let open = open.as_object().context("agentos.open must be an object")?;
   let Some(title_bar) = open.get("titleBar") else {
     return Ok("system".to_owned());
   };

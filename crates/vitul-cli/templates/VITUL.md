@@ -8,7 +8,8 @@ it in an embedded WebView based on Chromium.
 
 ## Commands
 
-- `pnpm install` installs the frontend, host API, AgentOS TypeScript SDK, and the local Vitul CLI.
+- `pnpm install` installs the frontend, host API, and the local Vitul CLI.
+- With npm, run `npm install`, then use `npm run vitul dev` and `npm run build`.
 - `pnpm vitul dev` builds and starts the OpenTool backend on an OS-assigned loopback
   port, then starts the Vitul desktop app.
 - `pnpm vitul build` builds a desktop app through the compatible CLI.
@@ -37,8 +38,7 @@ generated AgentOS `app.json`; the host reports the mode it actually applies.
 Shell-managed windows keep Shell-owned controls above App content.
 The AgentOS `bundleId` comes from `identifier` in
 the root `vitul.conf.json`. Set `agentos.port` in the same file to
-choose the backend's container-internal port from 1 to 65535; it defaults to
-9627.
+choose the backend's container-internal port from 1 to 65535; it defaults to 9627.
 Set `bundle.icon` in the root `vitul.conf.json` to a PNG or SVG asset to
 include it in the AgentOS package as `icon.png` or `icon.svg`.
 
@@ -46,9 +46,8 @@ include it in the AgentOS package as `icon.png` or `icon.svg`.
 
 Put business operations in the Rust backend and call them through
 `src/opentool.ts`. The starter's `greet` example uses OpenTool JSON-RPC.
-The generated `package.json` includes `agentos-sdk-ts` for apps that call
-AgentOS Gateway APIs. The starter does not call the Gateway by default; import
-the SDK only when your app needs those APIs.
+The starter does not call AgentOS Gateway APIs by default. If your app needs
+them, add the SDK with `pnpm add agentos-sdk-ts` or `npm install agentos-sdk-ts`.
 `src/host.ts` defines the system API boundary; `src/desktop-host.ts` maps it to
 the compatible native runtime on desktop and mobile, while the AgentOS provider
 talks to the host's `window.agentos.host` bridge. The starter demonstrates
@@ -62,6 +61,12 @@ WebShell hosts the App at `/apps/{appId}/`, the generated client uses that proxy
 prefix to reach the same backend. AgentOS App OpenTool requests are limited to
 1 MiB; the generated Rust backend applies that limit in AgentOS and keeps the
 OpenTool SDK's 16 MiB default on other hosts.
+
+The root `vitul.conf.json` is the project configuration. Vitul creates and
+ignores a runtime projection in `src-vitul/` and refreshes it when desktop or
+mobile commands run.
+The generated `build.rs` prepares the configuration filename expected by the
+installed Rust desktop crates; do not edit generated files under `src-vitul/`.
 
 Android and iOS use native IPC to call the OpenTool router embedded in the app's
 native process. Requests keep the OpenTool JSON-RPC envelope, and `streamCall`

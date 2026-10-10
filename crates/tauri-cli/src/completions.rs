@@ -47,7 +47,7 @@ fn completions_for(shell: Shell, manager: &'static str, cmd: Command) -> Vec<u8>
   buf
 }
 
-// Bash completions for the commands that invoke the Tauri CLI directly.
+// Bash completions for the commands that invoke the Vitul desktop CLI directly.
 //
 // Bash completion functions are registered per command name, so registering one for the package
 // managers (`cargo`, `npm`...) would replace their own completions; those are not registered.

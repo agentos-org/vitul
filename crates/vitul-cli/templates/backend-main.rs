@@ -5,7 +5,7 @@ use axum::{
   response::{IntoResponse, Response},
   Json, Router,
 };
-use serde_json::{json, Value};
+use serde_json::json;
 use std::{env, io::Write, sync::Arc};
 use tokio::{net::TcpListener, sync::watch};
 use tower_http::{
@@ -15,7 +15,7 @@ use tower_http::{
 use vitul_backend::{create_server, VitulOpenToolServer};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_owned());
   let port = env::var("PORT")
     .unwrap_or_else(|_| "0".to_owned())
@@ -25,15 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   // protocol endpoint and process shutdown so dispose runs exactly once.
   let server = Arc::new(create_server(std::env::args().skip(1), host.clone(), port).await?);
 
-  let allowed_origins = [
-    HeaderValue::from_static("vitul://localhost"),
-    HeaderValue::from_static("http://vitul.localhost"),
-    HeaderValue::from_static("https://vitul.localhost"),
-  ];
-  let cors = CorsLayer::new()
-    .allow_origin(AllowOrigin::list(allowed_origins))
-    .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-    .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]);
+  let cors = cors_layer(env::var("VITUL_DEV_ORIGIN").ok().as_deref());
 
   let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
   let stop_state = Arc::new(StopState {
@@ -65,6 +57,153 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .with_graceful_shutdown(shutdown)
     .await?;
   Ok(())
+}
+
+fn allowed_origins(dev_origin: Option<&str>) -> Vec<HeaderValue> {
+  let mut origins = [
+    "vitul://localhost",
+    "http://vitul.localhost",
+    "https://vitul.localhost",
+  ]
+  .into_iter()
+  .map(HeaderValue::from_static)
+  .collect::<Vec<_>>();
+
+  #[cfg(debug_assertions)]
+  if let Some(origin) = dev_origin.and_then(|origin| HeaderValue::from_str(origin).ok()) {
+    if !origins.contains(&origin) {
+      origins.push(origin);
+    }
+  }
+
+  #[cfg(not(debug_assertions))]
+  let _ = dev_origin;
+
+  origins
+}
+
+fn cors_layer(dev_origin: Option<&str>) -> CorsLayer {
+  CorsLayer::new()
+    .allow_origin(AllowOrigin::list(allowed_origins(dev_origin)))
+    .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+    .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
+}
+
+#[cfg(test)]
+mod tests {
+  use axum::{
+    body::Body,
+    http::{header, Method, Request, StatusCode},
+  };
+  use serde_json::json;
+  use tower::ServiceExt;
+
+  #[test]
+  fn cors_allows_desktop_runtime_origins_and_debug_dev_origin() {
+    let origins = super::allowed_origins(Some("http://localhost:1420"));
+    let values = origins
+      .iter()
+      .map(|origin| origin.to_str().unwrap())
+      .collect::<Vec<_>>();
+    assert!(values.contains(&"vitul://localhost"));
+    assert!(values.contains(&"http://vitul.localhost"));
+    #[cfg(debug_assertions)]
+    assert!(values.contains(&"http://localhost:1420"));
+    #[cfg(not(debug_assertions))]
+    assert!(!values.contains(&"http://localhost:1420"));
+  }
+
+  #[tokio::test]
+  async fn development_opentool_rpc_and_cors_work_on_http() {
+    let server = super::create_server(
+      std::iter::empty(),
+      "127.0.0.1".to_owned(),
+      0,
+    )
+    .await
+    .unwrap();
+    let app = server
+      .router()
+      .layer(super::cors_layer(Some("http://localhost:1420")));
+
+    let version = app
+      .clone()
+      .oneshot(
+        Request::builder()
+          .method(Method::GET)
+          .uri("/opentool/version")
+          .header(header::ORIGIN, "http://localhost:1420")
+          .body(Body::empty())
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+    assert_eq!(version.status(), StatusCode::OK);
+    assert_eq!(
+      version
+        .headers()
+        .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+        .unwrap(),
+      "http://localhost:1420"
+    );
+    let version_body = axum::body::to_bytes(version.into_body(), 1024)
+      .await
+      .unwrap();
+    let version_json: serde_json::Value =
+      serde_json::from_slice(&version_body).unwrap();
+    assert_eq!(version_json["version"], "0.1.0");
+
+    let greet = app
+      .clone()
+      .oneshot(
+        Request::builder()
+          .method(Method::POST)
+          .uri("/opentool/call")
+          .header(header::ORIGIN, "http://localhost:1420")
+          .header(header::CONTENT_TYPE, "application/json")
+          .body(Body::from(
+            serde_json::to_vec(&json!({
+              "jsonrpc": "2.0.0",
+              "id": "smoke-1",
+              "method": "greet",
+              "params": { "name": "Codex" }
+            }))
+            .unwrap(),
+          ))
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+    assert_eq!(greet.status(), StatusCode::OK);
+    let greet_body = axum::body::to_bytes(greet.into_body(), 1024)
+      .await
+      .unwrap();
+    let greet_json: serde_json::Value = serde_json::from_slice(&greet_body).unwrap();
+    assert_eq!(greet_json["result"]["message"], "Hello, Codex!");
+
+    let response = app
+      .oneshot(
+        Request::builder()
+          .method(Method::OPTIONS)
+          .uri("/opentool/call")
+          .header(header::ORIGIN, "http://localhost:1420")
+          .header(header::ACCESS_CONTROL_REQUEST_METHOD, "POST")
+          .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "content-type")
+          .body(Body::empty())
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+      response
+        .headers()
+        .get(header::ACCESS_CONTROL_ALLOW_ORIGIN)
+        .unwrap(),
+      "http://localhost:1420"
+    );
+  }
 }
 
 struct StopState {

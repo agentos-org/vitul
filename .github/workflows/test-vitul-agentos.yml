@@ -57,20 +57,30 @@ jobs:
       - name: Test Vitul CLI
         run: cargo test -p vitul-cli --locked
 
-      - name: Build Vitul CLI and smoke-test project creation
+      - name: Build Vitul CLI and smoke-test a fresh npm project
         run: |
           cargo build -p vitul-cli --locked
-          project_dir=$(mktemp -d)
+          project_parent=$(mktemp -d)
+          project_dir="$project_parent/time-memo"
+          mkdir -p "$project_dir"
           cd "$project_dir"
-          "$GITHUB_WORKSPACE/target/debug/vitul" create vitul-ci-init --yes --manager pnpm
-          test -f vitul-ci-init/vitul.conf.json
-          test ! -f vitul-ci-init/src-vitul/vitul.conf.json
-          test -f vitul-ci-init/backend/Cargo.toml
-          test -f vitul-ci-init/src/opentool.ts
-          python3 -c 'import json, os; path="vitul-ci-init/package.json"; p=json.load(open(path)); assert p["devDependencies"]["@litevar/vitul-cli"] == "^2.12.0"; p["devDependencies"]["@litevar/vitul-cli"]="file:"+os.path.join(os.environ["GITHUB_WORKSPACE"], "packages/cli"); json.dump(p, open(path, "w"), indent=2); assert p["scripts"]["vitul"] == "vitul"'
-          pnpm --dir "$project_dir/vitul-ci-init" install
-          PATH="$GITHUB_WORKSPACE/target/debug:$PATH" pnpm --dir "$project_dir/vitul-ci-init" run vitul --version
-          pnpm --dir "$project_dir/vitul-ci-init" run build
+          export CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target"
+          "$GITHUB_WORKSPACE/target/debug/vitul" create . --yes --manager npm --template vanilla-ts --identifier com.litevar.agentos.timeMemo --product-name "Time Memo" --window-title "Time Memo"
+          test -f vitul.conf.json
+          test -f src-vitul/vitul.conf.json
+          test ! -f src-vitul/tauri.conf.json
+          test -f backend/Cargo.toml
+          test -f src/opentool.ts
+          npm pkg set "scripts.vitul=$GITHUB_WORKSPACE/target/debug/vitul"
+          npm install
+          npm run build
+          npm run vitul -- dev --help
+          cargo check --manifest-path src-vitul/Cargo.toml
+          test -f src-vitul/vitul.conf.json
+          test -f src-vitul/tauri.conf.json
+          cargo test --manifest-path backend/Cargo.toml
+          npm run vitul -- agentos validate
+          echo "VITUL_CI_PROJECT_DIR=$project_dir" >> "$GITHUB_ENV"
 
       - name: Install JavaScript workspace
         run: pnpm install --frozen-lockfile
@@ -80,13 +90,13 @@ jobs:
           pnpm build:api
           pnpm build:cli:debug
 
-      - name: Build the native Vitul example as an AgentOS app
-        run: pnpm --dir examples/starter/vitul-demo vitul build --target agentos/arm64
+      - name: Build the generated npm project as an AgentOS app
+        run: npm --prefix "$VITUL_CI_PROJECT_DIR" run vitul -- build --target agentos/arm64
 
       - name: Validate the generated .agt package
         shell: bash
         run: |
-          artifact=$(find examples/starter/vitul-demo/dist -maxdepth 1 -type f -name '*-agentos-arm64.agt' -print -quit)
+          artifact=$(find "$VITUL_CI_PROJECT_DIR/dist" -maxdepth 1 -type f -name '*-agentos-arm64.agt' -print -quit)
           test -n "$artifact"
 
           tar -tzf "$artifact" | grep -Eq '^\./app\.json$'

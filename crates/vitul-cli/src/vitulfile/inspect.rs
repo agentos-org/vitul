@@ -43,7 +43,11 @@ pub fn run(args: &[OsString]) -> Result<()> {
         .with_context(|| format!("could not parse {}", vitulfile.display()))?
     };
     let unified = crate::project_config::is_unified(&root);
-    let label = if unified { "AgentOS config" } else { "Vitulfile" };
+    let label = if unified {
+      "AgentOS config"
+    } else {
+      "Vitulfile"
+    };
     match config.validate(&root) {
       Ok(()) => println!("{label}: valid"),
       Err(error) => println!("{label}: needs attention: {error}"),

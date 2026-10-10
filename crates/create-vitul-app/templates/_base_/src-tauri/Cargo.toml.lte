@@ -15,11 +15,11 @@ name = "{% lib_name %}"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 {% endif %}{% if v1 %}[build-dependencies]
-tauri-build = { version = "1", features = [] }
+vitul-build = { package = "tauri-build", version = "1", features = [] }
 
 [dependencies]
 tauri = { version = "1", features = ["shell-open"] }{% else %}[build-dependencies]
-tauri-build = { version = "2", features = [] }
+vitul-build = { package = "tauri-build", version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }

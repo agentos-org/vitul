@@ -12,7 +12,7 @@
     window.setTimeout(() => {
       // when we successfully reconnect, we'll force a
       // reload (since we presumably lost connection to
-      // tauri-cli due to it being killed)
+      // the Vitul desktop CLI due to it being killed)
       const ws = new WebSocket(url)
       ws.onopen = () => window.location.reload()
       ws.onclose = reload_upon_connect

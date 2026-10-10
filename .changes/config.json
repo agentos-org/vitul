@@ -205,13 +205,13 @@
     "@litevar/vitul-cli": {
       "path": "./packages/cli",
       "manager": "javascript",
-      "dependencies": ["tauri-cli"],
+      "dependencies": ["vitul-desktop-cli"],
       "postversion": "node ../../.scripts/ci/sync-cli-metadata.js ${ pkg.pkg } ${ release.type }",
       "prepublish": [],
       "publish": [],
       "postpublish": []
     },
-    "tauri-cli": {
+    "vitul-desktop-cli": {
       "path": "./crates/tauri-cli",
       "manager": "rust",
       "dependencies": ["tauri-bundler", "tauri-utils", "tauri-macos-sign"]

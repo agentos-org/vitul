@@ -386,8 +386,8 @@ mod tests {
       root.path().join("vitul.conf.json"),
       serde_json::to_vec(&json!({
         "schemaVersion": 2,
-        "productName": "Demo",
-        "identifier": "com.example.demo",
+        "productName": "Time Memo",
+        "identifier": "com.litevar.agentos.timeMemo",
         "build": { "frontendDist": "dist" },
         "bundle": { "icon": ["src-vitul/icons/icon.png"] },
         "backend": { "type": "opentool" },
@@ -404,6 +404,8 @@ mod tests {
         .unwrap();
     assert_eq!(runtime["build"]["frontendDist"], "../dist");
     assert_eq!(runtime["bundle"]["icon"][0], "icons/icon.png");
+    assert_eq!(runtime["productName"], "Time Memo");
+    assert_eq!(runtime["identifier"], "com.litevar.agentos.timeMemo");
     assert!(runtime.get("schemaVersion").is_none());
     assert!(runtime.get("backend").is_none());
     assert!(runtime.get("agentos").is_none());

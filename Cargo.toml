@@ -73,7 +73,7 @@ incremental = false
 opt-level = "s"
 strip = true
 
-# profiles for tauri-cli
+# profiles for vitul-desktop-cli
 [profile.dev.package.miniz_oxide]
 opt-level = 3
 

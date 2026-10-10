@@ -23,7 +23,7 @@ pub fn items(frontend_dir: Option<&PathBuf>, tauri_dir: Option<&Path>) -> Vec<Se
     }
   }
 
-  let tauri_cli_rust_item = SectionItem::new().action(|| {
+  let vitul_cli_rust_item = SectionItem::new().action(|| {
     std::process::Command::new("cargo")
       .arg("tauri")
       .arg("-V")
@@ -48,7 +48,7 @@ pub fn items(frontend_dir: Option<&PathBuf>, tauri_dir: Option<&Path>) -> Vec<Se
       })
       .unwrap_or_default()
   });
-  items.push(tauri_cli_rust_item);
+  items.push(vitul_cli_rust_item);
 
   items
 }

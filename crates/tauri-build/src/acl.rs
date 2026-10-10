@@ -117,7 +117,7 @@ impl AppManifest {
   }
 }
 
-/// Saves capabilities in a file inside the project, mainly to be read by tauri-cli.
+/// Saves capabilities in a file inside the project, mainly to be read by the Vitul desktop CLI.
 fn save_capabilities(capabilities: &BTreeMap<String, Capability>) -> Result<PathBuf> {
   let dir = Path::new(CAPABILITIES_SCHEMA_FOLDER_PATH);
   fs::create_dir_all(dir)?;
@@ -129,7 +129,7 @@ fn save_capabilities(capabilities: &BTreeMap<String, Capability>) -> Result<Path
   Ok(path)
 }
 
-/// Saves ACL manifests in a file inside the project, mainly to be read by tauri-cli.
+/// Saves ACL manifests in a file inside the project, mainly to be read by the Vitul desktop CLI.
 fn save_acl_manifests(acl_manifests: &BTreeMap<String, Manifest>) -> Result<PathBuf> {
   let dir = Path::new(CAPABILITIES_SCHEMA_FOLDER_PATH);
   fs::create_dir_all(dir)?;

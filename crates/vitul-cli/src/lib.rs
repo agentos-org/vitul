@@ -7,7 +7,7 @@ mod vitulfile;
 use anyhow::Context;
 use std::{ffi::OsString, path::PathBuf};
 
-const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  create <PROJECT>    Create an OpenTool-first Vitul project\n  init <PROJECT>      Alias for create\n  agentos <COMMAND>   Inspect or validate AgentOS packaging config\n  dev                 Run a desktop app with its OpenTool backend\n  build               Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                      Run desktop and mobile tooling through Vitul\n\nTARGETS:\n  agentos             Build every declared AgentOS target\n  agentos/arm64       Build an AgentOS ARM64 .agt package\n  agentos/x64         Build an AgentOS x64 .agt package\n\nCONFIGURATION:\n  New Vitul apps use one root vitul.conf.json.\n  Standalone web projects can use a Vitulfile.\n";
+const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  create <PROJECT>    Create an OpenTool-first Vitul project\n  init <PROJECT>      Alias for create\n  agentos <COMMAND>   Inspect or validate AgentOS packaging config\n  dev                 Run a desktop app with its OpenTool backend\n  build               Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                      Run desktop and mobile tooling through Vitul\n\nTARGETS:\n  agentos             Build every declared AgentOS target\n  agentos/arm64       Build an AgentOS ARM64 .agt package\n  agentos/x64         Build an AgentOS x64 .agt package\n\nCREATE OPTIONS:\n  --product-name <NAME>  Set the app display name (default: directory name)\n  --window-title <TITLE> Set the desktop window title (default: product name)\n\nCONFIGURATION:\n  New Vitul apps use one root vitul.conf.json.\n  Standalone web projects can use a Vitulfile.\n";
 
 pub fn run() -> anyhow::Result<()> {
   let args = std::env::args_os().skip(1).collect::<Vec<_>>();
@@ -31,12 +31,12 @@ pub fn run_vitul_with_args(args: Vec<OsString>) -> anyhow::Result<()> {
     "agentos" => agentos::run(args)?,
     "dev" => dev::run(args)?,
     "build" => run_build(args)?,
-    other => run_tauri(other, args, "vitul")?,
+    other => run_desktop_cli(other, args, "vitul")?,
   }
   Ok(())
 }
 
-/// Internal compatibility entry used by tooling that embeds the Tauri CLI.
+/// Internal compatibility entry used by tooling that embeds Vitul's desktop CLI.
 /// User-facing Vitul commands should use [`run_vitul_with_args`].
 pub fn run_compat_with_args(args: Vec<OsString>, bin_name: Option<String>) -> anyhow::Result<()> {
   let command = args.first().map(|arg| arg.to_string_lossy().into_owned());
@@ -60,7 +60,7 @@ pub fn run_compat_with_args(args: Vec<OsString>, bin_name: Option<String>) -> an
     return run_vitul_with_args(args);
   }
 
-  tauri_cli::try_run(args, bin_name)?;
+  vitul_desktop_cli::try_run(args, bin_name)?;
   Ok(())
 }
 
@@ -91,7 +91,7 @@ fn run_build(args: Vec<OsString>) -> anyhow::Result<()> {
       }
     }
     Some("agentos-x64") => agentos::build_vitulfile(&project_root()?, "agentos/x64"),
-    _ => run_tauri("build", args, "vitul"),
+    _ => run_desktop_cli("build", args, "vitul"),
   }
 }
 
@@ -105,12 +105,12 @@ fn build_agentos_arm64(root: &std::path::Path) -> anyhow::Result<()> {
   }
 }
 
-fn run_tauri(command: &str, args: Vec<OsString>, bin_name: &str) -> anyhow::Result<()> {
+fn run_desktop_cli(command: &str, args: Vec<OsString>, bin_name: &str) -> anyhow::Result<()> {
   project_config::write_runtime_config(&project_root()?)?;
   let mut forwarded = Vec::with_capacity(args.len() + 1);
   forwarded.push(OsString::from(command));
   forwarded.extend(args);
-  tauri_cli::try_run(forwarded, Some(bin_name.to_owned()))
+  vitul_desktop_cli::try_run(forwarded, Some(bin_name.to_owned()))
     .with_context(|| format!("{bin_name} desktop {command} failed"))
 }
 

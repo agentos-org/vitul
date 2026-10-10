@@ -18,7 +18,7 @@ pub fn run(
   callback: Arc<ThreadsafeFunction<bool>>,
 ) -> Result<()> {
   let args = args.into_iter().map(OsString::from).collect();
-  spawn_cli_run(callback, "Tauri compatibility CLI", move || {
+  spawn_cli_run(callback, "Vitul desktop CLI", move || {
     vitul_cli::run_compat_with_args(args, bin_name)
   })
 }
@@ -40,7 +40,7 @@ where
   F: FnOnce() -> anyhow::Result<()> + Send + 'static,
 {
   // Run outside the Node.js thread so the package manager remains responsive
-  // while Vitul or a Tauri-compatible command is running.
+  // while Vitul or a compatible desktop command is running.
   std::thread::spawn(move || {
     let result = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
       run().inspect_err(|error| eprintln!("{error:#}"))

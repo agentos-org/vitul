@@ -99,6 +99,15 @@ fn env_tauri_frontend_path() -> Option<PathBuf> {
 pub fn resolve_tauri_dir() -> Option<PathBuf> {
   let src_dir = env_tauri_app_path().or_else(|| current_dir().ok())?;
 
+  // New Vitul projects keep their public configuration and frontend at the
+  // repository root, while the Tauri-compatible Rust crate lives in
+  // `src-vitul/`. Prefer that crate when resolving from the project root so
+  // the root `vitul.conf.json` cannot make the frontend look like a Rust app.
+  if let Some(runtime_dir) = resolve_vitul_runtime_dir(&src_dir) {
+    log::debug!("Found Vitul Rust runtime inside {}", runtime_dir.display());
+    return Some(runtime_dir);
+  }
+
   for standard_vitul_path in [src_dir.clone(), src_dir.join("src-vitul")] {
     if folder_has_configuration_file(Target::current(), &standard_vitul_path) {
       log::debug!(
@@ -124,6 +133,22 @@ pub fn resolve_tauri_dir() -> Option<PathBuf> {
       p.parent().unwrap().to_path_buf()
     }
   })
+}
+
+fn resolve_vitul_runtime_dir(dir: &Path) -> Option<PathBuf> {
+  let is_runtime = |path: &Path| {
+    path.join("Cargo.toml").is_file()
+      && (path.join("vitul.conf.json").is_file() || path.join("tauri.conf.json").is_file())
+  };
+
+  if dir.file_name() == Some(OsStr::new("src-vitul")) && is_runtime(dir) {
+    return Some(dir.to_path_buf());
+  }
+
+  let root_has_unified_config =
+    dir.join("vitul.conf.json").is_file() && dir.join("backend/Cargo.toml").is_file();
+  let runtime_dir = dir.join("src-vitul");
+  (root_has_unified_config && is_runtime(&runtime_dir)).then_some(runtime_dir)
 }
 
 pub fn resolve_dirs() -> Dirs {
@@ -229,5 +254,35 @@ mod tests {
         PathBuf::from("a/b/vitul.conf.json"),
       ]
     );
+  }
+
+  #[test]
+  fn unified_project_root_resolves_to_its_rust_runtime() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("src-vitul")).unwrap();
+    fs::create_dir_all(root.path().join("backend")).unwrap();
+    fs::write(root.path().join("vitul.conf.json"), "{}").unwrap();
+    fs::write(root.path().join("backend/Cargo.toml"), "").unwrap();
+    fs::write(root.path().join("src-vitul/Cargo.toml"), "").unwrap();
+    fs::write(root.path().join("src-vitul/vitul.conf.json"), "{}").unwrap();
+
+    assert_eq!(
+      super::resolve_vitul_runtime_dir(root.path()),
+      Some(root.path().join("src-vitul"))
+    );
+    assert_eq!(
+      super::resolve_vitul_runtime_dir(&root.path().join("src-vitul")),
+      Some(root.path().join("src-vitul"))
+    );
+  }
+
+  #[test]
+  fn unified_root_config_alone_is_not_a_rust_runtime() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("backend")).unwrap();
+    fs::write(root.path().join("vitul.conf.json"), "{}").unwrap();
+    fs::write(root.path().join("backend/Cargo.toml"), "").unwrap();
+
+    assert_eq!(super::resolve_vitul_runtime_dir(root.path()), None);
   }
 }

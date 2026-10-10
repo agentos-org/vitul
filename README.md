@@ -60,30 +60,42 @@ npm install
 npm run vitul dev
 ```
 
-You can also install the command globally and use the Tauri-style `vitul create`
-workflow:
+You can also install the CLI globally and create in the current empty
+directory. The package name comes from the directory, and the display name is
+derived from it:
 
 ```sh
-npm install --global vitul
-vitul create my-app
+npm install --global @litevar/vitul-cli
+mkdir time-memo && cd time-memo
+vitul create . --manager npm --template vanilla-ts \
+  --identifier com.example.timeMemo --yes
+npm install
+npm run build
+npm run vitul dev
 ```
 
-Until the npm packages are released, build the CLI from source:
+Use `--product-name "Time Memo"` to set the app display name and
+`--window-title "Time Memo"` to override the desktop window title. The default
+package name comes from the project directory; the default display name and
+window title use its title-cased form. The `--identifier` value is preserved.
+
+To run CLI changes from this repository before they are published, build it from source:
 
 ```sh
 git clone https://github.com/agentos-org/vitul.git
 cd vitul
 cargo install --path crates/vitul-cli --locked
-vitul create my-app
-cd my-app
-# Until the npm release, remove @litevar/vitul-cli from devDependencies in package.json
-pnpm install
+mkdir ../my-app && cd ../my-app
+vitul create . --manager npm --template vanilla-ts --identifier com.example.myApp --yes
+npm pkg delete devDependencies.@litevar/vitul-cli
+npm install
+npm run build
+npm run vitul dev
 ```
 
-The `vitul` command and generated `vitul` package script use the same CLI. The
-npm packages are prepared in `packages/vitul`, `packages/create-vitul-app`, and
-`packages/cli`; npm installation becomes available after the packages are
-published.
+The generated package includes the published CLI by default. Remove that
+dependency as shown to make npm scripts use the `vitul` executable installed
+from this checkout.
 
 Choose the row for the platform where the app will run:
 
@@ -97,9 +109,9 @@ Choose the row for the platform where the app will run:
 
 New projects keep desktop, mobile, and AgentOS settings in the root
 `vitul.conf.json`. Set desktop package formats with `bundle.targets` and AgentOS
-architectures with `agentos.targets`. Vitul generates the runtime config under
-`src-vitul/` when desktop or mobile tooling runs; edit the root config. Existing
-projects can continue using their runtime config. The standalone `Vitulfile`
+architectures with `agentos.targets`. Vitul generates ignored runtime config
+files under `src-vitul/` when desktop or mobile tooling runs; edit the root
+config. Existing projects can continue using their runtime config. The standalone `Vitulfile`
 flow below packages existing process apps for Linux ARM64 and x64 and remote
 websites as architecture-independent AgentOS URL apps. OpenTool's
 `rpc.version: 2` is an independent API binding version.

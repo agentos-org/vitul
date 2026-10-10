@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::{
   env,
   ffi::OsString,
@@ -7,9 +7,9 @@ use std::{
   path::Path,
   process::{Child, Command, Stdio},
   sync::{
+    Arc, Mutex,
     atomic::{AtomicU16, Ordering},
     mpsc::{self, Receiver, RecvTimeoutError},
-    Arc, Mutex,
   },
   thread,
   time::{Duration, Instant},
@@ -27,14 +27,15 @@ pub fn run(args: Vec<OsString>) -> Result<()> {
   let root = env::current_dir().context("failed to read current directory")?;
   let manifest = root.join("backend/Cargo.toml");
   if !manifest.is_file() {
-    return super::run_tauri("dev", args, "vitul");
+    return super::run_desktop_cli("dev", args, "vitul");
   }
   if args
     .iter()
     .any(|arg| matches!(arg.to_string_lossy().as_ref(), "-h" | "--help"))
   {
-    return super::run_tauri("dev", args, "vitul");
+    return super::run_desktop_cli("dev", args, "vitul");
   }
+  let dev_origin = dev_server_origin(&root)?;
   let mut build = Command::new("cargo");
   build
     .args(["build", "--manifest-path"])
@@ -46,7 +47,7 @@ pub fn run(args: Vec<OsString>) -> Result<()> {
   if !binary.is_file() {
     bail!("backend executable not found at {}", binary.display());
   }
-  let (child, port_rx) = spawn_backend(&binary, &root)?;
+  let (child, port_rx) = spawn_backend(&binary, &root, &dev_origin)?;
   let child = Arc::new(Mutex::new(child));
   let active_port = Arc::new(AtomicU16::new(0));
   let _backend_guard = BackendGuard {
@@ -62,7 +63,7 @@ pub fn run(args: Vec<OsString>) -> Result<()> {
     env::set_var("VITUL_OPENTOOL_BASE", format!("http://127.0.0.1:{port}/"));
     env::set_var("VITUL_OPENTOOL_PORT", port.to_string());
   }
-  let result = crate::run_tauri("dev", args, "vitul");
+  let result = crate::run_desktop_cli("dev", args, "vitul");
   unsafe {
     env::remove_var("VITUL_OPENTOOL_BASE");
     env::remove_var("VITUL_OPENTOOL_PORT");
@@ -81,10 +82,15 @@ impl Drop for BackendGuard {
   }
 }
 
-fn spawn_backend(binary: &Path, root: &Path) -> Result<(Child, Receiver<anyhow::Result<u16>>)> {
+fn spawn_backend(
+  binary: &Path,
+  root: &Path,
+  dev_origin: &str,
+) -> Result<(Child, Receiver<anyhow::Result<u16>>)> {
   let mut child = Command::new(binary)
     .env("HOST", "127.0.0.1")
     .env("PORT", "0")
+    .env("VITUL_DEV_ORIGIN", dev_origin)
     .current_dir(&root)
     .stdout(Stdio::piped())
     .stderr(Stdio::inherit())
@@ -116,6 +122,25 @@ fn spawn_backend(binary: &Path, root: &Path) -> Result<(Child, Receiver<anyhow::
     }
   });
   Ok((child, receiver))
+}
+
+fn dev_server_origin(root: &Path) -> Result<String> {
+  let config_path = root.join("vitul.conf.json");
+  let config: serde_json::Value = serde_json::from_slice(
+    &std::fs::read(&config_path)
+      .with_context(|| format!("failed to read {}", config_path.display()))?,
+  )
+  .with_context(|| format!("failed to parse {}", config_path.display()))?;
+  let dev_url = config
+    .pointer("/build/devUrl")
+    .and_then(serde_json::Value::as_str)
+    .unwrap_or("http://localhost:1420");
+  let url =
+    url::Url::parse(dev_url).with_context(|| format!("invalid desktop devUrl `{dev_url}`"))?;
+  if !matches!(url.scheme(), "http" | "https") {
+    bail!("desktop devUrl must use http or https, found `{dev_url}`");
+  }
+  Ok(url.origin().ascii_serialization())
 }
 
 fn wait_for_reported_port(
@@ -238,4 +263,29 @@ fn run_status(command: &mut Command, description: &str) -> Result<()> {
     bail!("{description} failed with {status}");
   }
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::dev_server_origin;
+  use serde_json::json;
+  use std::fs;
+
+  #[test]
+  fn desktop_dev_origin_uses_the_configured_url_origin() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+      root.path().join("vitul.conf.json"),
+      serde_json::to_vec(&json!({
+        "build": { "devUrl": "http://127.0.0.1:4317/app/" }
+      }))
+      .unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(
+      dev_server_origin(root.path()).unwrap(),
+      "http://127.0.0.1:4317"
+    );
+  }
 }

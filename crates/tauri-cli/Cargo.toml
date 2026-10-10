@@ -1,15 +1,15 @@
 [package]
-name = "tauri-cli"
-version = "2.12.0"
+name = "vitul-desktop-cli"
+version = "2.12.1"
 authors = ["Tauri Programme within The Commons Conservancy"]
 edition = "2024"
 rust-version = "1.90"
 autobins = false
 categories = ["gui", "web-programming"]
 license = "Apache-2.0 OR MIT"
-homepage = "https://tauri.app"
-repository = "https://github.com/tauri-apps/tauri"
-description = "Command line interface for building Tauri apps"
+homepage.workspace = true
+repository.workspace = true
+description = "Vitul's desktop and mobile application CLI"
 include = [
   "src/",
   "/templates",
@@ -20,17 +20,6 @@ include = [
   "tauri-dev-watcher.gitignore",
   "LICENSE*",
 ]
-
-[package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/tauri-cli-v{ version }/cargo-tauri-{ target }.{ archive-format }"
-bin-dir = "{ bin }{ binary-ext }"
-pkg-fmt = "tgz"
-
-[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
-pkg-fmt = "zip"
-
-[package.metadata.binstall.overrides.x86_64-apple-darwin]
-pkg-fmt = "zip"
 
 [target."cfg(any(target_os = \"linux\", target_os = \"dragonfly\", target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\", target_os = \"windows\", target_os = \"macos\"))".dependencies]
 cargo-mobile2 = { version = "0.22.5", default-features = false }
