@@ -102,9 +102,12 @@ jobs:
           artifact=$(find "$VITUL_CI_PROJECT_DIR/dist" -maxdepth 1 -type f -name '*-agentos-arm64.agt' -print -quit)
           test -n "$artifact"
 
-          tar -tzf "$artifact" | grep -Eq '^\./app\.json$'
-          tar -tzf "$artifact" | grep -Eq '^\./web/index\.html$'
-          tar -tzf "$artifact" | grep -Eq '^\./bin/vitul-backend$'
+          package_dir=$(mktemp -d)
+          entries="$package_dir/entries.txt"
+          tar -tzf "$artifact" > "$entries"
+          grep -Eq '^\./app\.json$' "$entries"
+          grep -Eq '^\./web/index\.html$' "$entries"
+          grep -Eq '^\./bin/vitul-backend$' "$entries"
 
           manifest=$(tar -xOzf "$artifact" ./app.json)
           printf '%s' "$manifest" | jq --exit-status '
@@ -120,7 +123,7 @@ jobs:
             (.permissions | index("native.window-control") != null)
           ' >/dev/null
 
-          package_dir=$(mktemp -d)
           tar -xzf "$artifact" -C "$package_dir"
-          readelf -h "$package_dir/bin/vitul-backend" | grep -Eq 'Machine:.*AArch64'
+          header=$(readelf -h "$package_dir/bin/vitul-backend")
+          grep -Eq 'Machine:.*AArch64' <<< "$header"
           echo "Validated $artifact"
