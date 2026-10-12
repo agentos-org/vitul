@@ -19,7 +19,7 @@ if (!process.env.CI) {
 
 describe('[CLI] @litevar/vitul-cli', () => {
   it(
-    'creates an OpenTool-first Vitul project',
+    'creates an OpenTool-first project with the preset React and pnpm stack',
     { timeout: 15 * 60 * 1000 },
     async () => {
       const cwd = process.cwd()
@@ -32,10 +32,6 @@ describe('[CLI] @litevar/vitul-cli', () => {
         await cli.runVitul([
           'create',
           '.',
-          '--manager',
-          'npm',
-          '--template',
-          'vanilla-ts',
           '--yes',
           '--identifier',
           'com.litevar.agentos.timeMemo',
@@ -77,7 +73,15 @@ describe('[CLI] @litevar/vitul-cli', () => {
         expect(projectConfig.agentos.targets).toContain('agentos/arm64')
         expect(packageJson.name).not.toBe('vitul-app')
         expect(packageJson.name).toMatch(/^[a-z][a-z0-9_-]*$/)
-        expect(packageJson.dependencies['agentos-sdk-ts']).toBeUndefined()
+        expect(packageJson.dependencies['agentos-sdk-ts']).toBe('^2.0.0')
+        expect(packageJson.dependencies.react).toBe('^19.1.0')
+        expect(packageJson.devDependencies['@vitejs/plugin-react']).toBe(
+          '^6.0.2'
+        )
+        expect(packageJson.devDependencies.tailwindcss).toBe('^4.3.3')
+        expect(packageJson.packageManager).toBe('pnpm@12.4.2')
+        expect(packageJson.scripts.vitul).toBe('vitul')
+        expect(existsSync(resolve(projectRoot, 'src/App.tsx'))).toBe(true)
         expect(cargoToml).toContain(`name = "${packageJson.name}"`)
         expect(existsSync(resolve(projectRoot, 'backend/Cargo.toml'))).toBe(
           true
@@ -91,11 +95,11 @@ describe('[CLI] @litevar/vitul-cli', () => {
         expect(
           existsSync(resolve(projectRoot, 'src-vitul/tauri.conf.json'))
         ).toBe(false)
-        expect(runtimeBuildRs).toContain('fs::copy(vitul_config, desktop_config)')
-        expect(runtimeBuildRs).toContain('vitul_build::build()')
-        expect(cargoToml).toContain(
-          'vitul-build = { package = "tauri-build"'
+        expect(runtimeBuildRs).toContain(
+          'fs::copy(vitul_config, desktop_config)'
         )
+        expect(runtimeBuildRs).toContain('vitul_build::build()')
+        expect(cargoToml).toContain('vitul-build = { package = "tauri-build"')
         expect(runtimeBuildRs).toContain(
           'failed to prepare the generated Vitul runtime config'
         )
