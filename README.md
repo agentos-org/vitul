@@ -91,7 +91,7 @@ cd vitul
 cargo install --path crates/vitul-cli --locked
 mkdir ../my-app && cd ../my-app
 vitul create . --identifier com.example.myApp --yes
-pnpm pkg delete devDependencies.@litevar/vitul-cli
+pnpm remove -D @litevar/vitul-cli
 pnpm install
 pnpm build
 pnpm vitul dev

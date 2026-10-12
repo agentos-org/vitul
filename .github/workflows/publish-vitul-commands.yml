@@ -18,7 +18,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Require the native CLI release
-        run: npm view @litevar/vitul-cli@2.13.0 version
+        run: npm view @litevar/vitul-cli@3.0.0 version
 
   publish:
     name: Publish ${{ matrix.package }}

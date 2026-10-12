@@ -1,6 +1,10 @@
 # Changelog
 
-## [2.13.0]
+## [3.0.0]
+
+### Breaking Changes
+
+- New projects now default to the React, TypeScript, Tailwind CSS 4, Vite, and pnpm stack, include `agentos-sdk-ts`, and target iOS 26. Existing projects are unaffected.
 
 ### New Features
 

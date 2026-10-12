@@ -1,6 +1,6 @@
 {
   "name": "@litevar/vitul-cli-win32-x64-msvc",
-  "version": "2.13.0",
+  "version": "3.0.0",
   "cpu": [
     "x64"
   ],
