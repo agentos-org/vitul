@@ -1,13 +1,13 @@
 mod agentos;
+mod agentos_config;
 mod dev;
 mod init;
 mod project_config;
-mod vitulfile;
 
 use anyhow::Context;
 use std::{ffi::OsString, path::PathBuf};
 
-const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  create <PROJECT>    Create an app with Vitul's preset web stack\n  init <PROJECT>      Alias for create\n  agentos <COMMAND>   Inspect or validate AgentOS packaging config\n  dev                 Run a desktop app with its OpenTool backend\n  build               Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                      Run desktop and mobile tooling through Vitul\n\nPRESET APP STACK:\n  React + TypeScript, Tailwind CSS, Vite, and pnpm\n\nTARGETS:\n  agentos             Build every declared AgentOS target\n  agentos/arm64       Build an AgentOS ARM64 .agt package\n  agentos/x64         Build an AgentOS x64 .agt package\n\nCREATE OPTIONS:\n  --product-name <NAME>  Set the app display name (default: directory name)\n  --window-title <TITLE> Set the desktop window title (default: product name)\n\nCONFIGURATION:\n  New Vitul apps use one root vitul.conf.json.\n  Standalone web projects can use a Vitulfile.\n";
+const HELP: &str = "Vitul application toolchain\n\nUSAGE:\n  vitul <COMMAND> [OPTIONS]\n\nCOMMANDS:\n  create <PROJECT>    Create an app with Vitul's preset web stack\n  init <PROJECT>      Alias for create\n  agentos <COMMAND>   Create, inspect, or validate the root AgentOS config\n  dev                 Run a desktop app with its OpenTool backend\n  build               Build a desktop app or an AgentOS package\n  info, icon, plugin, signer, bundle, android, ios, ...\n                      Run desktop and mobile tooling through Vitul\n\nPRESET APP STACK:\n  React + TypeScript, Tailwind CSS, Vite, and pnpm\n\nTARGETS:\n  agentos             Build every declared AgentOS target\n  agentos/arm64       Build an AgentOS ARM64 .agt package\n  agentos/x64         Build an AgentOS x64 .agt package\n\nCREATE OPTIONS:\n  --product-name <NAME>  Set the app display name (default: directory name)\n  --window-title <TITLE> Set the desktop window title (default: product name)\n\nCONFIGURATION:\n  Vitul apps use one root vitul.conf.json for desktop, mobile, and AgentOS.\n";
 
 pub fn run() -> anyhow::Result<()> {
   let args = std::env::args_os().skip(1).collect::<Vec<_>>();
@@ -44,9 +44,6 @@ pub fn run_compat_with_args(args: Vec<OsString>, bin_name: Option<String>) -> an
     .iter()
     .any(|arg| matches!(arg.to_string_lossy().as_ref(), "-h" | "--help"));
   let is_vitul_project = is_vitul_project(&std::env::current_dir()?);
-  let has_vitulfile = std::env::current_dir()?
-    .join(vitulfile::FILE_NAME)
-    .is_file();
   let is_agentos_build = command.as_deref() == Some("build")
     && option_value(&args, "--target", "-t")
       .is_some_and(|target| target == "agentos" || target.starts_with("agentos/"));
@@ -54,7 +51,7 @@ pub fn run_compat_with_args(args: Vec<OsString>, bin_name: Option<String>) -> an
   if command.as_deref() == Some("agentos")
     || (!wants_help
       && (is_agentos_build
-        || (command.as_deref() == Some("build") && (is_vitul_project || has_vitulfile))
+        || (command.as_deref() == Some("build") && is_vitul_project)
         || (command.as_deref() == Some("dev") && is_vitul_project)))
   {
     return run_vitul_with_args(args);
@@ -72,36 +69,36 @@ fn run_build(args: Vec<OsString>) -> anyhow::Result<()> {
   match option_value(&args, "--target", "-t").as_deref() {
     Some("agentos") => {
       let root = project_root()?;
-      if project_config::is_unified(&root) || root.join(vitulfile::FILE_NAME).is_file() {
-        agentos::build_vitulfile(&root, "agentos")
+      if project_config::is_unified(&root) {
+        agentos::build_package(&root, "agentos")
       } else if is_vitul_project(&root) {
         agentos::legacy::build_arm64(&root)
       } else {
-        agentos::build_vitulfile(&root, "agentos")
+        agentos::build_package(&root, "agentos")
       }
     }
     Some("agentos/arm64") => build_agentos_arm64(&project_root()?),
-    Some("agentos/x64") => agentos::build_vitulfile(&project_root()?, "agentos/x64"),
+    Some("agentos/x64") => agentos::build_package(&project_root()?, "agentos/x64"),
     Some("agentos-arm64") => {
       let root = project_root()?;
-      if project_config::is_unified(&root) || root.join(vitulfile::FILE_NAME).is_file() {
-        agentos::build_vitulfile(&root, "agentos/arm64")
+      if project_config::is_unified(&root) {
+        agentos::build_package(&root, "agentos/arm64")
       } else {
         agentos::legacy::build_arm64(&root)
       }
     }
-    Some("agentos-x64") => agentos::build_vitulfile(&project_root()?, "agentos/x64"),
+    Some("agentos-x64") => agentos::build_package(&project_root()?, "agentos/x64"),
     _ => run_desktop_cli("build", args, "vitul"),
   }
 }
 
 fn build_agentos_arm64(root: &std::path::Path) -> anyhow::Result<()> {
-  if project_config::is_unified(root) || root.join(vitulfile::FILE_NAME).is_file() {
-    agentos::build_vitulfile(root, "agentos/arm64")
+  if project_config::is_unified(root) {
+    agentos::build_package(root, "agentos/arm64")
   } else if is_vitul_project(root) {
     agentos::legacy::build_arm64(root)
   } else {
-    agentos::build_vitulfile(root, "agentos/arm64")
+    agentos::build_package(root, "agentos/arm64")
   }
 }
 

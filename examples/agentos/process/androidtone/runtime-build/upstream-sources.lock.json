@@ -1,0 +1,42 @@
+[
+  {
+    "source": "waydroid",
+    "version": "1.6.2",
+    "repo": "waydroid/waydroid",
+    "commit": "c1138bb96eb75a95d5e3f67db41d657fabc320da",
+    "url": "https://codeload.github.com/waydroid/waydroid/tar.gz/c1138bb96eb75a95d5e3f67db41d657fabc320da",
+    "filename": "waydroid_1.6.2.upstream.tar.gz",
+    "size": 247924,
+    "sha256": "963d3d2fe932a28bf2924bbcc2879127486c159c2b4256dbcf1e8d25efd59e27"
+  },
+  {
+    "source": "gbinder-python",
+    "version": "1.3.1",
+    "repo": "waydroid/gbinder-python",
+    "commit": "86b8feba4cacd0952b010d1c3af6a29a0c146ced",
+    "url": "https://codeload.github.com/waydroid/gbinder-python/tar.gz/86b8feba4cacd0952b010d1c3af6a29a0c146ced",
+    "filename": "gbinder-python_1.3.1.upstream.tar.gz",
+    "size": 25549,
+    "sha256": "9fb823fc7fd1af728cd4553c6a0c9fa91c347a7b6cdd42c6cf0a4f3bf04a107b"
+  },
+  {
+    "source": "libgbinder",
+    "version": "1.1.43",
+    "repo": "mer-hybris/libgbinder",
+    "commit": "e176ef0c507898fbe7f3fdd1bb4955f2adaf370f",
+    "url": "https://codeload.github.com/mer-hybris/libgbinder/tar.gz/e176ef0c507898fbe7f3fdd1bb4955f2adaf370f",
+    "filename": "libgbinder_1.1.43.upstream.tar.gz",
+    "size": 209150,
+    "sha256": "58d7baf08f95364969c9f0dad6eb7718c7a52e579be16721325bd28690e1b212"
+  },
+  {
+    "source": "libglibutil",
+    "version": "1.0.80",
+    "repo": "sailfishos/libglibutil",
+    "commit": "e2fe548f8cce21551fd59a461618ea586b5f98fb",
+    "url": "https://codeload.github.com/sailfishos/libglibutil/tar.gz/e2fe548f8cce21551fd59a461618ea586b5f98fb",
+    "filename": "libglibutil_1.0.80.upstream.tar.gz",
+    "size": 72436,
+    "sha256": "f9fc86c4cfac71cfa8fd46edd919ea5ae6637a67d3e1f82bebcf96750656e9ce"
+  }
+]

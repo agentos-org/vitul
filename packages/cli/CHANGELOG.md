@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.0]
+
+### New Features
+
+- Allow AgentOS process apps to explicitly select native execution; an omitted mode continues to default to container.
+- Use root `vitul.conf.json` as the unified project configuration and remove the standalone `Vitulfile` workflow.
+- Add the AndroidTone process example and update the WinTone runtime, frontend, and app icon.
+
 ## [3.0.0]
 
 ### Breaking Changes

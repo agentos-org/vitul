@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "productName": "Douyin",
+  "identifier": "com.douyin",
+  "version": "1.0.0",
+  "bundle": { "icon": ["icon.png"] },
+  "agentos": {
+    "type": "remote-web",
+    "description": "Douyin's hosted short-video platform.",
+    "descriptionZh": "抖音短视频平台。",
+    "nameZh": "抖音",
+    "targets": ["agentos/arm64"],
+    "web": { "url": "https://douyin.com" },
+    "open": { "mode": "workspace", "titleBar": "system" }
+  }
+}

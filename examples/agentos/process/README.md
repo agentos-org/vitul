@@ -4,6 +4,8 @@ This directory groups AgentOS process packages. “Process” describes how an
 app runs; the examples use different packaging workflows and include both
 native host execution and container sandboxing.
 
+For new or adapted WebApps, see the [localization and theme integration guide](docs/webapp-localization-theme.md).
+
 ## Examples
 
 - [Dockge](dockge/README.md) packages the unmodified upstream app as a native
@@ -18,8 +20,10 @@ native host execution and container sandboxing.
   adapter for a separate official Community Docs container.
 - [WinTone](wintone/README.md) is a Windows application manager prototype that
   imports and tracks staged EXE/MSI installers.
+- [AndroidTone](androidtone/README.md) manages Waydroid apps through the generic
+  AgentOS Host Provider API and presents Wayland windows in the Shell.
 - [Toney Music](toney-music/README.md) adapts a React/Vite UI and Rust `musicd`
-  backend through a Vitulfile, with runtime-discovered OpenTool methods.
+  backend through `vitul.conf.json`, with runtime-discovered OpenTool methods.
 - [Frame Video](frame-video/README.md) is a native Vitul app and an AgentOS
   process package with a Rust OpenTool backend for the local video library.
 

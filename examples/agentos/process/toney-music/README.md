@@ -1,8 +1,8 @@
-# Toney Music: Vitulfile example
+# Toney Music: AgentOS process app
 
-This directory is a Vitulfile packaging example for the Toney Music process app.
-It demonstrates adding a native Rust audio service to an existing React/Vite
-music UI. It is not a Tauri or other Rust desktop application.
+This directory packages Toney Music as an AgentOS process app using the root
+`vitul.conf.json`. It demonstrates adding a native Rust audio service to an
+existing React/Vite music UI. It is not a Tauri or other Rust desktop application.
 
 The React/Vite frontend is only the control surface. The Rust `musicd` process
 owns the library, decoding, output session, and background playback. It sends
@@ -60,7 +60,8 @@ vitul build --target agentos/arm64
 ```
 
 The Rust build script uses a Linux container for cross-platform builds and reads
-`VITUL_TARGET_ARCH`. The package currently targets `agentos/arm64`. Vitul builds
+`VITUL_TARGET_ARCH`. The package currently targets `agentos/arm64`, as declared
+in `agentos.targets` in `vitul.conf.json`. Vitul builds
 the frontend and `musicd`, includes FFmpeg as fallback, and writes
 `dist/toney-music-0.3.10-agentos-arm64.agt`.
 

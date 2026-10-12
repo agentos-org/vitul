@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::pe_arch::WindowsArchitecture;
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Store {
@@ -8,6 +10,21 @@ pub struct Store {
   pub install_tasks: Vec<InstallTask>,
   #[serde(default)]
   pub installed_apps: Vec<InstalledApp>,
+  #[serde(default)]
+  pub session_preferences: SessionPreferences,
+  #[serde(default)]
+  pub session_preferences_configured: bool,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionPreferences {
+  #[serde(default)]
+  pub gpu: bool,
+  #[serde(default)]
+  pub clipboard_read: bool,
+  #[serde(default)]
+  pub clipboard_write: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -19,6 +36,8 @@ pub struct InstallTask {
   pub bytes: u64,
   pub sha256: String,
   pub added_at: u128,
+  #[serde(default)]
+  pub windows_architecture: WindowsArchitecture,
   #[serde(default = "waiting_runtime")]
   pub status: String,
   #[serde(default = "runtime_phase")]
@@ -38,8 +57,7 @@ fn runtime_phase() -> String {
 }
 
 fn runtime_message() -> String {
-  "Install task is queued and will remain pending until the Wine/FEX runtime is connected."
-    .to_owned()
+  "Install task is waiting for the Windows runtime to be ready.".to_owned()
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -52,6 +70,8 @@ pub struct InstalledApp {
   pub installation_id: String,
   pub executable: String,
   pub installed_at: u128,
+  #[serde(default)]
+  pub windows_architecture: WindowsArchitecture,
   #[serde(default)]
   pub runtime_version: String,
   #[serde(default, skip_serializing_if = "Option::is_none")]

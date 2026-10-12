@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "productName": "Tencent Video",
+  "identifier": "com.qq.v",
+  "version": "1.0.0",
+  "bundle": { "icon": ["icon.png"] },
+  "agentos": {
+    "type": "remote-web",
+    "description": "Tencent Video's hosted streaming service.",
+    "descriptionZh": "腾讯视频在线视频服务。",
+    "nameZh": "腾讯视频",
+    "targets": ["agentos/arm64"],
+    "web": { "url": "https://v.qq.com" },
+    "open": { "mode": "workspace", "titleBar": "system" }
+  }
+}

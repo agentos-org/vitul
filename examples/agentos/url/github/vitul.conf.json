@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "productName": "GitHub",
+  "identifier": "com.github",
+  "version": "1.0.0",
+  "bundle": { "icon": ["icon.png"] },
+  "agentos": {
+    "type": "remote-web",
+    "description": "GitHub's hosted code collaboration platform.",
+    "descriptionZh": "GitHub 在线代码托管与协作平台。",
+    "nameZh": "GitHub",
+    "targets": ["agentos/arm64"],
+    "web": { "url": "https://github.com" },
+    "open": { "mode": "workspace", "titleBar": "system" }
+  }
+}

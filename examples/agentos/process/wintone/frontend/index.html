@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10151d" />
+    <title>WinTone · 温易通</title>
+    <script>
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const hostTheme =
+          (params.get('runtime') === 'agentos' || params.has('hostOrigin'))
+            ? params.get('theme') || params.get('appearance')
+            : null
+        const systemTheme =
+          hostTheme === 'light' || hostTheme === 'dark'
+            ? hostTheme
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+        const savedTheme = localStorage.getItem('wintone.theme')
+        const theme =
+          savedTheme === 'light' || savedTheme === 'dark'
+            ? savedTheme
+            : systemTheme
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

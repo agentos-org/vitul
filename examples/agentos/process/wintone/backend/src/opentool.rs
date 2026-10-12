@@ -6,7 +6,7 @@ use crate::AppState;
 
 const OPENTOOL_SPEC: &str = r#"{
   "opentool": "1.0.0",
-  "info": { "title": "WinTone", "version": "0.1.0" },
+  "info": { "title": "WinTone", "version": "0.1.2" },
   "functions": [
     {
       "name": "runtime.status",
@@ -16,8 +16,6 @@ const OPENTOOL_SPEC: &str = r#"{
         "type": "object",
         "properties": {
           "state": { "type": "string" },
-          "wineVersion": { "type": "string" },
-          "fexVersion": { "type": "string" },
           "message": { "type": "string" }
         }
       }

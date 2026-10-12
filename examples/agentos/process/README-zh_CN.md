@@ -2,6 +2,8 @@
 
 本目录集中放置 AgentOS process 应用包。process 描述应用的运行方式；示例使用不同的打包流程，涵盖原生宿主执行和容器沙盒。
 
+新建或适配 WebApp 时，可先阅读[多语言与主题接入指南](docs/webapp-localization-theme-zh_CN.md)。
+
 ## 示例
 
 - [Dockge](dockge/README-zh_CN.md)：将未修改的上游应用打包为原生 AgentOS 应用；打包脚本和上游源码位于同一目录。
@@ -9,7 +11,8 @@
 - [DeepSeek Harness](deepseek-harness/README-zh_CN.md)：将上游 Web 智能体打包为 Linux 容器应用，保存工作区数据，并适配首次登录 token。
 - [ONLYOFFICE Docs](only-office/README-zh_CN.md)：构建一个小型容器沙盒适配应用，连接独立运行的官方 Community Docs 容器。
 - [WinTone 温易通](wintone/README-zh_CN.md)：Windows 应用管理器原型，可导入并管理暂存的 EXE/MSI 安装包。
-- [Toney Music](toney-music/README-zh_CN.md)：通过 Vitulfile 打包 React/Vite 前端和 Rust `musicd` 后端，并提供运行时发现的 OpenTool 方法。
+- [AndroidTone 安卓通](androidtone/README-zh_CN.md)：Waydroid Android 应用管理示例，包含 APK 导入、通用 Host Provider 授权和 Wayland 窗口接入。
+- [Toney Music](toney-music/README-zh_CN.md)：通过 `vitul.conf.json` 打包 React/Vite 前端和 Rust `musicd` 后端，并提供运行时发现的 OpenTool 方法。
 - [Frame Video](frame-video/README-zh_CN.md)：Vitul 桌面原生应用和 AgentOS process 包，使用 Rust OpenTool 后端管理本地视频库。
 
 Toney Music 源码快照基于 AgentOS 提交 `a97448524`，来源为

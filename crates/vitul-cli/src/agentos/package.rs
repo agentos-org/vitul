@@ -1,4 +1,4 @@
-use crate::vitulfile::{Config, VitulfileAppType, agentos_icon_filename};
+use crate::agentos_config::{Config, ExecutionMode, PackageAppType, agentos_icon_filename};
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 use std::{
@@ -14,14 +14,14 @@ pub fn build(project_root: &Path, requested_target: &str) -> Result<()> {
       project_root.display()
     )
   })?;
-  let config = Config::load(&project_root, None)?;
+  let config = crate::project_config::package_config(&project_root)?;
   let declared_targets = config.declared_targets();
   let selected_targets = if requested_target == "agentos" {
     declared_targets
   } else {
     if !declared_targets.contains(&requested_target) {
       bail!(
-        "target `{requested_target}` is not declared in Vitulfile; available targets: {}",
+        "target `{requested_target}` is not declared in agentos.targets; available targets: {}",
         config.target_summary()
       );
     }
@@ -29,7 +29,7 @@ pub fn build(project_root: &Path, requested_target: &str) -> Result<()> {
   };
 
   // URL apps contain no platform-specific process and always produce one `any` package.
-  let package_targets = if config.app.app_type == VitulfileAppType::RemoteWeb {
+  let package_targets = if config.app.app_type == PackageAppType::RemoteWeb {
     vec!["any"]
   } else {
     selected_targets
@@ -47,7 +47,7 @@ pub fn build(project_root: &Path, requested_target: &str) -> Result<()> {
       "Building {} for AgentOS architecture {architecture}",
       config.app.name
     );
-    if config.app.app_type == VitulfileAppType::Process {
+    if config.app.app_type == PackageAppType::Process {
       run_build_steps(&project_root, &config, target)?;
       build_project_backend(&project_root, architecture)?;
     }
@@ -274,7 +274,7 @@ fn stage_package(
   staging_root: &Path,
   architecture: &str,
 ) -> Result<()> {
-  if config.app.app_type == VitulfileAppType::Process {
+  if config.app.app_type == PackageAppType::Process {
     for (index, artifact) in config.build.artifacts.iter().enumerate() {
       if !artifact.targets.is_empty()
         && !artifact
@@ -448,7 +448,7 @@ fn valid_sidecar_name(name: &str) -> bool {
 }
 
 fn manifest(config: &Config, architecture: &str) -> Result<Value> {
-  let is_remote = config.app.app_type == VitulfileAppType::RemoteWeb;
+  let is_remote = config.app.app_type == PackageAppType::RemoteWeb;
   let mut manifest = if is_remote {
     let url = config
       .web
@@ -504,6 +504,13 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
   };
   let object = manifest.as_object_mut().expect("manifest is a JSON object");
   if !is_remote {
+    if config.agentos.execution_mode() == ExecutionMode::Native {
+      object.remove("providers");
+      object.insert("execution".into(), json!({ "mode": "native" }));
+    }
+    if let Some(deployment) = &config.agentos.deployment {
+      object.insert("deployment".into(), deployment.clone());
+    }
     let mut rpc = json!({
       "protocol": "opentool",
       "version": 2,

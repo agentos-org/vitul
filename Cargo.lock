@@ -10255,7 +10255,6 @@ dependencies = [
  "create-vitul-app",
  "serde",
  "serde_json",
- "serde_yaml",
  "tempfile",
  "url",
  "vitul-desktop-cli",

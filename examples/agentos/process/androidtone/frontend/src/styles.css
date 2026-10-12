@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --canvas: #f6faf3; --surface: #ffffff; --ink: #192b20; --muted: #65796b;
+  --line: #dce8dc; --brand: #176b3a; --on-brand: #ffffff; --market: #23854b;
+  --soft: #eaf8ef; --badge: #def2d8; --badge-ink: #226437;
+  --drop-line: #b9d8b3; --drop-end: #edf7e7; --drop-active: #eefbf3;
+  --danger: #a43329; --danger-soft: #fce8e6; --danger-line: #f1c9cb;
+  --warning: #a66a00; --success: #227a44;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #101b14; --surface: #19291e; --ink: #e0eee0; --muted: #adc1ae;
+  --line: #354c3b; --brand: #9cdda9; --on-brand: #09381b; --market: #7bd59b;
+  --soft: #233d2b; --badge: #2b4a30; --badge-ink: #b8efbd;
+  --drop-line: #456a4b; --drop-end: #1d3221; --drop-active: #27452e;
+  --danger: #ffb4ab; --danger-soft: #4c2928; --danger-line: #80504c;
+  --warning: #efc16c; --success: #9cdda9;
+}
+@theme inline {
+  --color-ink: var(--ink); --color-muted: var(--muted); --color-line: var(--line);
+  --color-brand: var(--brand); --color-market: var(--market); --color-surface: var(--surface);
+  --color-on-brand: var(--on-brand); --color-soft: var(--soft);
+  --color-badge: var(--badge); --color-badge-ink: var(--badge-ink);
+  --color-danger: var(--danger); --color-danger-soft: var(--danger-soft); --color-danger-line: var(--danger-line);
+  --color-warning: var(--warning); --color-success: var(--success);
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+}
+@layer base {
+  body { @apply m-0 min-w-80 font-sans text-ink antialiased; background: var(--canvas); }
+  button, [role="button"], summary { @apply focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#3ddc84]; }
+  ::selection { background: var(--badge); color: var(--badge-ink); }
+}

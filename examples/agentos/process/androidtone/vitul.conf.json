@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 2,
+  "productName": "AndroidTone",
+  "version": "0.1.4",
+  "identifier": "com.agentos.androidtone",
+  "backend": {
+    "type": "opentool",
+    "manifest": "backend/Cargo.toml",
+    "binary": "androidtone-server"
+  },
+  "bundle": {
+    "icon": [
+      "icon.png"
+    ]
+  },
+  "agentos": {
+    "type": "process",
+    "targets": [
+      "agentos/arm64"
+    ],
+    "buildImage": "rust:1.90-bookworm",
+    "nameZh": "安卓通",
+    "description": "Install and manage Android applications on AgentOS.",
+    "descriptionZh": "在 AgentOS 上安装和管理 Android 应用。",
+    "permissions": [
+      "native.providers",
+      "native.desktop-session",
+      "native.external-wayland",
+      "native.external-wayland.gpu"
+    ],
+    "providers": [
+      {
+        "id": "org.agentos.androidtone",
+        "executable": "androidtone-server",
+        "methods": [
+          "runtime.status",
+          "runtime.install",
+          "runtime.initialize",
+          "runtime.start",
+          "runtime.stop",
+          "applications.list",
+          "applications.launch",
+          "applications.stop",
+          "applications.uninstall",
+          "installations.register",
+          "installations.install",
+          "installations.list",
+          "installations.remove"
+        ]
+      },
+      {
+        "id": "org.agentos.external-wayland",
+        "methods": [
+          "session.start",
+          "session.prepare_restart",
+          "session.restart",
+          "session.stop"
+        ]
+      },
+      {
+        "id": "org.agentos.desktop-session",
+        "methods": [
+          "session.get"
+        ]
+      }
+    ],
+    "open": {
+      "mode": "window",
+      "titleBar": "system"
+    },
+    "rpc": {
+      "basePath": "/opentool",
+      "discovery": "runtime"
+    },
+    "run": {
+      "command": "./start.sh",
+      "args": [],
+      "port": 3000,
+      "healthCheck": "/health",
+      "readyTimeout": 60,
+      "frontendEntry": "/apps/androidtone/",
+      "env": {}
+    },
+    "build": {
+      "steps": [
+        {
+          "command": "bash",
+          "args": [
+            "scripts/build-frontend.sh"
+          ]
+        },
+        {
+          "command": "bash",
+          "args": [
+            "scripts/build-arm64-runtime.sh"
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "from": "public",
+          "to": "public"
+        },
+        {
+          "from": "start.sh",
+          "to": "start.sh"
+        },
+        {
+          "from": "agentos-build/bin/androidtone-server",
+          "to": "androidtone-server"
+        },
+        {
+          "from": "icon.png",
+          "to": "icon.png"
+        },
+        {
+          "from": "agentos-build/androidtone-runtime",
+          "to": "runtime"
+        }
+      ]
+    },
+    "data": {
+      "persistent": true
+    }
+  }
+}

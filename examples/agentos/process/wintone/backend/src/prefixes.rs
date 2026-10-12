@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use uuid::Uuid;
 
-use crate::runtime::InstalledRuntime;
+use crate::{pe_arch::WindowsArchitecture, runtime::InstalledRuntime};
 
 #[derive(Clone)]
 pub struct PrefixManager {
@@ -20,6 +20,8 @@ pub struct InstallationPrefix {
   pub installation_id: String,
   pub path: PathBuf,
   pub runtime_version: String,
+  #[serde(default)]
+  pub windows_architecture: WindowsArchitecture,
   pub created_at: u128,
 }
 
@@ -29,9 +31,14 @@ impl PrefixManager {
   }
 
   pub fn session_path(installation_id: &str) -> Result<String, String> {
+    Uuid::parse_str(installation_id).map_err(|_| "Invalid installation identifier.".to_owned())?;
+    Ok("/grants/prefix".to_owned())
+  }
+
+  pub fn grant_source(installation_id: &str) -> Result<String, String> {
     let id = Uuid::parse_str(installation_id)
       .map_err(|_| "Invalid installation identifier.".to_owned())?;
-    Ok(format!("/data/prefixes/{id}"))
+    Ok(format!("prefixes/{id}"))
   }
 
   pub async fn path(&self, installation_id: &str) -> Result<PathBuf, String> {
@@ -52,6 +59,7 @@ impl PrefixManager {
     &self,
     installation_id: &str,
     runtime: &InstalledRuntime,
+    windows_architecture: WindowsArchitecture,
   ) -> Result<InstallationPrefix, String> {
     let id = Uuid::parse_str(installation_id)
       .map_err(|_| "Invalid installation identifier.".to_owned())?;
@@ -73,8 +81,16 @@ impl PrefixManager {
       }
       if existing.runtime_version != runtime.version {
         return Err(format!(
-          "Installation prefix {} is tied to Wine/FEX runtime {}, not {}.",
+          "Installation prefix {} is tied to Windows runtime version {}, not {}.",
           existing.installation_id, existing.runtime_version, runtime.version
+        ));
+      }
+      if existing.windows_architecture != windows_architecture {
+        return Err(format!(
+          "Installation prefix {} is configured for {}, not {}.",
+          existing.installation_id,
+          existing.windows_architecture.display_name(),
+          windows_architecture.display_name()
         ));
       }
       if !fs::try_exists(&existing.path)
@@ -99,6 +115,7 @@ impl PrefixManager {
       installation_id: installation_id.clone(),
       path: prefix_path,
       runtime_version: runtime.version.clone(),
+      windows_architecture,
       created_at: SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()

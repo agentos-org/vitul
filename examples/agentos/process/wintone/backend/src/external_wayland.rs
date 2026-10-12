@@ -30,6 +30,12 @@ pub struct ExternalSession {
   pub windows: Vec<Value>,
 }
 
+impl ExternalSession {
+  pub fn mapped_window_observed(&self) -> bool {
+    self.windows.iter().any(|window| window["mapped"] == true)
+  }
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSession {
@@ -46,8 +52,14 @@ pub struct CreateSession {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct FileGrant {
-  pub root: String,
+  pub id: String,
+  pub source: String,
+  pub kind: String,
+  #[serde(rename = "type")]
+  pub grant_type: String,
   pub access: String,
+  pub mode: String,
+  pub sharing: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -234,5 +246,21 @@ fn protocol_error(error: impl std::fmt::Display) -> WaylandError {
     message: format!("AgentOS Wayland API request failed: {error}"),
     status: None,
     session_id: None,
+  }
+}
+
+#[cfg(test)]
+mod window_evidence_tests {
+  use super::*;
+  #[test]
+  fn running_process_and_created_window_do_not_prove_mapping() {
+    let mut session: ExternalSession = serde_json::from_value(json!({
+      "sessionId": "test", "applicationId": "app", "state": "running",
+      "windows": [{"windowId": 1}]
+    }))
+    .unwrap();
+    assert!(!session.mapped_window_observed());
+    session.windows[0]["mapped"] = json!(true);
+    assert!(session.mapped_window_observed());
   }
 }

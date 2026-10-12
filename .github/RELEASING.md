@@ -23,7 +23,7 @@ the repository Actions secret `NPM_TOKEN` to publish the packages and attach
 the platform binaries to the release. Keep the registry credential configured
 while this workflow depends on it.
 
-After `@litevar/vitul-cli@3.0.0` is available in npm, manually dispatch
+After `@litevar/vitul-cli@3.1.0` is available in npm, manually dispatch
 `.github/workflows/publish-vitul-commands.yml` to publish `vitul` and
 `create-vitul-app`. Bootstrap each package once so it exists, then configure
 trusted publishing for both packages with `agentos-org/vitul` and

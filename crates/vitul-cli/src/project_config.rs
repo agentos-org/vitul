@@ -1,4 +1,4 @@
-use crate::vitulfile::Config;
+use crate::agentos_config::Config;
 use anyhow::{Context, Result, bail};
 use serde_json::{Map, Value, json};
 use std::{fs, path::Path};
@@ -174,6 +174,12 @@ pub fn package_config(root: &Path) -> Result<Config> {
     "providers",
     json!([]),
   );
+  if let Some(deployment) = agentos.get("deployment") {
+    package_agentos.insert("deployment".into(), deployment.clone());
+  }
+  if let Some(execution) = agentos.get("execution") {
+    package_agentos.insert("execution".into(), execution.clone());
+  }
   copy_or_default(
     &open,
     "mode",

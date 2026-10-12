@@ -183,6 +183,23 @@ impl StoreRepository {
     Ok(true)
   }
 
+  pub async fn update_session_preferences(
+    &self,
+    preferences: crate::model::SessionPreferences,
+  ) -> Result<(), StorageError> {
+    let mut store = self.store.lock().await;
+    let previous = store.session_preferences.clone();
+    let previous_configured = store.session_preferences_configured;
+    store.session_preferences = preferences;
+    store.session_preferences_configured = true;
+    if let Err(error) = self.persist(&store).await {
+      store.session_preferences = previous;
+      store.session_preferences_configured = previous_configured;
+      return Err(error);
+    }
+    Ok(())
+  }
+
   pub async fn remove_installed_app(
     &self,
     id: &str,

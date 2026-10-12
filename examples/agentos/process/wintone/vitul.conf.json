@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "productName": "WinTone",
+  "version": "0.1.6",
+  "identifier": "com.agentos.wintone",
+  "backend": {
+    "type": "opentool",
+    "manifest": "backend/Cargo.toml",
+    "binary": "wintone-server"
+  },
+  "bundle": {
+    "icon": ["icon.png"]
+  },
+  "agentos": {
+    "type": "process",
+    "targets": ["agentos/arm64", "agentos/x64"],
+    "buildImage": "rust:1.90-bookworm",
+    "nameZh": "温易通",
+    "description": "Manage Windows application installers and installations on AgentOS.",
+    "descriptionZh": "在 AgentOS 上管理 Windows 应用安装包与已安装应用。",
+    "permissions": [
+      "native.file-dialogs",
+      "native.external-wayland",
+      "native.external-wayland.network",
+      "native.external-wayland.gpu",
+      "native.external-wayland.clipboard.read",
+      "native.external-wayland.clipboard.write"
+    ],
+    "open": {
+      "mode": "window",
+      "titleBar": "system"
+    },
+    "rpc": {
+      "basePath": "/opentool",
+      "discovery": "runtime"
+    },
+    "run": {
+      "command": "./start.sh",
+      "args": [],
+      "port": 3000,
+      "healthCheck": "/health",
+      "readyTimeout": 60,
+      "frontendEntry": "/apps/wintone/",
+      "env": {
+        "FEX_ROOTFS": "",
+        "WINEDEBUG": "",
+        "WINEPREFIX": ""
+      }
+    },
+    "build": {
+      "steps": [
+        {
+          "command": "pnpm",
+          "args": ["--ignore-workspace", "run", "build"],
+          "cwd": "frontend"
+        },
+        {
+          "command": "bash",
+          "args": ["scripts/build-arm64-runtime.sh"]
+        }
+      ],
+      "artifacts": [
+        { "from": "frontend/dist", "to": "public" },
+        { "from": "start.sh", "to": "start.sh" },
+        {
+          "from": "agentos-build/wintone-runtime/runtime-catalog.json",
+          "to": "runtime-catalog.json",
+          "targets": ["agentos/arm64"]
+        },
+        {
+          "from": "agentos-build/wintone-runtime/runtime-bundle.tar.zst",
+          "to": "runtime-bundle.tar.zst",
+          "targets": ["agentos/arm64"]
+        },
+        {
+          "from": "agentos-build/bin/wintone-server",
+          "to": "wintone-server"
+        }
+      ]
+    },
+    "data": {
+      "persistent": true
+    }
+  }
+}

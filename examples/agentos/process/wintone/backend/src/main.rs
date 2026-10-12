@@ -3,6 +3,7 @@ mod external_wayland;
 mod installation;
 mod model;
 mod opentool;
+mod pe_arch;
 mod prefixes;
 mod runtime;
 mod shortcuts;
@@ -62,7 +63,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     active_install_tasks: Arc::new(Mutex::new(HashSet::new())),
     active_app_operations: Arc::new(Mutex::new(HashSet::new())),
   };
-  installation::resume_waiting_tasks(state.clone()).await;
   tokio::spawn(installation::monitor_sessions(state.clone()));
 
   let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".into());
@@ -88,25 +88,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .join("public")
     });
 
-  let api = api::router(state)
+  let api = api::router(state.clone())
     .route("/health", get(api::health))
     .layer(CorsLayer::permissive());
-  let static_files = ServeDir::new(public_dir).append_index_html_on_directories(true);
-  let app = open_tool.router().merge(
-    Router::new()
-      .nest(
-        PLUGIN_ROUTE,
-        api.clone().fallback_service(static_files.clone()),
-      )
-      .merge(api)
-      .fallback_service(static_files),
-  );
+  let app = build_app_router(open_tool.router(), api, public_dir);
 
   let address: SocketAddr = format!("{host}:{port}").parse()?;
   let listener = TcpListener::bind(address).await?;
   eprintln!("WinTone {SERVICE_VERSION} listening on {address}");
+  let startup_state = state.clone();
+  tokio::spawn(async move {
+    if let Err(error) = startup_state.runtime_manager.prepare().await {
+      eprintln!(
+        "WinTone could not prepare the Windows runtime at startup: {}",
+        error.0
+      );
+    }
+    installation::resume_waiting_tasks(startup_state).await;
+  });
   axum::serve(listener, app).await?;
   Ok(())
+}
+
+fn build_app_router(open_tool: Router, api: Router, public_dir: PathBuf) -> Router {
+  let static_files = ServeDir::new(public_dir).append_index_html_on_directories(true);
+  open_tool.merge(
+    Router::new()
+      .nest(PLUGIN_ROUTE, api.clone())
+      .nest_service(PLUGIN_ROUTE, static_files.clone())
+      .merge(api)
+      .fallback_service(static_files),
+  )
 }
 
 impl AppState {
@@ -156,5 +168,91 @@ impl AppState {
       .lock()
       .unwrap_or_else(|poisoned| poisoned.into_inner())
       .remove(app_id);
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+    routing::get,
+  };
+  use http_body_util::BodyExt;
+  use tower::ServiceExt;
+
+  #[tokio::test]
+  async fn frontend_entry_serves_index_assets_and_api() {
+    let public_dir =
+      std::env::temp_dir().join(format!("wintone-frontend-test-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(public_dir.join("assets")).unwrap();
+    std::fs::write(
+      public_dir.join("index.html"),
+      "<title>WinTone</title><script type=\"module\" src=\"./assets/index.js\"></script><link rel=\"stylesheet\" href=\"./assets/index.css\">",
+    )
+    .unwrap();
+    std::fs::write(
+      public_dir.join("assets/index.js"),
+      "console.log('wintone');",
+    )
+    .unwrap();
+    std::fs::write(public_dir.join("assets/index.css"), "body { color: blue; }").unwrap();
+    let api = Router::new().route("/api/status", get(|| async { "api-ready" }));
+    let app = build_app_router(Router::new(), api, public_dir.clone());
+
+    let response = app
+      .clone()
+      .oneshot(
+        Request::builder()
+          .uri("/apps/wintone/")
+          .body(Body::empty())
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let html = String::from_utf8_lossy(&body);
+    assert!(html.contains("<title>WinTone"));
+    let javascript = html
+      .split("src=\"./")
+      .nth(1)
+      .and_then(|asset| asset.split('\"').next())
+      .expect("Vite should reference a JavaScript asset");
+    let stylesheet = html
+      .split("href=\"./")
+      .nth(1)
+      .and_then(|asset| asset.split('\"').next())
+      .expect("Vite should reference a stylesheet asset");
+
+    for asset in [javascript, stylesheet] {
+      let response = app
+        .clone()
+        .oneshot(
+          Request::builder()
+            .uri(format!("/apps/wintone/{asset}"))
+            .body(Body::empty())
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+      assert_eq!(response.status(), StatusCode::OK, "asset {asset}");
+    }
+
+    let response = app
+      .oneshot(
+        Request::builder()
+          .uri("/apps/wintone/api/status")
+          .body(Body::empty())
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    assert_eq!(&body[..], b"api-ready");
+
+    std::fs::remove_dir_all(public_dir).unwrap();
   }
 }

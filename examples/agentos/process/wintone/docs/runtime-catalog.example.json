@@ -1,17 +1,25 @@
 {
   "schemaVersion": 1,
-  "version": "replace-with-curated-bundle-version",
+  "version": "arm64-fex-test-wine-test-native-test",
   "hostArchitecture": "aarch64",
-  "wineVersion": "replace-with-wine-version",
-  "fexVersion": "replace-with-fex-version",
+  "wineVersion": "Wine 9.0",
+  "nativeWineVersion": "Ubuntu ARM64 Wine 9.0",
+  "fexVersion": "FEX 2610",
   "artifact": {
-    "url": "https://downloads.example.invalid/wintone-runtime-aarch64.tar.zst",
+    "bundlePath": "runtime-bundle.tar.zst",
     "format": "tar.zst",
     "sha256": "replace-with-64-character-sha256",
     "maxBytes": 4294967296
   },
-  "wineCommand": ["wine/bin/wine64"],
-  "winebootCommand": ["wine/bin/wineboot", "-u"],
-  "fexCommand": ["fex/bin/FEX"],
-  "fexRootfs": "fex/rootfs.sqsh"
+  "wineCommand": ["usr/bin/wine"],
+  "winebootCommand": ["usr/bin/wineboot", "-u"],
+  "nativeWineCommand": ["native-arm64/rootfs/usr/lib/wine/wine64"],
+  "nativeWinebootCommand": [
+    "native-arm64/rootfs/usr/lib/wine/wine64",
+    "wineboot.exe",
+    "-u"
+  ],
+  "nativeSessionLauncher": ["native-arm64/bin/wintone-native-session-launch"],
+  "fexCommand": ["fex/bin/wintone-session-launch"],
+  "fexRootfs": "fex/rootfs"
 }

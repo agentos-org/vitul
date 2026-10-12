@@ -15,7 +15,11 @@ use sha2::{Digest, Sha256};
 use tokio::{fs, io::AsyncWriteExt};
 use uuid::Uuid;
 
-use crate::{model::InstallTask, AppState};
+use crate::{
+  model::{InstallTask, SessionPreferences},
+  pe_arch::{detect_pe_architecture, WindowsArchitecture},
+  AppState,
+};
 
 const MAX_UPLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 const MAX_REQUEST_BYTES: usize = MAX_UPLOAD_BYTES as usize + 2 * 1024 * 1024;
@@ -23,6 +27,7 @@ const MAX_REQUEST_BYTES: usize = MAX_UPLOAD_BYTES as usize + 2 * 1024 * 1024;
 pub fn router(state: AppState) -> Router {
   Router::new()
     .route("/api/status", get(status))
+    .route("/api/settings", get(get_settings).put(update_settings))
     .route("/api/runtime/prepare", post(prepare_runtime))
     .route(
       "/api/install-tasks",
@@ -34,6 +39,25 @@ pub fn router(state: AppState) -> Router {
     .route("/api/apps/:id", delete(uninstall_app))
     .layer(DefaultBodyLimit::max(MAX_REQUEST_BYTES))
     .with_state(state)
+}
+
+async fn get_settings(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+  let store = state.snapshot().await?;
+  Ok(Json(json!({
+    "sessionPreferences": store.session_preferences,
+    "sessionPreferencesConfigured": store.session_preferences_configured,
+  })))
+}
+
+async fn update_settings(
+  State(state): State<AppState>,
+  Json(preferences): Json<SessionPreferences>,
+) -> Result<Json<Value>, ApiError> {
+  state
+    .repository
+    .update_session_preferences(preferences.clone())
+    .await?;
+  Ok(Json(json!({ "sessionPreferences": preferences })))
 }
 
 pub async fn health() -> Json<Value> {
@@ -75,7 +99,13 @@ async fn prepare_runtime(State(state): State<AppState>) -> Result<Json<Value>, A
         "version": runtime.version,
       })))
     }
-    Err(error) => Err(ApiError::new(StatusCode::BAD_GATEWAY, error.0)),
+    Err(error) => {
+      eprintln!("WinTone could not prepare the Windows runtime: {}", error.0);
+      Err(ApiError::new(
+        StatusCode::BAD_GATEWAY,
+        "Could not prepare the Windows runtime. Try restarting WinTone.",
+      ))
+    }
   }
 }
 
@@ -166,6 +196,19 @@ async fn import_and_enqueue_install_task(
         "The file contents do not match an EXE or MSI installer.",
       ));
     }
+    let windows_architecture = if extension == "exe" {
+      match detect_pe_architecture(&path).await {
+        Ok(architecture) => architecture,
+        Err(error) => {
+          let _ = fs::remove_file(&path).await;
+          return Err(ApiError::bad_request(error));
+        }
+      }
+    } else {
+      // MSI architecture is encoded in its OLE Summary Information stream.
+      // Until that stream is parsed, MSI installers use the established x86/x64 path.
+      WindowsArchitecture::X86_64
+    };
 
     record = Some((
       path,
@@ -179,9 +222,10 @@ async fn import_and_enqueue_install_task(
           .duration_since(UNIX_EPOCH)
           .unwrap_or_default()
           .as_millis(),
+        windows_architecture,
         status: "preparing-runtime".to_owned(),
         phase: "runtime".to_owned(),
-        message: "Preparing the shared Wine/FEX runtime.".to_owned(),
+        message: "Preparing the Windows runtime.".to_owned(),
         session_id: None,
       },
     ));
@@ -209,7 +253,7 @@ async fn delete_install_task(
   if state.install_task_is_active(&id) {
     return Err(ApiError::new(
       StatusCode::CONFLICT,
-      "Wine/FEX 运行环境正在准备，请等待准备结束后再移除任务。",
+      "Windows 运行环境正在准备，请稍后再移除安装任务。",
     ));
   }
   if state

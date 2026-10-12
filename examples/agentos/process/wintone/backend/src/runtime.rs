@@ -1,30 +1,41 @@
 use std::{
+  collections::VecDeque,
   fs::File,
   path::{Component, Path, PathBuf},
+  sync::atomic::{AtomicU8, Ordering},
   sync::Arc,
   time::{SystemTime, UNIX_EPOCH},
 };
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use tokio::{fs, io::AsyncWriteExt, sync::Mutex};
+use tokio::{
+  fs,
+  io::{AsyncReadExt, AsyncWriteExt},
+  sync::Mutex,
+};
 use uuid::Uuid;
 
+use crate::pe_arch::WindowsArchitecture;
+
 const MAX_RUNTIME_BYTES: u64 = 20 * 1024 * 1024 * 1024;
+const PREPARATION_IDLE: u8 = 0;
+const PREPARATION_ACTIVE: u8 = 1;
+const PREPARATION_FAILED: u8 = 2;
 
 #[derive(Clone)]
 pub struct RuntimeManager {
   root: PathBuf,
   catalog_path: PathBuf,
   prepare_lock: Arc<Mutex<()>>,
+  preparation_state: Arc<AtomicU8>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeStatus {
   pub state: String,
-  pub wine_version: Option<String>,
-  pub fex_version: Option<String>,
+  pub bundled: bool,
   pub message: String,
 }
 
@@ -34,9 +45,17 @@ pub struct InstalledRuntime {
   pub version: String,
   pub host_architecture: String,
   pub wine_version: String,
+  #[serde(default)]
+  pub native_wine_version: Option<String>,
   pub fex_version: Option<String>,
   pub wine_command: Vec<String>,
   pub wineboot_command: Vec<String>,
+  #[serde(default)]
+  pub native_wine_command: Option<Vec<String>>,
+  #[serde(default)]
+  pub native_wineboot_command: Option<Vec<String>>,
+  #[serde(default)]
+  pub native_session_launcher: Option<Vec<String>>,
   pub fex_command: Option<Vec<String>>,
   pub fex_rootfs: Option<String>,
   pub artifact_sha256: String,
@@ -50,10 +69,18 @@ struct RuntimeCatalog {
   version: String,
   host_architecture: String,
   wine_version: String,
+  #[serde(default)]
+  native_wine_version: Option<String>,
   fex_version: Option<String>,
   artifact: RuntimeArtifact,
   wine_command: Vec<String>,
   wineboot_command: Vec<String>,
+  #[serde(default)]
+  native_wine_command: Option<Vec<String>>,
+  #[serde(default)]
+  native_wineboot_command: Option<Vec<String>>,
+  #[serde(default)]
+  native_session_launcher: Option<Vec<String>>,
   fex_command: Option<Vec<String>>,
   fex_rootfs: Option<String>,
 }
@@ -61,7 +88,8 @@ struct RuntimeCatalog {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RuntimeArtifact {
-  url: String,
+  url: Option<String>,
+  bundle_path: Option<String>,
   format: String,
   sha256: String,
   max_bytes: u64,
@@ -76,64 +104,103 @@ impl RuntimeManager {
       root: data_dir.join("runtimes"),
       catalog_path,
       prepare_lock: Arc::new(Mutex::new(())),
+      preparation_state: Arc::new(AtomicU8::new(PREPARATION_IDLE)),
     }
   }
 
   pub async fn status(&self) -> RuntimeStatus {
     match self.installed_runtime().await {
-      Ok(Some(runtime)) => {
+      Ok(Some(_runtime)) => {
         return RuntimeStatus {
           state: "ready".to_owned(),
-          wine_version: Some(runtime.wine_version),
-          fex_version: runtime.fex_version,
-          message: "The shared Wine/FEX runtime is ready.".to_owned(),
+          bundled: false,
+          message: "The Windows runtime is ready.".to_owned(),
         };
       }
       Ok(None) => {}
-      Err(error) => {
+      Err(_error) => {
         return RuntimeStatus {
           state: "runtime-invalid".to_owned(),
-          wine_version: None,
-          fex_version: None,
-          message: error.0,
+          bundled: false,
+          message: "The Windows runtime could not be validated.".to_owned(),
         };
       }
     }
 
     match self.read_catalog().await {
       Ok(catalog) => match self.validate_catalog(&catalog) {
-        Ok(()) => RuntimeStatus {
-          state: "not-installed".to_owned(),
-          wine_version: Some(catalog.wine_version),
-          fex_version: catalog.fex_version,
-          message:
-            "A SHA-256-pinned runtime package is configured and will be prepared on first use."
-              .to_owned(),
-        },
-        Err(error) => RuntimeStatus {
+        Ok(()) => {
+          let preparation_state = self.preparation_state.load(Ordering::Acquire);
+          RuntimeStatus {
+            state: match preparation_state {
+              PREPARATION_ACTIVE => "preparing",
+              PREPARATION_FAILED => "prepare-failed",
+              _ => "not-installed",
+            }
+            .to_owned(),
+            bundled: catalog.artifact.bundle_path.is_some(),
+            message: if preparation_state == PREPARATION_ACTIVE {
+              "The Windows runtime is being prepared.".to_owned()
+            } else if preparation_state == PREPARATION_FAILED {
+              "The Windows runtime could not be prepared.".to_owned()
+            } else if catalog.artifact.bundle_path.is_some() {
+              "The Windows runtime is included with WinTone and will be prepared when WinTone starts."
+                .to_owned()
+            } else {
+              "The Windows runtime package will be downloaded when WinTone starts.".to_owned()
+            },
+          }
+        }
+        Err(_error) => RuntimeStatus {
           state: "catalog-invalid".to_owned(),
-          wine_version: None,
-          fex_version: None,
-          message: error.0,
+          bundled: false,
+          message: "The Windows runtime configuration is invalid.".to_owned(),
         },
       },
-      Err(error) => RuntimeStatus {
+      Err(_error) => RuntimeStatus {
         state: "catalog-unavailable".to_owned(),
-        wine_version: None,
-        fex_version: None,
-        message: error.0,
+        bundled: false,
+        message: "The Windows runtime is unavailable.".to_owned(),
       },
     }
   }
 
   pub async fn prepare(&self) -> Result<InstalledRuntime, RuntimeError> {
     let _guard = self.prepare_lock.lock().await;
-    if let Some(runtime) = self.installed_runtime().await? {
-      return Ok(runtime);
-    }
-
+    let mut preparation = RuntimePreparingGuard {
+      state: self.preparation_state.clone(),
+      completed: false,
+    };
+    self
+      .preparation_state
+      .store(PREPARATION_ACTIVE, Ordering::Release);
     let catalog = self.read_catalog().await?;
     self.validate_catalog(&catalog)?;
+    if let Some(runtime) = self.installed_runtime_version(&catalog.version).await? {
+      if runtime.artifact_sha256 != catalog.artifact.sha256.to_ascii_lowercase() {
+        return Err(RuntimeError(
+          "The runtime catalog reused a version identifier for different bundle contents."
+            .to_owned(),
+        ));
+      }
+      self.write_version_runtime(&runtime).await?;
+      self.write_active_runtime(&runtime).await?;
+      preparation.complete();
+      return Ok(runtime);
+    }
+    if let Some(runtime) = self.installed_runtime().await? {
+      if runtime.version == catalog.version {
+        if runtime.artifact_sha256 != catalog.artifact.sha256.to_ascii_lowercase() {
+          return Err(RuntimeError(
+            "The runtime catalog reused a version identifier for different bundle contents."
+              .to_owned(),
+          ));
+        }
+        preparation.complete();
+        return Ok(runtime);
+      }
+      self.write_version_runtime(&runtime).await?;
+    }
     fs::create_dir_all(self.root.join("versions"))
       .await
       .map_err(io_error)?;
@@ -143,7 +210,7 @@ impl RuntimeManager {
     let staging_path = self.root.join(format!(".staging-{operation_id}"));
     let result = async {
       self
-        .download_artifact(&catalog.artifact, &archive_path)
+        .acquire_artifact(&catalog.artifact, &archive_path)
         .await?;
       let archive_path_for_extract = archive_path.clone();
       let staging_path_for_extract = staging_path.clone();
@@ -163,6 +230,7 @@ impl RuntimeManager {
       fs::rename(&staging_path, &version_path)
         .await
         .map_err(io_error)?;
+      self.write_version_runtime(&runtime).await?;
       self.write_active_runtime(&runtime).await?;
       Ok(runtime)
     }
@@ -171,6 +239,9 @@ impl RuntimeManager {
     let _ = fs::remove_file(&archive_path).await;
     if result.is_err() {
       let _ = fs::remove_dir_all(&staging_path).await;
+    }
+    if result.is_ok() {
+      preparation.complete();
     }
     result
   }
@@ -201,6 +272,45 @@ impl RuntimeManager {
     Ok(Some(runtime))
   }
 
+  pub async fn installed_runtime_version(
+    &self,
+    version: &str,
+  ) -> Result<Option<InstalledRuntime>, RuntimeError> {
+    if !valid_version(version) {
+      return Err(RuntimeError(
+        "Invalid runtime version identifier.".to_owned(),
+      ));
+    }
+    let record_path = self
+      .root
+      .join("versions")
+      .join(version)
+      .join("runtime.json");
+    let bytes = match fs::read(&record_path).await {
+      Ok(bytes) => bytes,
+      Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+        if let Some(active) = self.installed_runtime().await? {
+          if active.version == version {
+            return Ok(Some(active));
+          }
+        }
+        return Ok(None);
+      }
+      Err(error) => return Err(io_error(error)),
+    };
+    let runtime: InstalledRuntime = serde_json::from_slice(&bytes)
+      .map_err(|error| RuntimeError(format!("Invalid installed-runtime record: {error}")))?;
+    if runtime.version != version || runtime.host_architecture != std::env::consts::ARCH {
+      return Err(RuntimeError(format!(
+        "Installed runtime record for {version} has an invalid version or host architecture."
+      )));
+    }
+    self
+      .validate_layout(&runtime, &self.runtime_dir(&runtime))
+      .await?;
+    Ok(Some(runtime))
+  }
+
   pub fn runtime_dir(&self, runtime: &InstalledRuntime) -> PathBuf {
     self.root.join("versions").join(&runtime.version)
   }
@@ -222,6 +332,11 @@ impl RuntimeManager {
     runtime: &InstalledRuntime,
     command: &[String],
   ) -> Result<(String, Vec<String>), RuntimeError> {
+    if !valid_version(&runtime.version) {
+      return Err(RuntimeError(
+        "Invalid installed runtime version.".to_owned(),
+      ));
+    }
     let (program, args) = command
       .split_first()
       .ok_or_else(|| RuntimeError("Runtime command is empty.".to_owned()))?;
@@ -231,10 +346,60 @@ impl RuntimeManager {
       .map(|component| component.as_os_str().to_string_lossy())
       .collect::<Vec<_>>()
       .join("/");
-    Ok((
-      format!("/data/runtimes/versions/{}/{relative}", runtime.version),
-      args.to_vec(),
-    ))
+    Ok((format!("/grants/runtime/{relative}"), args.to_vec()))
+  }
+
+  /// Returns an absolute path as seen inside the x86-64 FEX RootFS. This is
+  /// deliberately different from `session_command`, which returns the host
+  /// path of a read-only AgentOS file grant.
+  pub fn guest_session_command(
+    &self,
+    command: &[String],
+  ) -> Result<(String, Vec<String>), RuntimeError> {
+    let (program, args) = command
+      .split_first()
+      .ok_or_else(|| RuntimeError("Runtime command is empty.".to_owned()))?;
+    let path = safe_relative_path(program)?;
+    let relative = path
+      .components()
+      .map(|component| component.as_os_str().to_string_lossy())
+      .collect::<Vec<_>>()
+      .join("/");
+    Ok((format!("/{relative}"), args.to_vec()))
+  }
+
+  pub fn session_source(&self, runtime: &InstalledRuntime) -> Result<String, RuntimeError> {
+    if !valid_version(&runtime.version) {
+      return Err(RuntimeError(
+        "Invalid installed runtime version.".to_owned(),
+      ));
+    }
+    Ok(format!("runtimes/versions/{}", runtime.version))
+  }
+
+  pub fn launch_command(
+    &self,
+    runtime: &InstalledRuntime,
+    architecture: WindowsArchitecture,
+  ) -> Result<(String, Vec<String>), RuntimeError> {
+    if runtime.host_architecture == "aarch64" && architecture == WindowsArchitecture::Arm64 {
+      let command = runtime.native_session_launcher.as_ref().ok_or_else(|| {
+        RuntimeError("The Windows runtime does not support ARM64 apps on this device.".to_owned())
+      })?;
+      return self.session_command(runtime, command);
+    }
+    if runtime.host_architecture == "aarch64" {
+      let command = runtime.fex_command.as_ref().ok_or_else(|| {
+        RuntimeError("The Windows runtime does not support this app architecture.".to_owned())
+      })?;
+      return self.session_command(runtime, command);
+    }
+    if architecture == WindowsArchitecture::Arm64 {
+      return Err(RuntimeError(
+        "Native Windows ARM64 programs require an ARM64 AgentOS host.".to_owned(),
+      ));
+    }
+    self.session_command(runtime, &runtime.wine_command)
   }
 
   pub fn session_data_path(
@@ -248,10 +413,12 @@ impl RuntimeManager {
       .map(|component| component.as_os_str().to_string_lossy())
       .collect::<Vec<_>>()
       .join("/");
-    Ok(format!(
-      "/data/runtimes/versions/{}/{relative}",
-      runtime.version
-    ))
+    if !valid_version(&runtime.version) {
+      return Err(RuntimeError(
+        "Invalid installed runtime version.".to_owned(),
+      ));
+    }
+    Ok(format!("/grants/runtime/{relative}"))
   }
 
   async fn read_catalog(&self) -> Result<RuntimeCatalog, RuntimeError> {
@@ -329,21 +496,53 @@ impl RuntimeManager {
     if let Some(command) = &catalog.fex_command {
       validate_command_paths(command)?;
     }
+    match (
+      &catalog.native_wine_version,
+      &catalog.native_wine_command,
+      &catalog.native_wineboot_command,
+      &catalog.native_session_launcher,
+    ) {
+      (Some(version), Some(wine), Some(wineboot), Some(launcher)) if !version.trim().is_empty() => {
+        validate_command_paths(wine)?;
+        validate_command_paths(wineboot)?;
+        validate_command_paths(launcher)?;
+      }
+      (None, None, None, None) => {}
+      _ => {
+        return Err(RuntimeError(
+          "Native ARM64 Wine metadata must include its version, commands, and session launcher."
+            .to_owned(),
+        ));
+      }
+    }
     if catalog.artifact.format != "tar.zst" {
       return Err(RuntimeError(
         "Only tar.zst runtime bundles are supported.".to_owned(),
       ));
     }
-    let artifact_url = reqwest::Url::parse(&catalog.artifact.url)
-      .map_err(|error| RuntimeError(format!("Invalid runtime bundle URL: {error}")))?;
-    if artifact_url.scheme() != "https"
-      || artifact_url.host_str().is_none()
-      || !artifact_url.username().is_empty()
-      || artifact_url.password().is_some()
-    {
-      return Err(RuntimeError(
-        "Runtime bundle URLs must use HTTPS and may not contain embedded credentials.".to_owned(),
-      ));
+    match (&catalog.artifact.url, &catalog.artifact.bundle_path) {
+      (Some(url), None) => {
+        let artifact_url = reqwest::Url::parse(url)
+          .map_err(|error| RuntimeError(format!("Invalid runtime bundle URL: {error}")))?;
+        if artifact_url.scheme() != "https"
+          || artifact_url.host_str().is_none()
+          || !artifact_url.username().is_empty()
+          || artifact_url.password().is_some()
+        {
+          return Err(RuntimeError(
+            "Runtime bundle URLs must use HTTPS and may not contain embedded credentials."
+              .to_owned(),
+          ));
+        }
+      }
+      (None, Some(bundle_path)) => {
+        safe_relative_path(bundle_path)?;
+      }
+      _ => {
+        return Err(RuntimeError(
+          "A runtime artifact must configure exactly one HTTPS URL or bundled path.".to_owned(),
+        ));
+      }
     }
     if !valid_sha256(&catalog.artifact.sha256) {
       return Err(RuntimeError(
@@ -359,55 +558,98 @@ impl RuntimeManager {
     Ok(())
   }
 
-  async fn download_artifact(
+  async fn acquire_artifact(
     &self,
     artifact: &RuntimeArtifact,
     destination: &Path,
   ) -> Result<(), RuntimeError> {
-    let client = reqwest::Client::builder()
-      .connect_timeout(std::time::Duration::from_secs(30))
-      .build()
-      .map_err(|error| RuntimeError(format!("Could not initialize download client: {error}")))?;
-    let mut response = client
-      .get(&artifact.url)
-      .send()
-      .await
-      .map_err(|error| RuntimeError(format!("Runtime download failed: {error}")))?
-      .error_for_status()
-      .map_err(|error| RuntimeError(format!("Runtime download failed: {error}")))?;
-    if response.url().scheme() != "https" {
-      return Err(RuntimeError(
-        "Runtime download redirected away from HTTPS.".to_owned(),
-      ));
-    }
-    if response
-      .content_length()
-      .is_some_and(|size| size > artifact.max_bytes)
-    {
-      return Err(RuntimeError(
-        "Runtime bundle exceeds its catalog size limit.".to_owned(),
-      ));
-    }
-
-    let mut output = fs::File::create(destination).await.map_err(io_error)?;
     let mut hasher = Sha256::new();
     let mut downloaded = 0_u64;
-    while let Some(chunk) = response
-      .chunk()
-      .await
-      .map_err(|error| RuntimeError(format!("Runtime download failed: {error}")))?
-    {
-      downloaded = downloaded.saturating_add(chunk.len() as u64);
-      if downloaded > artifact.max_bytes {
-        drop(output);
-        let _ = fs::remove_file(destination).await;
+    let mut output = fs::File::create(destination).await.map_err(io_error)?;
+
+    if let Some(url) = &artifact.url {
+      let client = reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|error| RuntimeError(format!("Could not initialize download client: {error}")))?;
+      let mut response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|error| RuntimeError(format!("Runtime download failed: {error}")))?
+        .error_for_status()
+        .map_err(|error| RuntimeError(format!("Runtime download failed: {error}")))?;
+      if response.url().scheme() != "https" {
+        return Err(RuntimeError(
+          "Runtime download redirected away from HTTPS.".to_owned(),
+        ));
+      }
+      if response
+        .content_length()
+        .is_some_and(|size| size > artifact.max_bytes)
+      {
         return Err(RuntimeError(
           "Runtime bundle exceeds its catalog size limit.".to_owned(),
         ));
       }
-      hasher.update(&chunk);
-      output.write_all(&chunk).await.map_err(io_error)?;
+      while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| RuntimeError(format!("Runtime download failed: {error}")))?
+      {
+        downloaded = downloaded.saturating_add(chunk.len() as u64);
+        if downloaded > artifact.max_bytes {
+          drop(output);
+          let _ = fs::remove_file(destination).await;
+          return Err(RuntimeError(
+            "Runtime bundle exceeds its catalog size limit.".to_owned(),
+          ));
+        }
+        hasher.update(&chunk);
+        output.write_all(&chunk).await.map_err(io_error)?;
+      }
+    } else if let Some(bundle_path) = &artifact.bundle_path {
+      let relative = safe_relative_path(bundle_path)?;
+      let bundle = self
+        .catalog_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(relative);
+      let metadata = fs::metadata(&bundle).await.map_err(|error| {
+        RuntimeError(format!(
+          "Bundled runtime artifact {} is unavailable: {error}.",
+          bundle.display()
+        ))
+      })?;
+      if !metadata.is_file() || metadata.len() > artifact.max_bytes {
+        return Err(RuntimeError(
+          "Bundled runtime artifact is not a file or exceeds its catalog size limit.".to_owned(),
+        ));
+      }
+      let mut input = fs::File::open(&bundle).await.map_err(io_error)?;
+      let mut buffer = vec![0_u8; 1024 * 1024];
+      loop {
+        let count = input.read(&mut buffer).await.map_err(io_error)?;
+        if count == 0 {
+          break;
+        }
+        downloaded = downloaded.saturating_add(count as u64);
+        if downloaded > artifact.max_bytes {
+          drop(output);
+          let _ = fs::remove_file(destination).await;
+          return Err(RuntimeError(
+            "Bundled runtime artifact exceeds its catalog size limit.".to_owned(),
+          ));
+        }
+        hasher.update(&buffer[..count]);
+        output.write_all(&buffer[..count]).await.map_err(io_error)?;
+      }
+    } else {
+      return Err(RuntimeError(
+        "Runtime artifact source is not configured.".to_owned(),
+      ));
     }
+
     output.flush().await.map_err(io_error)?;
     drop(output);
     if format!("{:x}", hasher.finalize()) != artifact.sha256.to_ascii_lowercase() {
@@ -424,9 +666,13 @@ impl RuntimeManager {
       version: catalog.version.clone(),
       host_architecture: catalog.host_architecture.clone(),
       wine_version: catalog.wine_version.clone(),
+      native_wine_version: catalog.native_wine_version.clone(),
       fex_version: catalog.fex_version.clone(),
       wine_command: catalog.wine_command.clone(),
       wineboot_command: catalog.wineboot_command.clone(),
+      native_wine_command: catalog.native_wine_command.clone(),
+      native_wineboot_command: catalog.native_wineboot_command.clone(),
+      native_session_launcher: catalog.native_session_launcher.clone(),
       fex_command: catalog.fex_command.clone(),
       fex_rootfs: catalog.fex_rootfs.clone(),
       artifact_sha256: catalog.artifact.sha256.to_ascii_lowercase(),
@@ -442,10 +688,33 @@ impl RuntimeManager {
     runtime: &InstalledRuntime,
     runtime_dir: &Path,
   ) -> Result<(), RuntimeError> {
-    for command in [&runtime.wine_command, &runtime.wineboot_command] {
-      self.validate_executable(runtime_dir, command).await?;
+    if runtime.host_architecture == "aarch64" {
+      let rootfs = runtime
+        .fex_rootfs
+        .as_deref()
+        .ok_or_else(|| RuntimeError("ARM64 runtime has no x86-64 RootFS.".to_owned()))?;
+      let rootfs_path = runtime_dir.join(safe_relative_path(rootfs)?);
+      for command in [&runtime.wine_command, &runtime.wineboot_command] {
+        self
+          .validate_guest_executable(&rootfs_path, command)
+          .await?;
+      }
+    } else {
+      for command in [&runtime.wine_command, &runtime.wineboot_command] {
+        self.validate_executable(runtime_dir, command).await?;
+      }
     }
     if let Some(command) = &runtime.fex_command {
+      self.validate_executable(runtime_dir, command).await?;
+    }
+    for command in [
+      &runtime.native_wine_command,
+      &runtime.native_wineboot_command,
+      &runtime.native_session_launcher,
+    ]
+    .into_iter()
+    .flatten()
+    {
       self.validate_executable(runtime_dir, command).await?;
     }
     if let Some(rootfs) = &runtime.fex_rootfs {
@@ -488,6 +757,34 @@ impl RuntimeManager {
     Ok(())
   }
 
+  async fn validate_guest_executable(
+    &self,
+    rootfs: &Path,
+    command: &[String],
+  ) -> Result<(), RuntimeError> {
+    let (program, _) = command
+      .split_first()
+      .ok_or_else(|| RuntimeError("Runtime command is empty.".to_owned()))?;
+    let relative = safe_relative_path(program)?;
+    let path = resolve_guest_path(rootfs, &relative)
+      .await
+      .map_err(|error| {
+        RuntimeError(format!(
+          "Wine executable {} is missing from the x86-64 RootFS: {}.",
+          rootfs.join(relative).display(),
+          error.0
+        ))
+      })?;
+    let metadata = fs::metadata(&path).await.map_err(io_error)?;
+    if !metadata.is_file() {
+      return Err(RuntimeError(format!(
+        "Wine executable {} is not a file.",
+        path.display()
+      )));
+    }
+    Ok(())
+  }
+
   async fn validate_file_or_directory(
     &self,
     runtime_dir: &Path,
@@ -511,6 +808,107 @@ impl RuntimeManager {
     fs::write(&temporary, bytes).await.map_err(io_error)?;
     fs::rename(temporary, path).await.map_err(io_error)?;
     Ok(())
+  }
+
+  async fn write_version_runtime(&self, runtime: &InstalledRuntime) -> Result<(), RuntimeError> {
+    let directory = self.root.join("versions").join(&runtime.version);
+    fs::create_dir_all(&directory).await.map_err(io_error)?;
+    let path = directory.join("runtime.json");
+    let temporary = directory.join(format!(".runtime-{}.tmp", Uuid::new_v4()));
+    let bytes = serde_json::to_vec_pretty(runtime)
+      .map_err(|error| RuntimeError(format!("Could not serialize runtime record: {error}")))?;
+    fs::write(&temporary, bytes).await.map_err(io_error)?;
+    fs::rename(temporary, path).await.map_err(io_error)?;
+    Ok(())
+  }
+}
+
+/// Resolve Linux absolute symlinks as paths inside a guest root filesystem.
+/// Calling `metadata(rootfs.join(path))` directly follows `/usr/...` against
+/// the AgentOS host root, which makes valid Wine links look broken.
+async fn resolve_guest_path(rootfs: &Path, relative: &Path) -> Result<PathBuf, RuntimeError> {
+  let mut pending = guest_path_components(relative)?;
+  let mut resolved = PathBuf::new();
+  let mut symlink_depth = 0_u8;
+
+  while let Some(component) = pending.pop_front() {
+    match component.components().next() {
+      Some(Component::RootDir) => resolved.clear(),
+      Some(Component::CurDir) => {}
+      Some(Component::ParentDir) => {
+        if !resolved.pop() {
+          return Err(RuntimeError(
+            "Guest executable symlink escapes its root filesystem.".to_owned(),
+          ));
+        }
+      }
+      Some(Component::Normal(name)) => {
+        let candidate = rootfs.join(&resolved).join(name);
+        let metadata = fs::symlink_metadata(&candidate).await.map_err(io_error)?;
+        if metadata.file_type().is_symlink() {
+          symlink_depth = symlink_depth.saturating_add(1);
+          if symlink_depth > 40 {
+            return Err(RuntimeError(
+              "Guest executable has too many nested symlinks.".to_owned(),
+            ));
+          }
+          let target = fs::read_link(candidate).await.map_err(io_error)?;
+          let mut target_components = guest_path_components(&target)?;
+          target_components.append(&mut pending);
+          pending = target_components;
+        } else {
+          if !pending.is_empty() && !metadata.is_dir() {
+            return Err(RuntimeError(
+              "Guest executable path traverses a non-directory.".to_owned(),
+            ));
+          }
+          resolved.push(name);
+        }
+      }
+      Some(Component::Prefix(_)) => {
+        return Err(RuntimeError(
+          "Guest executable path contains an unsupported prefix.".to_owned(),
+        ));
+      }
+      None => {}
+    }
+  }
+
+  Ok(rootfs.join(resolved))
+}
+
+fn guest_path_components(path: &Path) -> Result<VecDeque<PathBuf>, RuntimeError> {
+  path
+    .components()
+    .map(|component| match component {
+      Component::Prefix(_) => Err(RuntimeError(
+        "Guest executable symlink contains an unsupported prefix.".to_owned(),
+      )),
+      Component::RootDir => Ok(PathBuf::from("/")),
+      Component::CurDir => Ok(PathBuf::from(".")),
+      Component::ParentDir => Ok(PathBuf::from("..")),
+      Component::Normal(name) => Ok(PathBuf::from(name)),
+    })
+    .collect()
+}
+
+struct RuntimePreparingGuard {
+  state: Arc<AtomicU8>,
+  completed: bool,
+}
+
+impl RuntimePreparingGuard {
+  fn complete(&mut self) {
+    self.completed = true;
+    self.state.store(PREPARATION_IDLE, Ordering::Release);
+  }
+}
+
+impl Drop for RuntimePreparingGuard {
+  fn drop(&mut self) {
+    if !self.completed {
+      self.state.store(PREPARATION_FAILED, Ordering::Release);
+    }
   }
 }
 
@@ -582,4 +980,183 @@ fn valid_sha256(value: &str) -> bool {
 
 fn io_error(error: std::io::Error) -> RuntimeError {
   RuntimeError(error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn arm64_runtime() -> InstalledRuntime {
+    InstalledRuntime {
+      version: "arm64-dual-runtime".to_owned(),
+      host_architecture: "aarch64".to_owned(),
+      wine_version: "x86-64 Wine".to_owned(),
+      native_wine_version: Some("ARM64 Wine".to_owned()),
+      fex_version: Some("FEX".to_owned()),
+      wine_command: vec!["usr/bin/wine".to_owned()],
+      wineboot_command: vec!["usr/bin/wineboot".to_owned(), "-u".to_owned()],
+      native_wine_command: Some(vec!["native-arm64/rootfs/usr/lib/wine/wine64".to_owned()]),
+      native_wineboot_command: Some(vec![
+        "native-arm64/rootfs/usr/lib/wine/wine64".to_owned(),
+        "wineboot.exe".to_owned(),
+        "-u".to_owned(),
+      ]),
+      native_session_launcher: Some(vec![
+        "native-arm64/bin/wintone-native-session-launch".to_owned()
+      ]),
+      fex_command: Some(vec!["fex/bin/wintone-session-launch".to_owned()]),
+      fex_rootfs: Some("fex/rootfs".to_owned()),
+      artifact_sha256: "0".repeat(64),
+      installed_at: 0,
+    }
+  }
+
+  #[tokio::test]
+  async fn validates_bundled_arm64_runtime_layout() {
+    let root = std::env::temp_dir().join(format!("wintone-arm64-layout-{}", Uuid::new_v4()));
+    let runtime_dir = root.join("runtime");
+    for directory in [
+      "fex/rootfs/usr/bin",
+      "fex/bin",
+      "native-arm64/rootfs/usr/lib/wine",
+      "native-arm64/bin",
+    ] {
+      std::fs::create_dir_all(runtime_dir.join(directory)).unwrap();
+    }
+    for file in [
+      "fex/rootfs/usr/bin/wine",
+      "fex/rootfs/usr/bin/wineboot",
+      "fex/bin/wintone-session-launch",
+      "native-arm64/rootfs/usr/lib/wine/wine64",
+      "native-arm64/bin/wintone-native-session-launch",
+    ] {
+      std::fs::write(runtime_dir.join(file), "runtime fixture").unwrap();
+    }
+
+    let manager = RuntimeManager::new(root.join("data"), PathBuf::from("catalog"));
+    manager
+      .validate_layout(&arm64_runtime(), &runtime_dir)
+      .await
+      .unwrap();
+
+    let _ = std::fs::remove_dir_all(root);
+  }
+
+  #[test]
+  fn picks_fex_for_x86_and_native_wine_for_arm64_pe() {
+    let manager = RuntimeManager::new(PathBuf::from("/tmp/wintone"), PathBuf::from("catalog"));
+    let runtime = arm64_runtime();
+    assert_eq!(
+      manager
+        .launch_command(&runtime, WindowsArchitecture::X86_64)
+        .unwrap()
+        .0,
+      "/grants/runtime/fex/bin/wintone-session-launch"
+    );
+    assert_eq!(
+      manager
+        .launch_command(&runtime, WindowsArchitecture::Arm64)
+        .unwrap()
+        .0,
+      "/grants/runtime/native-arm64/bin/wintone-native-session-launch"
+    );
+  }
+
+  #[test]
+  fn reports_missing_native_wine_in_older_arm64_runtime() {
+    let manager = RuntimeManager::new(PathBuf::from("/tmp/wintone"), PathBuf::from("catalog"));
+    let mut runtime = arm64_runtime();
+    runtime.native_session_launcher = None;
+    assert!(manager
+      .launch_command(&runtime, WindowsArchitecture::Arm64)
+      .unwrap_err()
+      .0
+      .contains("does not support ARM64 apps"));
+  }
+
+  #[tokio::test]
+  async fn status_reports_runtime_preparation_in_progress() {
+    let root = std::env::temp_dir().join(format!("wintone-runtime-status-{}", Uuid::new_v4()));
+    std::fs::create_dir_all(&root).unwrap();
+    let catalog_path = root.join("runtime-catalog.json");
+    let arm64 = std::env::consts::ARCH == "aarch64";
+    let catalog = serde_json::json!({
+      "schemaVersion": 1,
+      "version": "test-runtime",
+      "hostArchitecture": std::env::consts::ARCH,
+      "wineVersion": "test",
+      "nativeWineVersion": if arm64 { Some("test") } else { None },
+      "fexVersion": if arm64 { Some("test") } else { None },
+      "artifact": {
+        "bundlePath": "runtime-bundle.tar.zst",
+        "format": "tar.zst",
+        "sha256": "0".repeat(64),
+        "maxBytes": 1
+      },
+      "wineCommand": ["usr/bin/wine"],
+      "winebootCommand": ["usr/bin/wineboot", "-u"],
+      "nativeWineCommand": if arm64 { Some(vec!["native-arm64/rootfs/usr/lib/wine/wine64"]) } else { None },
+      "nativeWinebootCommand": if arm64 { Some(vec!["native-arm64/rootfs/usr/lib/wine/wine64", "wineboot.exe", "-u"]) } else { None },
+      "nativeSessionLauncher": if arm64 { Some(vec!["native-arm64/bin/session-launch"]) } else { None },
+      "fexCommand": if arm64 { Some(vec!["fex/bin/session-launch"]) } else { None },
+      "fexRootfs": if arm64 { Some("fex/rootfs") } else { None }
+    });
+    std::fs::write(&catalog_path, serde_json::to_vec(&catalog).unwrap()).unwrap();
+
+    let manager = RuntimeManager::new(root.join("data"), catalog_path);
+    assert_eq!(manager.status().await.state, "not-installed");
+    manager
+      .preparation_state
+      .store(PREPARATION_ACTIVE, Ordering::Release);
+    let status = manager.status().await;
+    assert_eq!(status.state, "preparing");
+    assert!(status.bundled);
+    assert_eq!(status.message, "The Windows runtime is being prepared.");
+    assert!(manager.prepare().await.is_err());
+    let failed = manager.status().await;
+    assert_eq!(failed.state, "prepare-failed");
+    assert_eq!(failed.message, "The Windows runtime could not be prepared.");
+
+    let _ = std::fs::remove_dir_all(root);
+  }
+
+  #[tokio::test]
+  async fn validates_absolute_symlinks_inside_guest_rootfs() {
+    use std::os::unix::fs::symlink;
+
+    let root = std::env::temp_dir().join(format!("wintone-guest-rootfs-{}", Uuid::new_v4()));
+    let rootfs = root.join("rootfs");
+    std::fs::create_dir_all(rootfs.join("usr/bin")).unwrap();
+    std::fs::create_dir_all(rootfs.join("etc/alternatives")).unwrap();
+    std::fs::write(rootfs.join("usr/bin/wine-stable"), "#!/bin/sh\n").unwrap();
+    symlink("/etc/alternatives/wine", rootfs.join("usr/bin/wine")).unwrap();
+    symlink("/usr/bin/wine-stable", rootfs.join("etc/alternatives/wine")).unwrap();
+
+    let manager = RuntimeManager::new(root.join("data"), PathBuf::from("catalog"));
+    manager
+      .validate_guest_executable(&rootfs, &["usr/bin/wine".to_owned()])
+      .await
+      .unwrap();
+
+    let _ = std::fs::remove_dir_all(root);
+  }
+
+  #[tokio::test]
+  async fn rejects_guest_symlinks_that_escape_rootfs() {
+    use std::os::unix::fs::symlink;
+
+    let root = std::env::temp_dir().join(format!("wintone-guest-rootfs-{}", Uuid::new_v4()));
+    let rootfs = root.join("rootfs");
+    std::fs::create_dir_all(rootfs.join("usr/bin")).unwrap();
+    symlink("../../../../etc/passwd", rootfs.join("usr/bin/wine")).unwrap();
+
+    let manager = RuntimeManager::new(root.join("data"), PathBuf::from("catalog"));
+    let error = manager
+      .validate_guest_executable(&rootfs, &["usr/bin/wine".to_owned()])
+      .await
+      .unwrap_err();
+    assert!(error.0.contains("escapes its root filesystem"));
+
+    let _ = std::fs::remove_dir_all(root);
+  }
 }

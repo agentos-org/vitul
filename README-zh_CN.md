@@ -88,33 +88,26 @@ pnpm vitul dev
 | Windows                | 开发：`pnpm vitul dev`<br>构建：`pnpm vitul build`                                                                     | 使用系统 WebView2；默认生成 `.msi` 安装包和 NSIS `.exe` 安装程序。                                                     | 在 Windows 上构建；需要 Rust MSVC 工具链、Node.js/pnpm、Visual Studio C++ Build Tools（“使用 C++ 的桌面开发”工作负载）和 WebView2 Runtime。 |
 | macOS                  | 开发：`pnpm vitul dev`<br>构建：`pnpm vitul build`                                                                     | 使用系统 WebView；默认生成 `.app` 应用包和 `.dmg` 磁盘映像。                                                           | 在 macOS 上构建；需要 Rust、Node.js/pnpm 和 Xcode Command Line Tools（`xcode-select --install`）。                                          |
 
-新建项目在根目录的 `vitul.conf.json` 中统一配置桌面、移动和 AgentOS 设置。
+Vitul 在根目录的 `vitul.conf.json` 中统一配置桌面、移动和 AgentOS 设置。
 使用 `bundle.targets` 选择桌面产物格式，使用 `agentos.targets` 声明 AgentOS 架构。
 运行桌面或移动工具时，Vitul 会在 `src-vitul/` 下生成并忽略运行时配置；开发者只需编辑
-根目录配置。已有项目可以继续使用原有运行时配置。独立的 Vitulfile 打包流程支持
-为现有项目构建 ARM64 和 x64 包。AgentOS `.agt` 使用 manifest v1，支持 ARM64 和 x64；
-AgentOS 会将动态分配的 loopback 宿主端口映射到 `agentos.port` 指定的容器内端口
-（默认 `9627`）。相关命令不
-构建基于 Ubuntu 24 的系统镜像或 AgentOS Desktop 宿主应用；这两者由 AgentOS 自己的
-项目构建。
+根配置。对于未通过 `vitul create` 创建的已有项目，`vitul agentos init` 也会生成根目录
+`vitul.conf.json`。
 
-### 使用 Vitulfile 打包已有 Web 项目
+AgentOS process 应用在 `agentos.build` 和 `agentos.run` 中声明构建步骤、产物和启动方式；
+执行 `vitul agentos validate` 检查配置，再运行 `vitul build --target agentos`。process 包
+支持 Linux ARM64 和 x64；remote-web 应用通过 `agentos.type: "remote-web"` 和 HTTPS
+`agentos.web.url` 配置，生成与架构无关的 URL 包。AgentOS `.agt` 使用 manifest v1；AgentOS
+会将动态分配的 loopback 宿主端口映射到 `agentos.run.port` 指定的容器内端口（默认 `9627`）。
 
-`Vitulfile` 面向独立的已有前后端项目和线上网站，不要求项目使用 Rust 或 Tauri。process
-项目可在 `targets` 中声明 `agentos/arm64`、`agentos/x64` 或两者，然后执行：
+process 应用默认在容器中运行。设置 `agentos.execution.mode` 为 `"native"` 后，进程会直接在
+Linux 宿主机运行，拥有完整宿主机访问权限；安装或更新时需要用户明确同意高风险授权并输入本地账户密码。
+Native 仅适用于 process 应用，不能与 deployment、Host Provider 或 `native.external-wayland` 同用。
+省略 `execution` 即使用默认容器模式。详见
+[AgentOS 配置说明](crates/vitul-cli/src/agentos_config/README-zh_CN.md)。
 
-```sh
-cd path/to/existing-project
-vitul agentos init
-# 配置 Vitulfile 中的 build、artifacts 和 run
-vitul agentos validate
-vitul build --target agentos
-```
-
-线上 HTTPS 网站使用 `vitul agentos init --type remote-web --url https://example.com`；
-AgentOS 会在内嵌 CEF WebApp 窗口中打开它。详见
-[Vitulfile 中文说明](crates/vitul-cli/src/vitulfile/README-zh_CN.md)。Vitulfile 的
-`app.icon` 和旧版 AgentOS 构建中的 `bundle.icon` 均支持 PNG 与 SVG 图标。
+OpenTool 的 `rpc.version: 2` 是独立的 API 绑定版本。相关命令不会构建 Ubuntu 24 系统镜像或
+AgentOS Desktop 宿主应用；这两者由 AgentOS 自己的项目构建。
 
 ## AgentOS SDK
 

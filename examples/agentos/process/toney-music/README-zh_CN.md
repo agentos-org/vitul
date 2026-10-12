@@ -1,7 +1,7 @@
-# Toney Music：Vitulfile 示例
+# Toney Music：AgentOS process 应用
 
-此目录演示如何用 Vitulfile 打包 Toney Music 进程应用：保留现有
-React/Vite 音乐界面，配套一个 Rust 音频服务。它不是 Tauri 或其他 Rust 桌面应用。
+此目录通过根目录 `vitul.conf.json` 打包 Toney Music process 应用：保留现有 React/Vite
+音乐界面，配套一个 Rust 音频服务。它不是 Tauri 或其他 Rust 桌面应用。
 
 React/Vite 前端只负责控制界面。Rust `musicd` 进程管理媒体库、解码、播放状态和后台播放，
 并通过 `AGENTOS_AUDIO_SOCKET` 把原始 PCM 直接提交给 AgentOS 宿主音频 broker；CEF 不负责
@@ -51,7 +51,7 @@ vitul build --target agentos/arm64
 ```
 
 Rust 构建脚本在跨平台构建时使用 Linux 容器，并读取 `VITUL_TARGET_ARCH`。当前
-`Vitulfile` 目标为 `agentos/arm64`。Vitul 会构建前端和 `musicd`，将 FFmpeg 作为兜底一起打包，
+`vitul.conf.json` 中的 `agentos.targets` 为 `agentos/arm64`。Vitul 会构建前端和 `musicd`，将 FFmpeg 作为兜底一起打包，
 并生成 `dist/toney-music-0.3.10-agentos-arm64.agt`。
 
 生成的进程 manifest 声明 `native.audio`、`native.audio.exclusive` 和 `native.tray`，并启用运行时

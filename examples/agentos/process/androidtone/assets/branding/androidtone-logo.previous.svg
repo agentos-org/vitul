@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">AndroidTone 安卓应用市场</title>
+  <desc id="desc">购物袋里的绿色 Android 机器人。</desc>
+  <metadata>Android is a trademark of Google LLC. Android robot modified from work created and shared by Google, used under CC BY 3.0: https://creativecommons.org/licenses/by/3.0/. Source: https://developer.android.com/distribute/marketing-tools/brand-guidelines . Shopping bag addition by AndroidTone.</metadata>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1"><stop stop-color="#e8fff0"/><stop offset="1" stop-color="#d8f4e8"/></linearGradient>
+    <linearGradient id="bag" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#f6fffa"/></linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#background)"/>
+  <path d="M46 33v-7a18 18 0 0 1 36 0v7" fill="none" stroke="#207c56" stroke-width="6" stroke-linecap="round"/>
+  <rect x="17" y="28" width="94" height="84" rx="19" fill="#207c56" opacity=".1"/>
+  <rect x="17" y="25" width="94" height="84" rx="19" fill="url(#bag)" stroke="#b9e5ca" stroke-width="1.5"/>
+  <g fill="#3ddc84">
+    <path d="M43 58a21 21 0 0 1 42 0v4H43Z"/>
+    <path d="M43 66h42v21a6 6 0 0 1-6 6H49a6 6 0 0 1-6-6Z"/>
+    <rect x="32" y="65" width="8" height="26" rx="4"/>
+    <rect x="88" y="65" width="8" height="26" rx="4"/>
+    <rect x="50" y="87" width="9" height="17" rx="4.5"/>
+    <rect x="69" y="87" width="9" height="17" rx="4.5"/>
+  </g>
+  <path d="m49 41-5-8m35 8 5-8" stroke="#3ddc84" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="54" cy="52" r="2.7" fill="#fff"/>
+  <circle cx="74" cy="52" r="2.7" fill="#fff"/>
+</svg>

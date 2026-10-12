@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6faf3" />
+    <title>AndroidTone</title>
+    <link rel="icon" href="%BASE_URL%favicon.png" type="image/png" />
+    <script>
+      (() => {
+        const q = new URLSearchParams(location.search), r = document.documentElement;
+        const hosted = q.get('runtime') === 'agentos' || q.has('hostOrigin');
+        const requested = hosted ? q.get('theme') : null;
+        const theme = requested === 'dark' || requested === 'light' ? requested : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        r.dataset.theme = theme; r.style.colorScheme = theme;
+        r.lang = (hosted ? q.get('locale') || navigator.language : navigator.language).toLowerCase().startsWith('zh') ? 'zh-CN' : 'en-US';
+        r.style.backgroundColor = theme === 'dark' ? '#101b14' : '#f6faf3';
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

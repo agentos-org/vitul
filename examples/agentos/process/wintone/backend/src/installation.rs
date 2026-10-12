@@ -5,7 +5,8 @@ use std::{
 
 use crate::{
   external_wayland::{CreateSession, ExternalSession, FileGrant, WindowHints},
-  model::{InstallTask, InstalledApp},
+  model::{InstallTask, InstalledApp, SessionPreferences, Store},
+  pe_arch::WindowsArchitecture,
   runtime::InstalledRuntime,
   shortcuts, AppState,
 };
@@ -55,7 +56,7 @@ async fn prepare_imported_task_inner(state: AppState, task_id: String) {
       &task_id,
       "preparing-runtime",
       "runtime",
-      "Preparing the shared Wine/FEX runtime.",
+      "Preparing the Windows runtime.",
     )
     .await,
     Ok(true)
@@ -66,6 +67,10 @@ async fn prepare_imported_task_inner(state: AppState, task_id: String) {
   let runtime = match state.runtime_manager.prepare().await {
     Ok(runtime) => runtime,
     Err(error) => {
+      eprintln!(
+        "WinTone could not prepare the Windows runtime for task {task_id}: {}",
+        error.0
+      );
       let runtime_status = state.runtime_manager.status().await;
       if runtime_status.state == "catalog-unavailable" {
         let _ = update(
@@ -73,11 +78,18 @@ async fn prepare_imported_task_inner(state: AppState, task_id: String) {
           &task_id,
           "waiting-runtime",
           "runtime",
-          &runtime_status.message,
+          "The Windows runtime is unavailable. Restart WinTone to retry preparation.",
         )
         .await;
       } else {
-        let _ = update(&state, &task_id, "failed", "runtime", &error.0).await;
+        let _ = update(
+          &state,
+          &task_id,
+          "failed",
+          "runtime",
+          "Could not prepare the Windows runtime. Try restarting WinTone.",
+        )
+        .await;
       }
       return;
     }
@@ -89,7 +101,7 @@ async fn prepare_imported_task_inner(state: AppState, task_id: String) {
       &task_id,
       "preparing-prefix",
       "prefix",
-      "Preparing a private Wine prefix for this installation.",
+      "Preparing a private environment for this installation.",
     )
     .await,
     Ok(true)
@@ -97,7 +109,19 @@ async fn prepare_imported_task_inner(state: AppState, task_id: String) {
     return;
   }
 
-  match state.prefix_manager.prepare(&task_id, &runtime).await {
+  if let Err(error) = state
+    .runtime_manager
+    .launch_command(&runtime, task.windows_architecture)
+  {
+    let _ = update(&state, &task_id, "failed", "runtime", &error.0).await;
+    return;
+  }
+
+  match state
+    .prefix_manager
+    .prepare(&task_id, &runtime, task.windows_architecture)
+    .await
+  {
     Ok(_) => {}
     Err(error) => {
       let _ = update(&state, &task_id, "failed", "prefix", &error).await;
@@ -163,6 +187,30 @@ async fn launch_installer(state: &AppState, task: &InstallTask, runtime: &Instal
     .await;
     return;
   }
+  if capabilities["fileGrants"]["available"] != true {
+    let reason = capabilities["fileGrants"]["unavailableReasons"]
+      .as_array()
+      .map(|values| {
+        values
+          .iter()
+          .filter_map(Value::as_str)
+          .collect::<Vec<_>>()
+          .join(", ")
+      })
+      .filter(|value| !value.is_empty())
+      .unwrap_or_else(|| "scoped file grants are unavailable".to_owned());
+    let _ = update(
+      state,
+      &task.id,
+      "waiting-window-session",
+      "window-session",
+      &format!(
+        "AgentOS cannot safely mount the runtime, prefix, and installer separately: {reason}."
+      ),
+    )
+    .await;
+    return;
+  }
 
   let sessions = match state.external_wayland.list_sessions().await {
     Ok(sessions) => sessions,
@@ -205,19 +253,21 @@ async fn launch_installer(state: &AppState, task: &InstallTask, runtime: &Instal
     return;
   }
 
-  let installer_path = format!("/data/installers/{}.{}", task.id, task.extension);
+  let installer_path = "/grants/installer/content".to_owned();
   let installer_args = if task.extension.eq_ignore_ascii_case("msi") {
     vec!["msiexec".to_owned(), "/i".to_owned(), installer_path]
   } else {
     vec![installer_path]
   };
-  let request = match make_session_request(
+  let mut request = match make_session_request(
     state,
     runtime,
     application_id,
     &task.file_name,
     &task.id,
+    task.windows_architecture,
     installer_args,
+    Some(task),
   ) {
     Ok(request) => request,
     Err(error) => {
@@ -225,6 +275,7 @@ async fn launch_installer(state: &AppState, task: &InstallTask, runtime: &Instal
       return;
     }
   };
+  apply_session_preferences(state, &mut request, &capabilities).await;
   let _ = update(
     state,
     &task.id,
@@ -240,9 +291,9 @@ async fn launch_installer(state: &AppState, task: &InstallTask, runtime: &Instal
         .update_install_task_session(
           &task.id,
           Some(session.session_id),
-          "awaiting-user",
+          "starting-installer",
           "installer",
-          "The installer is open. Finish or close its Windows setup window to continue.",
+          "The session was created; installer window mapping and Shell presentation remain unverified.",
         )
         .await;
     }
@@ -280,12 +331,10 @@ fn make_session_request(
   application_id: String,
   title: &str,
   prefix_id: &str,
+  windows_architecture: WindowsArchitecture,
   mut program_args: Vec<String>,
+  installer: Option<&InstallTask>,
 ) -> Result<CreateSession, String> {
-  let (wine_program, wine_args) = state
-    .runtime_manager
-    .session_command(runtime, &runtime.wine_command)
-    .map_err(|error| error.0)?;
   let mut environment = BTreeMap::from([
     (
       "WINEPREFIX".to_owned(),
@@ -293,15 +342,54 @@ fn make_session_request(
     ),
     ("WINEDEBUG".to_owned(), "-all".to_owned()),
   ]);
-  let (executable, mut args) = if runtime.host_architecture == "aarch64" {
+  let (executable, mut args) = if runtime.host_architecture == "aarch64"
+    && windows_architecture == WindowsArchitecture::Arm64
+  {
+    let launcher = runtime.native_session_launcher.as_ref().ok_or_else(|| {
+      "The Windows runtime does not support ARM64 apps on this device.".to_owned()
+    })?;
+    let (launcher_program, launcher_args) = state
+      .runtime_manager
+      .session_command(runtime, launcher)
+      .map_err(|error| error.0)?;
+    let wine_command = runtime
+      .native_wine_command
+      .as_ref()
+      .ok_or_else(|| "The Windows runtime is missing ARM64 app support.".to_owned())?;
+    let wineboot_command = runtime
+      .native_wineboot_command
+      .as_ref()
+      .ok_or_else(|| "The Windows runtime is missing ARM64 setup support.".to_owned())?;
+    let (wine_program, wine_args) = state
+      .runtime_manager
+      .session_command(runtime, wine_command)
+      .map_err(|error| error.0)?;
+    let (wineboot_program, wineboot_args) = state
+      .runtime_manager
+      .session_command(runtime, wineboot_command)
+      .map_err(|error| error.0)?;
+    let mut args = launcher_args;
+    args.push(shell_join_command(
+      &std::iter::once(wine_program)
+        .chain(wine_args)
+        .collect::<Vec<_>>(),
+    ));
+    args.push(shell_join_command(
+      &std::iter::once(wineboot_program)
+        .chain(wineboot_args)
+        .collect::<Vec<_>>(),
+    ));
+    args.push("--".to_owned());
+    (launcher_program, args)
+  } else if runtime.host_architecture == "aarch64" {
     let fex_command = runtime
       .fex_command
       .as_ref()
-      .ok_or_else(|| "ARM64 runtime has no FEX command.".to_owned())?;
+      .ok_or_else(|| "The Windows runtime does not support this app architecture.".to_owned())?;
     let rootfs = runtime
       .fex_rootfs
       .as_deref()
-      .ok_or_else(|| "ARM64 runtime has no FEX RootFS.".to_owned())?;
+      .ok_or_else(|| "The Windows runtime is missing compatibility files.".to_owned())?;
     let (fex_program, fex_args) = state
       .runtime_manager
       .session_command(runtime, fex_command)
@@ -313,15 +401,76 @@ fn make_session_request(
         .session_data_path(runtime, rootfs)
         .map_err(|error| error.0)?,
     );
+    let (wine_program, wine_args) = state
+      .runtime_manager
+      .guest_session_command(&runtime.wine_command)
+      .map_err(|error| error.0)?;
+    let (wineboot_program, wineboot_args) = state
+      .runtime_manager
+      .guest_session_command(&runtime.wineboot_command)
+      .map_err(|error| error.0)?;
     let mut args = fex_args;
-    args.push(wine_program);
-    args.extend(wine_args);
+    let mut wine_command = vec![wine_program];
+    wine_command.extend(wine_args);
+    args.push(shell_join_command(&wine_command));
+    let mut wineboot_command = vec![wineboot_program];
+    wineboot_command.extend(wineboot_args);
+    args.push(shell_join_command(&wineboot_command));
+    args.push("--".to_owned());
     (fex_program, args)
   } else {
-    (wine_program, wine_args)
+    if windows_architecture == WindowsArchitecture::Arm64 {
+      return Err("Native Windows ARM64 programs require an ARM64 AgentOS host.".to_owned());
+    }
+    state
+      .runtime_manager
+      .session_command(runtime, &runtime.wine_command)
+      .map_err(|error| error.0)?
   };
   args.append(&mut program_args);
   let prefix = crate::prefixes::PrefixManager::session_path(prefix_id)?;
+  let runtime_source = state
+    .runtime_manager
+    .session_source(runtime)
+    .map_err(|error| error.0)?;
+  let prefix_source = crate::prefixes::PrefixManager::grant_source(prefix_id)?;
+  let mut files = vec![
+    FileGrant {
+      id: "runtime".to_owned(),
+      source: runtime_source,
+      kind: "runtime".to_owned(),
+      grant_type: "directory".to_owned(),
+      access: "readOnly".to_owned(),
+      mode: "persistent".to_owned(),
+      sharing: "exclusive".to_owned(),
+    },
+    FileGrant {
+      id: "prefix".to_owned(),
+      source: prefix_source,
+      kind: "sessionData".to_owned(),
+      grant_type: "directory".to_owned(),
+      access: "readWrite".to_owned(),
+      mode: "persistent".to_owned(),
+      sharing: "exclusive".to_owned(),
+    },
+  ];
+  if let Some(task) = installer {
+    let installer_id =
+      Uuid::parse_str(&task.id).map_err(|_| "Invalid installer task identifier.".to_owned())?;
+    let extension = task.extension.to_ascii_lowercase();
+    if !matches!(extension.as_str(), "exe" | "msi") {
+      return Err("Unsupported Windows installer type.".to_owned());
+    }
+    files.push(FileGrant {
+      id: "installer".to_owned(),
+      source: format!("installers/{installer_id}.{extension}"),
+      kind: "import".to_owned(),
+      grant_type: "file".to_owned(),
+      access: "readOnly".to_owned(),
+      mode: "persistent".to_owned(),
+      sharing: "exclusive".to_owned(),
+    });
+  }
   let title = title.chars().take(240).collect::<String>();
   Ok(CreateSession {
     version: 1,
@@ -330,10 +479,7 @@ fn make_session_request(
     args,
     working_directory: prefix,
     environment,
-    files: vec![FileGrant {
-      root: "data".to_owned(),
-      access: "readWrite".to_owned(),
-    }],
+    files,
     permissions: vec!["network".to_owned()],
     window_hints: WindowHints {
       title: format!("WinTone · {title}"),
@@ -341,6 +487,14 @@ fn make_session_request(
       height: 760,
     },
   })
+}
+
+fn shell_join_command(command: &[String]) -> String {
+  command
+    .iter()
+    .map(|argument| format!("'{}'", argument.replace('\'', "'\\''")))
+    .collect::<Vec<_>>()
+    .join(" ")
 }
 
 pub async fn launch_installed_app(
@@ -357,18 +511,7 @@ pub async fn launch_installed_app(
   if app.session_id.is_some() {
     return Err("This application already has an active AgentOS session.".to_owned());
   }
-  let runtime = state
-    .runtime_manager
-    .installed_runtime()
-    .await
-    .map_err(|error| error.0)?
-    .ok_or_else(|| "The shared Wine/FEX runtime is not installed.".to_owned())?;
-  if !app.runtime_version.is_empty() && app.runtime_version != runtime.version {
-    return Err(format!(
-      "This app uses Wine/FEX {}, but the active runtime is {}.",
-      app.runtime_version, runtime.version
-    ));
-  }
+  let runtime = runtime_for_app(state, &app).await?;
   state.prefix_manager.path(&app.installation_id).await?;
   let request = make_session_request(
     state,
@@ -376,7 +519,9 @@ pub async fn launch_installed_app(
     format!("wintone.app.{}", app.id),
     &app.name,
     &app.installation_id,
+    app.windows_architecture,
     vec![app.executable.clone()],
+    None,
   )?;
   start_app_session(state, &app.id, "launch", request).await
 }
@@ -399,18 +544,7 @@ pub async fn uninstall_installed_app(
     .uninstall_executable
     .clone()
     .ok_or_else(|| "This application did not register a supported uninstaller.".to_owned())?;
-  let runtime = state
-    .runtime_manager
-    .installed_runtime()
-    .await
-    .map_err(|error| error.0)?
-    .ok_or_else(|| "The shared Wine/FEX runtime is not installed.".to_owned())?;
-  if !app.runtime_version.is_empty() && app.runtime_version != runtime.version {
-    return Err(format!(
-      "This app uses Wine/FEX {}, but the active runtime is {}.",
-      app.runtime_version, runtime.version
-    ));
-  }
+  let runtime = runtime_for_app(state, &app).await?;
   state.prefix_manager.path(&app.installation_id).await?;
   let request = make_session_request(
     state,
@@ -418,11 +552,46 @@ pub async fn uninstall_installed_app(
     format!("wintone.uninstall.{}", app.id),
     &format!("卸载 {}", app.name),
     &app.installation_id,
+    app.windows_architecture,
     std::iter::once(uninstall_executable)
       .chain(app.uninstall_args)
       .collect(),
+    None,
   )?;
   start_app_session(state, app_id, "uninstall", request).await
+}
+
+async fn runtime_for_app(state: &AppState, app: &InstalledApp) -> Result<InstalledRuntime, String> {
+  let runtime = if app.runtime_version.is_empty() {
+    state.runtime_manager.installed_runtime().await
+  } else {
+    state
+      .runtime_manager
+      .installed_runtime_version(&app.runtime_version)
+      .await
+  };
+  let runtime = match runtime {
+    Ok(runtime) => runtime,
+    Err(error) => {
+      eprintln!(
+        "WinTone could not validate the Windows runtime for app {}: {}",
+        app.id, error.0
+      );
+      return Err(
+        "The Windows runtime could not be validated. Restart or reinstall WinTone.".to_owned(),
+      );
+    }
+  };
+  runtime.ok_or_else(|| {
+    if app.runtime_version.is_empty() {
+      "The Windows runtime is not installed.".to_owned()
+    } else {
+      format!(
+        "Runtime {} used by this app is not installed.",
+        app.runtime_version
+      )
+    }
+  })
 }
 
 async fn start_app_session(
@@ -446,6 +615,23 @@ async fn start_app_session(
   if capabilities["available"] != true {
     return Err("AgentOS Wayland sessions are currently unavailable.".to_owned());
   }
+  if capabilities["fileGrants"]["available"] != true {
+    let reason = capabilities["fileGrants"]["unavailableReasons"]
+      .as_array()
+      .map(|values| {
+        values
+          .iter()
+          .filter_map(Value::as_str)
+          .collect::<Vec<_>>()
+          .join(", ")
+      })
+      .filter(|value| !value.is_empty())
+      .unwrap_or_else(|| "scoped file grants are unavailable".to_owned());
+    return Err(format!(
+      "AgentOS cannot safely mount the runtime and prefix separately: {reason}."
+    ));
+  }
+  apply_session_preferences(state, &mut request, &capabilities).await;
   let sessions = state
     .external_wayland
     .list_sessions()
@@ -502,6 +688,50 @@ async fn start_app_session(
   Ok(session)
 }
 
+async fn apply_session_preferences(
+  state: &AppState,
+  request: &mut CreateSession,
+  capabilities: &Value,
+) {
+  let store = match state.snapshot().await {
+    Ok(store) => store,
+    Err(error) => {
+      eprintln!("WinTone could not read session preferences: {}", error.0);
+      return;
+    }
+  };
+  request
+    .permissions
+    .extend(session_permissions(&store, capabilities));
+}
+
+fn session_permissions(store: &Store, capabilities: &Value) -> Vec<String> {
+  let gpu_available = capabilities["gpu"]["available"] == true;
+  let clipboard_available = capabilities["clipboard"]["available"] == true;
+  let preferences = if store.session_preferences_configured {
+    store.session_preferences.clone()
+  } else {
+    SessionPreferences {
+      gpu: gpu_available,
+      clipboard_read: clipboard_available,
+      clipboard_write: clipboard_available,
+    }
+  };
+  let mut permissions = Vec::new();
+  if preferences.gpu && gpu_available {
+    permissions.push("gpu".to_owned());
+  }
+  if clipboard_available {
+    if preferences.clipboard_read {
+      permissions.push("clipboardRead".to_owned());
+    }
+    if preferences.clipboard_write {
+      permissions.push("clipboardWrite".to_owned());
+    }
+  }
+  permissions
+}
+
 struct ActiveAppOperation {
   state: AppState,
   app_id: String,
@@ -518,14 +748,14 @@ pub async fn resume_waiting_tasks(state: AppState) {
     Ok(store) => {
       for task in store.install_tasks.into_iter().filter(|task| {
         task.session_id.is_none()
-          && matches!(
+          && (matches!(
             task.status.as_str(),
             "waiting-runtime"
               | "preparing-runtime"
               | "preparing-prefix"
               | "waiting-window-session"
               | "starting-installer"
-          )
+          ) || is_retryable_runtime_preparation_failure(task))
       }) {
         let task_state = state.clone();
         tokio::spawn(async move {
@@ -535,6 +765,12 @@ pub async fn resume_waiting_tasks(state: AppState) {
     }
     Err(error) => eprintln!("WinTone could not restore pending tasks: {}", error.0),
   }
+}
+
+fn is_retryable_runtime_preparation_failure(task: &crate::model::InstallTask) -> bool {
+  task.status == "failed"
+    && task.phase == "runtime"
+    && task.message == "Could not prepare the Windows runtime. Try restarting WinTone."
 }
 
 pub async fn monitor_sessions(state: AppState) {
@@ -581,6 +817,14 @@ pub async fn monitor_sessions(state: AppState) {
             windows: Vec::new(),
           };
           finish_install_task(&state, task, &lost).await;
+        }
+        Some(session)
+          if session.mapped_window_observed() && task.status == "starting-installer" =>
+        {
+          let _ = state.repository.update_install_task_session(
+            &task.id, Some(session.session_id.clone()), "awaiting-user", "installer",
+            "A mapped window was reported; Flutter presentation and input still require verification.",
+          ).await;
         }
         _ => {}
       }
@@ -665,7 +909,7 @@ async fn finish_install_task(state: &AppState, task: &InstallTask, session: &Ext
       task.session_id.clone(),
       "discovering-apps",
       "discovery",
-      "Reading the Wine prefix to find installed Windows apps.",
+      "Finding Windows apps installed by this setup.",
     )
     .await;
   let prefix = match state.prefix_manager.path(&task.id).await {
@@ -686,7 +930,7 @@ async fn finish_install_task(state: &AppState, task: &InstallTask, session: &Ext
         &task.id,
         "failed",
         "discovery",
-        &format!("Could not inspect Wine registry: {error}"),
+        &format!("Could not inspect installed app information: {error}"),
       )
       .await;
       return;
@@ -711,6 +955,7 @@ async fn finish_install_task(state: &AppState, task: &InstallTask, session: &Ext
         installation_id: task.id.clone(),
         executable: app.executable,
         installed_at,
+        windows_architecture: task.windows_architecture,
         runtime_version: runtime_version.clone(),
         uninstall_executable: app.uninstall_executable,
         uninstall_args: app.uninstall_args,
@@ -743,10 +988,10 @@ async fn finish_install_task(state: &AppState, task: &InstallTask, session: &Ext
     }
   }
 
-  let message = session.error.clone().unwrap_or_else(|| {
-    "The installer session ended, but no launchable app was found in the Wine uninstall registry."
-      .to_owned()
-  });
+  let message = session
+    .error
+    .clone()
+    .unwrap_or_else(|| "The installer session ended, but no launchable app was found.".to_owned());
   let _ = state
     .repository
     .update_install_task_session(&task.id, None, "failed", "discovery", &message)
@@ -800,7 +1045,7 @@ async fn finish_app_session(state: &AppState, app: &InstalledApp, session: &Exte
         &app.id,
         None,
         None,
-        Some("The uninstall session ended, but the app remains in the Wine registry.".to_owned()),
+        Some("The uninstall session ended, but the app is still listed as installed.".to_owned()),
       )
       .await;
     return;
@@ -868,4 +1113,65 @@ fn now_millis() -> u128 {
     .duration_since(UNIX_EPOCH)
     .unwrap_or_default()
     .as_millis()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn store(configured: bool, preferences: SessionPreferences) -> Store {
+    Store {
+      session_preferences_configured: configured,
+      session_preferences: preferences,
+      ..Store::default()
+    }
+  }
+
+  #[test]
+  fn defaults_to_available_session_capabilities() {
+    let capabilities = serde_json::json!({
+      "gpu": { "available": false },
+      "clipboard": { "available": true }
+    });
+    assert_eq!(
+      session_permissions(&store(false, SessionPreferences::default()), &capabilities),
+      vec!["clipboardRead", "clipboardWrite"]
+    );
+  }
+
+  #[test]
+  fn preserves_explicit_user_choices_and_filters_unavailable_permissions() {
+    let capabilities = serde_json::json!({
+      "gpu": { "available": true },
+      "clipboard": { "available": false }
+    });
+    let preferences = SessionPreferences {
+      gpu: false,
+      clipboard_read: true,
+      clipboard_write: true,
+    };
+    assert!(session_permissions(&store(true, preferences), &capabilities).is_empty());
+  }
+
+  #[test]
+  fn retries_tasks_that_failed_before_the_runtime_was_prepared() {
+    let task: InstallTask = serde_json::from_value(serde_json::json!({
+      "id": "7821354d-e778-4e1b-a8fd-6ab0789e56ac",
+      "fileName": "hello-windows-arm64.exe",
+      "extension": "exe",
+      "bytes": 171520,
+      "sha256": "183fe7ee819fd12351654da35410d593168ffdcc3bb5977be98982af18392808",
+      "addedAt": 1791793702792_u64,
+      "windowsArchitecture": "arm64",
+      "status": "failed",
+      "phase": "runtime",
+      "message": "Could not prepare the Windows runtime. Try restarting WinTone."
+    }))
+    .unwrap();
+    assert!(is_retryable_runtime_preparation_failure(&task));
+
+    let mut task = task;
+    task.message = "The Windows runtime does not support this app architecture.".to_owned();
+    assert!(!is_retryable_runtime_preparation_failure(&task));
+  }
 }
