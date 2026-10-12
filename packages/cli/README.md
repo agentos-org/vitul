@@ -11,12 +11,11 @@ This package supplies the native JavaScript binding used by the public `vitul`
 and `create-vitul-app` command packages. New projects also install `@litevar/vitul-cli`
 as a development dependency, which provides the `vitul` script command.
 
-The npm release is prepared in this repository. Before publishing, maintainers
-must verify npm ownership for `@litevar/vitul-cli` and every target-specific
-`@litevar/vitul-cli-*` package, plus `vitul` and `create-vitul-app`. Trusted
-publishers must be configured for those packages after their first versions
-exist. Until then, install the Rust CLI from a source checkout with
-`cargo install --path crates/vitul-cli --locked`.
+The native binding and its target-specific `@litevar/vitul-cli-*` packages are
+published through the GitHub Actions release workflow. The `vitul` and
+`create-vitul-app` command wrappers use a separate manual workflow and may be
+published independently. For local development, install the Rust CLI from a
+source checkout with `cargo install --path crates/vitul-cli --locked`.
 
 Use `vitul` for project commands, for example `pnpm vitul dev` and
 `pnpm vitul build`. New Vitul projects expose no `tauri` command alias.

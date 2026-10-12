@@ -168,6 +168,13 @@ pub fn package_config(root: &Path) -> Result<Config> {
     json!([]),
   );
   copy_or_default(
+    agentos,
+    "providers",
+    &mut package_agentos,
+    "providers",
+    json!([]),
+  );
+  copy_or_default(
     &open,
     "mode",
     &mut package_agentos,
@@ -242,6 +249,28 @@ pub fn package_config(root: &Path) -> Result<Config> {
 
 pub fn root_config(root: &Path) -> Result<Value> {
   read(root)
+}
+
+pub(crate) fn is_generated_backend_artifact(root: &Path, source: &Path) -> bool {
+  let Ok(config) = read(root) else {
+    return false;
+  };
+  if config.get("schemaVersion").and_then(Value::as_u64) != Some(PROJECT_SCHEMA_VERSION) {
+    return false;
+  }
+  let Some(backend) = config.get("backend") else {
+    return false;
+  };
+  if backend.get("type").and_then(Value::as_str) != Some("opentool") {
+    return false;
+  }
+  let Some(binary) = backend.get("binary").and_then(Value::as_str) else {
+    return false;
+  };
+  if binary.is_empty() || binary.contains('/') || binary.contains('\\') || binary.contains('\0') {
+    return false;
+  }
+  source == Path::new("agentos-build").join("bin").join(binary)
 }
 
 fn read(root: &Path) -> Result<Value> {
@@ -448,5 +477,51 @@ mod tests {
     assert_eq!(parsed.app.id, "com.example.demo");
     assert_eq!(parsed.target_summary(), "agentos/arm64, agentos/x64");
     assert_eq!(parsed.run.command.as_deref(), Some("./bin/vitul-backend"));
+  }
+
+  #[test]
+  fn unified_config_allows_the_backend_binary_generated_by_vitul() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("public")).unwrap();
+    fs::write(root.path().join("start.sh"), "#!/bin/sh\n").unwrap();
+    let config = json!({
+      "schemaVersion": 2,
+      "productName": "WinTone",
+      "version": "0.1.0",
+      "identifier": "com.agentos.wintone",
+      "backend": {
+        "type": "opentool",
+        "manifest": "backend/Cargo.toml",
+        "binary": "wintone-server"
+      },
+      "agentos": {
+        "type": "process",
+        "targets": ["agentos/arm64", "agentos/x64"],
+        "build": {
+          "artifacts": [
+            { "from": "public", "to": "public" },
+            { "from": "start.sh", "to": "start.sh" },
+            {
+              "from": "agentos-build/bin/wintone-server",
+              "to": "wintone-server"
+            }
+          ]
+        },
+        "run": {
+          "command": "./start.sh",
+          "port": 3000,
+          "healthCheck": "/health"
+        }
+      }
+    });
+    fs::write(
+      root.path().join("vitul.conf.json"),
+      serde_json::to_vec(&config).unwrap(),
+    )
+    .unwrap();
+
+    let parsed = package_config(root.path()).unwrap();
+    assert_eq!(parsed.app.name, "WinTone");
+    assert_eq!(parsed.run.command.as_deref(), Some("./start.sh"));
   }
 }

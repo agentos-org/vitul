@@ -391,13 +391,13 @@ importers:
   packages/create-vitul-app:
     dependencies:
       '@litevar/vitul-cli':
-        specifier: ^2.12.0
+        specifier: ^2.13.0
         version: link:../cli
 
   packages/vitul:
     dependencies:
       '@litevar/vitul-cli':
-        specifier: ^2.12.0
+        specifier: ^2.13.0
         version: link:../cli
 
 packages:

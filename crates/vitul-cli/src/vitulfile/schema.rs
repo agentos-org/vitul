@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Clone, Debug, Deserialize)]
@@ -88,6 +88,8 @@ pub struct BuildStep {
 pub struct Artifact {
   pub from: PathBuf,
   pub to: PathBuf,
+  #[serde(default)]
+  pub targets: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -147,6 +149,10 @@ pub struct AgentOsConfig {
   pub min_height: u32,
   #[serde(default)]
   pub permissions: Vec<String>,
+  /// Host Providers this process App registers with AgentOS. Each declaration
+  /// narrows the methods; executable providers run as the desktop user.
+  #[serde(default)]
+  pub providers: Vec<ProviderConfig>,
   #[serde(default = "default_rpc_base_path")]
   pub rpc_base_path: String,
   #[serde(default = "default_rpc_discovery")]
@@ -163,10 +169,22 @@ impl Default for AgentOsConfig {
       min_width: default_min_width(),
       min_height: default_min_height(),
       permissions: Vec::new(),
+      providers: Vec::new(),
       rpc_base_path: default_rpc_base_path(),
       rpc_discovery: default_rpc_discovery(),
     }
   }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ProviderConfig {
+  pub id: String,
+  #[serde(default)]
+  pub methods: Vec<String>,
+  /// Optional package-relative executable implementing this Provider.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub executable: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]

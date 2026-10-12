@@ -65,21 +65,22 @@ jobs:
           mkdir -p "$project_dir"
           cd "$project_dir"
           export CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target"
-          "$GITHUB_WORKSPACE/target/debug/vitul" create . --yes --manager npm --template vanilla-ts --identifier com.litevar.agentos.timeMemo --product-name "Time Memo" --window-title "Time Memo"
+          "$GITHUB_WORKSPACE/target/debug/vitul" create . --yes --manager pnpm --template react-ts --identifier com.litevar.agentos.timeMemo --product-name "Time Memo" --window-title "Time Memo"
           test -f vitul.conf.json
           test ! -f src-vitul/vitul.conf.json
           test ! -f src-vitul/tauri.conf.json
           test -f backend/Cargo.toml
           test -f src/opentool.ts
-          npm pkg set "scripts.vitul=$GITHUB_WORKSPACE/target/debug/vitul"
-          npm install
-          npm run build
-          npm run vitul -- dev --help
+          pnpm remove -D @litevar/vitul-cli
+          pnpm pkg set "scripts.vitul=$GITHUB_WORKSPACE/target/debug/vitul"
+          pnpm install
+          pnpm run build
+          pnpm run vitul dev --help
           cargo check --manifest-path src-vitul/Cargo.toml
           test -f src-vitul/vitul.conf.json
           test -f src-vitul/tauri.conf.json
           cargo test --manifest-path backend/Cargo.toml
-          npm run vitul -- agentos validate
+          pnpm run vitul agentos validate
           echo "VITUL_CI_PROJECT_DIR=$project_dir" >> "$GITHUB_ENV"
 
       - name: Install JavaScript workspace
@@ -91,7 +92,9 @@ jobs:
           pnpm build:cli:debug
 
       - name: Build the generated npm project as an AgentOS app
-        run: npm --prefix "$VITUL_CI_PROJECT_DIR" run vitul -- build --target agentos/arm64
+        run: |
+          cd "$VITUL_CI_PROJECT_DIR"
+          pnpm run vitul build --target agentos/arm64
 
       - name: Validate the generated .agt package
         shell: bash

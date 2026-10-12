@@ -8,16 +8,29 @@ use std::{
 const BACKEND_CARGO: &str = include_str!("../templates/backend.Cargo.toml");
 const BACKEND_LIB: &str = include_str!("../templates/backend-lib.rs");
 const BACKEND_MAIN: &str = include_str!("../templates/backend-main.rs");
+const BACKEND_TOOLS_MOD: &str = include_str!("../templates/backend-tools-mod.rs");
+const BACKEND_TOOL_GREET: &str = include_str!("../templates/backend-tool-greet.rs");
 const FRONTEND_INDEX: &str = include_str!("../templates/index.html");
-const FRONTEND_MAIN: &str = include_str!("../templates/frontend-main.ts");
+const FRONTEND_MAIN: &str = include_str!("../templates/frontend-main.tsx");
+const FRONTEND_APP: &str = include_str!("../templates/App.tsx");
+const FRONTEND_BUTTON: &str = include_str!("../templates/components/ui/Button.tsx");
+const FRONTEND_CARD: &str = include_str!("../templates/components/ui/Card.tsx");
+const FRONTEND_INPUT: &str = include_str!("../templates/components/ui/Input.tsx");
+const FRONTEND_STYLES: &str = include_str!("../templates/styles.css");
 const FRONTEND_OPENTOOL: &str = include_str!("../templates/opentool.ts");
+const FRONTEND_AGENTOS: &str = include_str!("../templates/agentos.ts");
 const FRONTEND_HOST: &str = include_str!("../templates/host.ts");
 const DESKTOP_HOST: &str = include_str!("../templates/desktop-host.ts");
 const VITUL_LIB: &str = include_str!("../templates/vitul-lib.rs");
 const VITE_CONFIG: &str = include_str!("../templates/vite.config.ts");
 const PROJECT_README: &str = include_str!("../templates/VITUL.md");
 const PROJECT_README_ZH_CN: &str = include_str!("../templates/VITUL-zh_CN.md");
-const CREATE_HELP: &str = "Create an OpenTool-first Vitul app\n\nUSAGE:\n  vitul create [OPTIONS] <PROJECT>\n\nOPTIONS:\n  -m, --manager <MANAGER>       Choose npm, pnpm, yarn, bun, or deno\n  -t, --template <TEMPLATE>     Currently vanilla-ts\n      --identifier <IDENTIFIER> Set the bundle identifier (preserved as given)\n      --product-name <NAME>     Set the app display name (default: directory name)\n      --window-title <TITLE>    Set the desktop title (default: product name)\n  -y, --yes                     Skip prompts\n  -f, --force                   Overwrite a non-empty target directory\n";
+const AGENT_GUIDE: &str = include_str!("../templates/AGENTS.md");
+const CREATE_HELP: &str = "Create an OpenTool-first Vitul app\n\nUSAGE:\n  vitul create [OPTIONS] <PROJECT>\n\nPRESET:\n  React + TypeScript, Tailwind CSS, Vite, and pnpm\n\nOPTIONS:\n      --identifier <IDENTIFIER> Set the bundle identifier (preserved as given)\n      --product-name <NAME>     Set the app display name (default: directory name)\n      --window-title <TITLE>    Set the desktop title (default: product name)\n  -y, --yes                     Skip prompts\n  -f, --force                   Overwrite a non-empty target directory\n";
+
+const PRESET_PACKAGE_MANAGER: &str = "pnpm";
+const PRESET_TEMPLATE: &str = "react-ts";
+const PRESET_IOS_MINIMUM_VERSION: &str = "26.0";
 
 pub fn run(args: Vec<OsString>) -> Result<()> {
   if args.iter().any(|arg| arg == "--help" || arg == "-h") {
@@ -44,10 +57,31 @@ pub fn run(args: Vec<OsString>) -> Result<()> {
       OsString::from(default_identifier(&package_name)),
     ]);
   }
-  if !has_option(&args, "--template", "-t") {
-    args.extend([OsString::from("--template"), OsString::from("vanilla-ts")]);
-  } else if option_value(&args, "--template", "-t").as_deref() != Some("vanilla-ts") {
-    bail!("the OpenTool starter currently supports the `vanilla-ts` template");
+  if has_option(&args, "--manager", "-m") {
+    let manager = option_value(&args, "--manager", "-m");
+    if manager.as_deref() != Some(PRESET_PACKAGE_MANAGER) {
+      bail!(
+        "Vitul's preset package manager is `pnpm`; remove `--manager` or pass `--manager pnpm`"
+      );
+    }
+  } else {
+    args.extend([
+      OsString::from("--manager"),
+      OsString::from(PRESET_PACKAGE_MANAGER),
+    ]);
+  }
+  if has_option(&args, "--template", "-t") {
+    let template = option_value(&args, "--template", "-t");
+    if template.as_deref() != Some(PRESET_TEMPLATE) {
+      bail!(
+        "Vitul's preset UI template is `react-ts`; remove `--template` or pass `--template react-ts`"
+      );
+    }
+  } else {
+    args.extend([
+      OsString::from("--template"),
+      OsString::from(PRESET_TEMPLATE),
+    ]);
   }
 
   create_vitul_app::run(args, Some("vitul create".to_owned()), None);
@@ -284,9 +318,25 @@ fn scaffold(
   write_file(project_root, "backend/Cargo.toml", BACKEND_CARGO)?;
   write_file(project_root, "backend/src/lib.rs", BACKEND_LIB)?;
   write_file(project_root, "backend/src/main.rs", BACKEND_MAIN)?;
+  write_file(project_root, "backend/src/tools/mod.rs", BACKEND_TOOLS_MOD)?;
+  write_file(
+    project_root,
+    "backend/src/tools/greet.rs",
+    BACKEND_TOOL_GREET,
+  )?;
   write_file(project_root, "index.html", FRONTEND_INDEX)?;
   write_file(project_root, "src/opentool.ts", FRONTEND_OPENTOOL)?;
-  write_file(project_root, "src/main.ts", FRONTEND_MAIN)?;
+  write_file(project_root, "src/lib/agentos.ts", FRONTEND_AGENTOS)?;
+  write_file(project_root, "src/main.tsx", FRONTEND_MAIN)?;
+  write_file(project_root, "src/App.tsx", FRONTEND_APP)?;
+  write_file(project_root, "src/styles.css", FRONTEND_STYLES)?;
+  write_file(
+    project_root,
+    "src/components/ui/Button.tsx",
+    FRONTEND_BUTTON,
+  )?;
+  write_file(project_root, "src/components/ui/Card.tsx", FRONTEND_CARD)?;
+  write_file(project_root, "src/components/ui/Input.tsx", FRONTEND_INPUT)?;
   write_file(project_root, "src/host.ts", FRONTEND_HOST)?;
   write_file(project_root, "src/desktop-host.ts", DESKTOP_HOST)?;
   write_file(project_root, "src-vitul/src/lib.rs", VITUL_LIB)?;
@@ -295,6 +345,12 @@ fn scaffold(
   write_file(project_root, "README-zh_CN.md", PROJECT_README_ZH_CN)?;
   write_file(project_root, "VITUL.md", PROJECT_README)?;
   write_file(project_root, "VITUL-zh_CN.md", PROJECT_README_ZH_CN)?;
+  write_file(project_root, "AGENTS.md", AGENT_GUIDE)?;
+  write_file(
+    project_root,
+    ".env.example",
+    "# Optional AgentOS Gateway address. This value is public in the built app.\nVITE_AGENTOS_GATEWAY_URL=http://127.0.0.1:8888\n",
+  )?;
   remove_unused_frontend_assets(project_root)?;
   configure_frontend_dependencies(project_root)?;
   apply_project_names(project_root, package_name, product_name, window_title)?;
@@ -309,6 +365,8 @@ fn scaffold(
   .context("failed to parse generated desktop runtime config")?;
   config["$schema"] = serde_json::Value::String("https://schema.vitul.app/config/2.12.0".into());
   config["productName"] = serde_json::Value::String(product_name.to_owned());
+  config["bundle"]["iOS"]["minimumSystemVersion"] =
+    serde_json::Value::String(PRESET_IOS_MINIMUM_VERSION.into());
   if let Some(title) = config
     .get_mut("app")
     .and_then(|app| app.get_mut("windows"))
@@ -418,7 +476,14 @@ fn replace_toml_section_name(contents: &mut String, section: &str, name: &str) -
 }
 
 fn remove_unused_frontend_assets(project_root: &Path) -> Result<()> {
-  for relative_path in ["src/assets/vitul.svg", "src/assets/vite.svg"] {
+  for relative_path in [
+    "src/assets/vitul.svg",
+    "src/assets/vite.svg",
+    "src/assets/react.svg",
+    "src/App.css",
+    "tailwind.config.cjs",
+    "postcss.config.cjs",
+  ] {
     match fs::remove_file(project_root.join(relative_path)) {
       Ok(()) => {}
       Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
@@ -437,6 +502,7 @@ fn ignore_generated_runtime_config(project_root: &Path) -> Result<()> {
     "/src-vitul/vitul.conf.json",
     "/src-vitul/tauri.conf.json",
     "/agentos-build/",
+    "/.env",
   ] {
     if !contents.lines().any(|line| line.trim() == entry) {
       if !contents.is_empty() && !contents.ends_with('\n') {
@@ -460,6 +526,7 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
     .and_then(serde_json::Value::as_object_mut)
     .context("generated package.json has no dependencies object")?;
   for dependency in [
+    "agentos-sdk-ts",
     "@tauri-apps/plugin-clipboard-manager",
     "@tauri-apps/plugin-dialog",
     "@tauri-apps/plugin-notification",
@@ -467,28 +534,54 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
   ] {
     dependencies.insert(
       dependency.to_owned(),
-      serde_json::Value::String("^2".into()),
+      serde_json::Value::String(
+        if dependency == "agentos-sdk-ts" {
+          "^2.0.0"
+        } else {
+          "^2"
+        }
+        .into(),
+      ),
     );
   }
-  let dev_dependencies = package
+  let dependencies = package
     .get_mut("devDependencies")
     .and_then(serde_json::Value::as_object_mut)
     .context("generated package.json has no devDependencies object")?;
-  dev_dependencies.remove("@tauri-apps/cli");
-  dev_dependencies.insert(
-    "@litevar/vitul-cli".to_owned(),
-    serde_json::Value::String("^2.12.0".into()),
+  dependencies.insert(
+    "tailwindcss".to_owned(),
+    serde_json::Value::String("^4.3.3".into()),
   );
-  if let Some(scripts) = package
+  dependencies.insert(
+    "@tailwindcss/vite".to_owned(),
+    serde_json::Value::String("^4.3.3".into()),
+  );
+  dependencies.remove("postcss");
+  dependencies.remove("autoprefixer");
+  dependencies.insert(
+    "@types/node".to_owned(),
+    serde_json::Value::String("^22.19.0".into()),
+  );
+  dependencies.remove("@tauri-apps/cli");
+  dependencies.insert(
+    "@litevar/vitul-cli".to_owned(),
+    serde_json::Value::String("^2.13.0".into()),
+  );
+  package["packageManager"] = serde_json::Value::String("pnpm@12.4.2".into());
+  package["engines"] = serde_json::json!({ "node": ">=22.13.0", "pnpm": ">=12.4.2" });
+  let scripts = package
     .get_mut("scripts")
     .and_then(serde_json::Value::as_object_mut)
-  {
-    scripts.remove("tauri");
-    scripts.insert(
-      "vitul".to_owned(),
-      serde_json::Value::String("vitul".into()),
-    );
-  }
+    .context("generated package.json has no scripts object")?;
+  scripts.remove("tauri");
+  scripts.insert(
+    "vitul".to_owned(),
+    serde_json::Value::String("vitul".into()),
+  );
+  scripts.insert(
+    "check".to_owned(),
+    serde_json::Value::String("tsc -b --pretty false".into()),
+  );
   fs::write(
     path,
     serde_json::to_vec_pretty(&package).context("failed to encode package.json")?,
@@ -530,10 +623,18 @@ mod tests {
     let package: serde_json::Value =
       serde_json::from_slice(&fs::read(project.path().join("package.json")).unwrap()).unwrap();
     assert!(package["devDependencies"].get("@tauri-apps/cli").is_none());
-    assert_eq!(package["devDependencies"]["@litevar/vitul-cli"], "^2.12.0");
+    assert_eq!(package["devDependencies"]["@litevar/vitul-cli"], "^2.13.0");
     assert_eq!(package["scripts"]["vitul"], "vitul");
+    assert_eq!(package["scripts"]["check"], "tsc -b --pretty false");
     assert!(package["scripts"].get("tauri").is_none());
-    assert!(package["dependencies"].get("agentos-sdk-ts").is_none());
+    assert_eq!(package["dependencies"]["agentos-sdk-ts"], "^2.0.0");
+    assert_eq!(package["devDependencies"]["tailwindcss"], "^4.3.3");
+    assert_eq!(package["devDependencies"]["@tailwindcss/vite"], "^4.3.3");
+    assert!(package["devDependencies"].get("postcss").is_none());
+    assert!(package["devDependencies"].get("autoprefixer").is_none());
+    assert_eq!(package["devDependencies"]["@types/node"], "^22.19.0");
+    assert_eq!(package["packageManager"], "pnpm@12.4.2");
+    assert_eq!(package["engines"]["node"], ">=22.13.0");
   }
 
   #[test]

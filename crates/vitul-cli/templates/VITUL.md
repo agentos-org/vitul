@@ -8,8 +8,7 @@ it in an embedded WebView based on Chromium.
 
 ## Commands
 
-- `pnpm install` installs the frontend, host API, and the local Vitul CLI.
-- With npm, run `npm install`, then use `npm run vitul dev` and `npm run build`.
+- `pnpm install` installs the frontend, AgentOS SDK, host API, and the local Vitul CLI.
 - `pnpm vitul dev` builds and starts the OpenTool backend on an OS-assigned loopback
   port, then starts the Vitul desktop app.
 - `pnpm vitul build` builds a desktop app through the compatible CLI.
@@ -28,6 +27,9 @@ it in an embedded WebView based on Chromium.
   x64. OpenTool uses the
   separate `rpc.version: 2` binding.
 
+The preset uses Tailwind CSS 4 through the official Vite plugin. Generated iOS
+apps target iOS 26.0, which provides a modern WebView baseline for the starter.
+
 Set `VITUL_AGENTOS_BUILD_IMAGE` to override the container image, or change
 `agentos.buildImage` in the root `vitul.conf.json`.
 
@@ -44,10 +46,15 @@ include it in the AgentOS package as `icon.png` or `icon.svg`.
 
 ## Application APIs
 
-Put business operations in the Rust backend and call them through
-`src/opentool.ts`. The starter's `greet` example uses OpenTool JSON-RPC.
-The starter does not call AgentOS Gateway APIs by default. If your app needs
-them, add the SDK with `pnpm add agentos-sdk-ts` or `npm install agentos-sdk-ts`.
+Put business operations in `backend/src/tools/` and call them through
+`src/opentool.ts`. The starter's `greet` example uses OpenTool JSON-RPC;
+`backend/src/lib.rs` creates the OpenTool server.
+The project includes `agentos-sdk-ts`. When your app needs AgentOS Gateway
+APIs, import `createAgentOSClient()` from `src/lib/agentos.ts`. It creates the
+client only when called. Copy `.env.example` to `.env` and set
+`VITE_AGENTOS_GATEWAY_URL` to override the Gateway address. This value is
+bundled into the frontend, so never put keys or other secrets in `VITE_*`
+variables. Keep app business operations in the OpenTool backend.
 `src/host.ts` defines the system API boundary; `src/desktop-host.ts` maps it to
 the compatible native runtime on desktop and mobile, while the AgentOS provider
 talks to the host's `window.agentos.host` bridge. The starter demonstrates

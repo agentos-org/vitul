@@ -4,22 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vitul App</title>
-    <link rel="stylesheet" href="/src/styles.css" />
-    <script type="module" src="/src/main.ts" defer></script>
+    <meta name="theme-color" content="#0b0d12" />
+    <script type="module" src="/src/main.tsx"></script>
   </head>
 
   <body>
-    <main class="container">
-      <h1>Vitul</h1>
-      <p>Use host IPC for system actions and OpenTool for business operations.</p>
-      <p id="host-status" aria-live="polite">Detecting host…</p>
-      <button id="minimize-button" type="button">Minimize window (host IPC)</button>
-      <p id="system-message" aria-live="polite">Choose an action to call the host.</p>
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg" aria-live="polite"></p>
-    </main>
+    <div id="root"></div>
   </body>
 </html>

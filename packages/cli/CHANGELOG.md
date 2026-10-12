@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.0]
+
+### New Features
+
+- Use a preconfigured React, TypeScript, Tailwind CSS 4, Vite, and pnpm stack for new Vitul apps, with `agentos-sdk-ts` and an iOS 26 deployment target included.
+- Add generated-project guidance and an OpenTool greet backend example.
+
 ## [2.12.1]
 
 ### Bug Fixes

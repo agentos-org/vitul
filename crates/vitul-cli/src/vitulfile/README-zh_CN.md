@@ -146,7 +146,8 @@ data:
 构建步骤的 `command` 和 `args` 会从项目根目录（或单步配置的 `cwd`）依次直接
 执行，不会经过 shell 解析。需要 shell 语法时，可以用 `bash` 并传入
 `args: [-lc, "你的 shell 命令"]`。产物路径相对于项目目录；Vitul 会把文件复制到包根目录
-下对应的 `to` 路径。只保留目标仍位于同一产物目录内的嵌套相对符号链接；绝对链接和
+下对应的 `to` 路径。可选 `targets` 字段可将产物限定到已声明的 AgentOS 架构，例如
+`targets: [agentos/arm64]`。只保留目标仍位于同一产物目录内的嵌套相对符号链接；绝对链接和
 逃逸到产物目录之外的链接会被拒绝。产物目录中的旧 `.agt` 包会跳过，避免重复构建时
 把旧包再次打进去。
 
@@ -194,9 +195,12 @@ agentos:
   `workspace` 会在当前 AgentOS Workspace 中最大化打开应用。
 - `agentos.permissions` 支持 `native.window-control`、`native.file-dialogs`、
   `native.clipboard`、`native.notifications`、`native.external-links`、
-  `native.sidecars`、`native.external-wayland` 和 `native.external-wayland.network`，仅适用于 process 应用。
-  外部 Wayland 会话权限用于创建由 AgentOS 承载的独立 Linux 图形进程；网络权限只在会话请求联网时生效。
+  `native.sidecars`、`native.external-wayland`、`native.external-wayland.network`、
+  `native.external-wayland.gpu` 以及 `native.external-wayland.clipboard.read` / `.write`，仅适用于 process 应用。
+  外部 Wayland 会话权限用于创建由 AgentOS 承载的独立 Linux 图形进程；网络、GPU 和剪贴板分别授权，并在会话请求时生效。
   远程 CEF 页面不能申请这些原生能力。
+- process 包可申请 native.providers 并在 agentos.providers 中声明 Host Provider ID 和方法白名单。
+  Provider 可由宿主服务注册，也可由 App 包内的实现程序提供；AgentOS 会在用户授权 native.providers 后以桌面用户身份运行包内程序。
 - Dockage 和 Gitea 是此格式的候选打包项目，不代表已经开箱即用。Docker 宿主访问、
   Git 和运行时依赖、数据持久化，以及 ARM64 构建都需要针对 AgentOS 配置。
 

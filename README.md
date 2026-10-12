@@ -31,16 +31,16 @@ project, and existing Tauri apps are not automatically imported:
 
 | Area                | Tauri                                                               | Vitul                                                                                                                |
 | ------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Foundation          | Desktop app framework                                               | OpenTool-first toolchain derived from Tauri 2 source                                                                  |
+| Foundation          | Desktop app framework                                               | OpenTool-first toolchain derived from Tauri 2 source                                                                 |
 | Desktop UI          | System WebView                                                      | Same system WebView on macOS and Windows                                                                             |
 | CLI                 | `tauri`, `cargo tauri`                                              | `vitul`, `cargo vitul`                                                                                               |
 | Project config path | `src-tauri/tauri.conf.json`                                         | `vitul.conf.json` at the project root                                                                                |
 | Frontend calls      | IPC commands commonly handle host and app operations                | Host IPC handles operating-system actions; OpenTool JSON-RPC handles business operations                             |
 | Build targets       | Linux, macOS, and Windows desktop apps; Android and iOS mobile apps | macOS/Windows desktop apps, Android/iOS mobile apps, and AgentOS `.agt` apps (manifest architectures: ARM64 and x64) |
-| API and plugins     | Tauri APIs and its plugin ecosystem                                 | Vitul's supported APIs and plugins; shared source does not promise Tauri feature or plugin compatibility              |
+| API and plugins     | Tauri APIs and its plugin ecosystem                                 | Vitul's supported APIs and plugins; shared source does not promise Tauri feature or plugin compatibility             |
 
 Your Rust, WebView, window, permission, packaging, and CLI habits carry over.
-Create a new app with `vitul create` or `npm create vitul-app`; Vitul uses its
+Create a new app with `vitul create` or `pnpm create vitul-app`; Vitul uses its
 own project format and does not import or automatically convert an existing
 Tauri project. Android and iOS use native WebViews and Tauri IPC; Vitul
 routes the OpenTool request format through that IPC, with stream events carried
@@ -50,15 +50,20 @@ macOS and Xcode. See [Tauri's mobile prerequisites](https://v2.tauri.app/start/p
 
 ## Create and run an app
 
-The npm entry points are `vitul` and `create-vitul-app`. Once their npm release
-is available, create an OpenTool-first app with:
+Vitul-created apps use a preset stack of React, TypeScript, Tailwind CSS 4,
+Vite, and pnpm. Generated iOS apps target iOS 26.0. Tailwind 4 requires Safari
+16.4 or newer, and is integrated through its official Vite plugin. The npm
+entry points are `vitul` and `create-vitul-app`. Once their npm release is
+available, create an OpenTool-first app with:
 
 ```sh
-npm create vitul-app@latest my-app
+pnpm create vitul-app@latest my-app
 cd my-app
-npm install
-npm run vitul dev
+pnpm install
+pnpm vitul dev
 ```
+
+Generated projects require Node.js 22.13 or newer and use pnpm 12.4.2.
 
 You can also install the CLI globally and create in the current empty
 directory. The package name comes from the directory, and the display name is
@@ -67,11 +72,10 @@ derived from it:
 ```sh
 npm install --global @litevar/vitul-cli
 mkdir time-memo && cd time-memo
-vitul create . --manager npm --template vanilla-ts \
-  --identifier com.example.timeMemo --yes
-npm install
-npm run build
-npm run vitul dev
+vitul create . --identifier com.example.timeMemo --yes
+pnpm install
+pnpm build
+pnpm vitul dev
 ```
 
 Use `--product-name "Time Memo"` to set the app display name and
@@ -86,26 +90,26 @@ git clone https://github.com/agentos-org/vitul.git
 cd vitul
 cargo install --path crates/vitul-cli --locked
 mkdir ../my-app && cd ../my-app
-vitul create . --manager npm --template vanilla-ts --identifier com.example.myApp --yes
-npm pkg delete devDependencies.@litevar/vitul-cli
-npm install
-npm run build
-npm run vitul dev
+vitul create . --identifier com.example.myApp --yes
+pnpm pkg delete devDependencies.@litevar/vitul-cli
+pnpm install
+pnpm build
+pnpm vitul dev
 ```
 
 The generated package includes the published CLI by default. Remove that
-dependency as shown to make npm scripts use the `vitul` executable installed
-from this checkout.
+dependency as shown to make package scripts use the `vitul` executable
+installed from this checkout.
 
 Choose the row for the platform where the app will run:
 
-| Target                | Commands                                                                                                               | Runtime and build output                                                                                                                                 | Requirements                                                                                                                         |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| AgentOS (ARM64 / x64) | `pnpm vitul build --target agentos`                                                                                     | AgentOS embedded Chromium-based WebView; installable v1 `.agt` manifests support ARM64 and x64. AgentOS maps an assigned loopback host port to the configured container port. | Docker builds the Rust backend for each declared Linux architecture.                                                                  |
-| Android               | Dev: `pnpm vitul android dev`<br>APK: `pnpm vitul android build --apk`<br>Play Store: `pnpm vitul android build --aab` | System Android WebView; produces an `.apk` or `.aab`. The OpenTool backend runs in the app process and uses Tauri IPC.                                   | Android Studio, Android SDK/NDK, and the Android Rust target.                                                                        |
-| iOS                   | Dev: `pnpm vitul ios dev`<br>Build: `pnpm vitul ios build`                                                             | System WKWebView; produces an `.ipa`. The OpenTool backend runs in the app process and uses Tauri IPC.                                                   | macOS, Xcode, and the iOS Rust target.                                                                                               |
-| Windows               | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build`                                                                     | System WebView2; `.msi` and NSIS `.exe` installers by default.                                                                                           | Build on Windows with Rust MSVC, Node.js/pnpm, Visual Studio C++ Build Tools (“Desktop development with C++”), and WebView2 Runtime. |
-| macOS                 | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build`                                                                     | System WebView; `.app` bundle and `.dmg` disk image by default.                                                                                          | Build on macOS with Rust, Node.js/pnpm, and Xcode Command Line Tools (`xcode-select --install`).                                     |
+| Target                | Commands                                                                                                               | Runtime and build output                                                                                                                                                      | Requirements                                                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| AgentOS (ARM64 / x64) | `pnpm vitul build --target agentos`                                                                                    | AgentOS embedded Chromium-based WebView; installable v1 `.agt` manifests support ARM64 and x64. AgentOS maps an assigned loopback host port to the configured container port. | Docker builds the Rust backend for each declared Linux architecture.                                                                 |
+| Android               | Dev: `pnpm vitul android dev`<br>APK: `pnpm vitul android build --apk`<br>Play Store: `pnpm vitul android build --aab` | System Android WebView; produces an `.apk` or `.aab`. The OpenTool backend runs in the app process and uses Tauri IPC.                                                        | Android Studio, Android SDK/NDK, and the Android Rust target.                                                                        |
+| iOS                   | Dev: `pnpm vitul ios dev`<br>Build: `pnpm vitul ios build`                                                             | System WKWebView; produces an `.ipa`. The OpenTool backend runs in the app process and uses Tauri IPC.                                                                        | macOS, Xcode, and the iOS Rust target.                                                                                               |
+| Windows               | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build`                                                                     | System WebView2; `.msi` and NSIS `.exe` installers by default.                                                                                                                | Build on Windows with Rust MSVC, Node.js/pnpm, Visual Studio C++ Build Tools (“Desktop development with C++”), and WebView2 Runtime. |
+| macOS                 | Dev: `pnpm vitul dev`<br>Build: `pnpm vitul build`                                                                     | System WebView; `.app` bundle and `.dmg` disk image by default.                                                                                                               | Build on macOS with Rust, Node.js/pnpm, and Xcode Command Line Tools (`xcode-select --install`).                                     |
 
 New projects keep desktop, mobile, and AgentOS settings in the root
 `vitul.conf.json`. Set desktop package formats with `bundle.targets` and AgentOS

@@ -28,31 +28,34 @@ Vitul 是一套独立维护、源自 [Tauri 2 上游源码仓库](https://github
 | 项目配置路径 | `src-tauri/tauri.conf.json`                             | 项目根目录的 `vitul.conf.json`                                                                           |
 | 前端调用     | 通常通过 IPC 命令处理宿主和应用操作                     | 宿主 IPC 处理系统操作；OpenTool JSON-RPC 处理业务操作                                                    |
 | 构建目标     | Linux、macOS、Windows 桌面应用；Android 和 iOS 移动应用 | macOS/Windows 桌面应用、Android/iOS 移动应用，以及 manifest 架构支持 ARM64 和 x64 的 AgentOS `.agt` 应用 |
-| API 与插件   | Tauri API 及其插件生态                                  | 以 Vitul 自身支持范围为准；共享源码不代表兼容 Tauri 功能或插件                                            |
+| API 与插件   | Tauri API 及其插件生态                                  | 以 Vitul 自身支持范围为准；共享源码不代表兼容 Tauri 功能或插件                                           |
 
-你已有的 Rust、WebView、窗口、权限、打包和 CLI 使用习惯都可以沿用。使用 `vitul create` 或 `npm create vitul-app` 创建新应用。Vitul 使用自己的项目格式，不会导入或自动转换已有的 Tauri 项目。Android 和 iOS 使用系统 WebView 与 Tauri IPC；Vitul 通过 IPC 传递 OpenTool 请求格式，并使用 Tauri Channel 传递流事件。移动后端链接进 App，在原生进程内运行。移动构建需要对应的平台工具链，iOS 构建需要 macOS 和 Xcode。详见 [Tauri 移动端前置要求](https://v2.tauri.app/start/prerequisites/)。
+你已有的 Rust、WebView、窗口、权限、打包和 CLI 使用习惯都可以沿用。使用 `vitul create` 或 `pnpm create vitul-app` 创建新应用。Vitul 使用自己的项目格式，不会导入或自动转换已有的 Tauri 项目。Android 和 iOS 使用系统 WebView 与 Tauri IPC；Vitul 通过 IPC 传递 OpenTool 请求格式，并使用 Tauri Channel 传递流事件。移动后端链接进 App，在原生进程内运行。移动构建需要对应的平台工具链，iOS 构建需要 macOS 和 Xcode。详见 [Tauri 移动端前置要求](https://v2.tauri.app/start/prerequisites/)。
 
 ## 创建并运行应用
 
+Vitul 创建的新应用默认使用 React、TypeScript、Tailwind CSS 4、Vite 和 pnpm，
+通过官方 Vite 插件集成 Tailwind。生成的 iOS 应用以 iOS 26.0 为最低系统版本。
 npm 包名为 `vitul` 和 `create-vitul-app`。包发布后，可这样创建以 OpenTool 为核心的应用：
 
 ```sh
-npm create vitul-app@latest my-app
+pnpm create vitul-app@latest my-app
 cd my-app
-npm install
-npm run vitul dev
+pnpm install
+pnpm vitul dev
 ```
+
+生成的项目要求 Node.js 22.13 或更新版本，并固定使用 pnpm 12.4.2。
 
 也可以全局安装 CLI，再使用熟悉的 `vitul create` 流程：
 
 ```sh
 npm install --global @litevar/vitul-cli
 mkdir time-memo && cd time-memo
-vitul create . --manager npm --template vanilla-ts \
-  --identifier com.example.timeMemo --yes
-npm install
-npm run build
-npm run vitul dev
+vitul create . --identifier com.example.timeMemo --yes
+pnpm install
+pnpm build
+pnpm vitul dev
 ```
 
 也可以使用 `--product-name "Time Memo"` 设置应用显示名，使用
@@ -66,14 +69,14 @@ git clone https://github.com/agentos-org/vitul.git
 cd vitul
 cargo install --path crates/vitul-cli --locked
 mkdir ../my-app && cd ../my-app
-vitul create . --manager npm --template vanilla-ts --identifier com.example.myApp --yes
-npm pkg delete devDependencies.@litevar/vitul-cli
-npm install
-npm run build
-npm run vitul dev
+vitul create . --identifier com.example.myApp --yes
+pnpm pkg delete devDependencies.@litevar/vitul-cli
+pnpm install
+pnpm build
+pnpm vitul dev
 ```
 
-脚手架默认会加入已发布的 CLI 依赖。按上面的命令移除该依赖后，npm 脚本会使用从此仓库安装的 `vitul` 可执行文件。
+脚手架默认会加入已发布的 CLI 依赖。按上面的命令移除该依赖后，项目脚本会使用从此仓库安装的 `vitul` 可执行文件。
 
 根据应用运行的平台，选择对应命令和构建环境：
 

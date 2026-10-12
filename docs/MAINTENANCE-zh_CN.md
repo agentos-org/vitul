@@ -9,20 +9,20 @@ Vitul 当前处于 1.0 之前的预览阶段。指定的公开项目主页、问
 - 1.0 之后，Vitul 对外项目版本遵循语义化版本：次版本增加兼容功能，修订版本修复问题，主版本允许不兼容变更。维护最新的稳定次版本；较旧主版本不再常规修复。
 - 安全修复面向最新受支持版本处理，不承诺披露或修复的固定时限。
 - 运行时和 API 依赖包的版本号可能跟随 Vitul 的 Tauri 派生源码基线。这表示源码来源，不承诺 Tauri App、API 或插件兼容。每个 Vitul 发布版本都必须列出 CLI、API、运行时和项目模板的版本对应关系。
-- 当前 Rust CLI（`vitul-cli`）版本为 `0.1.0`；JavaScript CLI 绑定源码版本为 `2.12.0`。新项目会将 `@litevar/vitul-cli` 用作开发依赖；npm 发布配置已准备，但仍需确认包名所有权并设置 trusted publisher。
+- 当前 Rust CLI（`vitul-cli`）版本为 `0.1.0`；JavaScript CLI 绑定通过 `@litevar/vitul-cli` 独立发布，当前版本为 `2.13.0`。
 
 ### 当前源码的版本对应关系
 
-| 组件                                                                | 源码版本 | 含义                                              |
-| ------------------------------------------------------------------- | -------- | ------------------------------------------------- |
-| Vitul Rust CLI（`vitul-cli`）                                       | `0.1.0`  | 当前 Vitul 预览版 CLI 版本。                      |
-| 桌面运行时源码（`tauri`、`tauri-runtime`、`tauri-runtime-wry`）       | `2.12.0` | Tauri 派生源码基线，不代表兼容承诺。             |
-| JavaScript 宿主 API（`@tauri-apps/api`）                            | `2.12.0` | 继承的包身份，不承诺 Tauri App 或插件可运行。    |
-| JavaScript CLI 绑定（`@litevar/vitul-cli`）                                 | `2.12.0` | Vitul npm 命令使用的源码包；发布配置仍待完成。   |
-| 全局 npm 命令（`vitul`）                                            | `0.1.0`  | `vitul` 命令的包装包。                            |
-| npm 项目创建器（`create-vitul-app`）                                | `0.1.0`  | `npm create vitul-app` 使用的包装包。             |
-| 生成的 App 和后端默认版本                                           | `0.1.0`  | 脚手架应用版本，与 Vitul CLI 版本相互独立。       |
-| AgentOS App manifest                                                | `1`      | manifest schema 版本，与 Vitul 发布版本相互独立。 |
+| 组件                                                            | 源码版本 | 含义                                              |
+| --------------------------------------------------------------- | -------- | ------------------------------------------------- |
+| Vitul Rust CLI（`vitul-cli`）                                   | `0.1.0`  | 当前 Vitul 预览版 CLI 版本。                      |
+| 桌面运行时源码（`tauri`、`tauri-runtime`、`tauri-runtime-wry`） | `2.12.0` | Tauri 派生源码基线，不代表兼容承诺。              |
+| JavaScript 宿主 API（`@tauri-apps/api`）                        | `2.12.0` | 继承的包身份，不承诺 Tauri App 或插件可运行。     |
+| JavaScript CLI 绑定（`@litevar/vitul-cli`）                     | `2.13.0` | 已发布的原生 CLI 包；版本跟随 CLI 绑定发布。      |
+| 全局 npm 命令（`vitul`）                                        | `0.1.0`  | `vitul` 命令的包装包。                            |
+| npm 项目创建器（`create-vitul-app`）                            | `0.1.0`  | `npm create vitul-app` 使用的包装包。             |
+| 生成的 App 和后端默认版本                                       | `0.1.0`  | 脚手架应用版本，与 Vitul CLI 版本相互独立。       |
+| AgentOS App manifest                                            | `1`      | manifest schema 版本，与 Vitul 发布版本相互独立。 |
 
 精确依赖版本以 workspace lockfile 为准。每次 Vitul 发布若变更表中版本，都应同步更新此表。
 
@@ -37,9 +37,9 @@ Vitul 当前处于 1.0 之前的预览阶段。指定的公开项目主页、问
 
 - 预览期间项目版本使用 `v0.x.y` tag；首个稳定版本为 `v1.0.0`，此后按上述语义化版本规则发布。
 - 每次发布都包含变更记录、支持平台说明、已测试的工具链信息，以及可下载产物的校验和。GitHub Releases 是公开发布记录。
-- `@litevar/vitul-cli` 的 npm 原生绑定工作流已经配置；发布前需先创建 npm 包并配置 GitHub Actions trusted publisher。在此之前，Rust CLI 从 Vitul 源码检出目录安装。
+- `@litevar/vitul-cli` 的 npm 原生绑定通过 GitHub Actions 发布，需先创建对应版本的 GitHub Release。`vitul` 和 `create-vitul-app` 包由另一条手动发布工作流处理。
 - 不要使用继承自 Tauri 的 Rust CLI 或 Covector 工作流发布 Vitul 包；它们仍然面向上游身份，不属于 Vitul 发布流程。
-- 首次发布前，维护者需要统一 Rust CLI 和 JavaScript CLI 的发布版本映射，配置 npm 包及其 GitHub Actions trusted publisher，并在干净环境验证安装流程。
+- 每次 npm 发布前，维护者需要同步 CLI 包版本映射，并在干净生成项目中验证安装流程。
 
 ## 开放外部贡献前需要配置的仓库设置
 

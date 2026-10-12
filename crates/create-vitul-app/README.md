@@ -1,11 +1,12 @@
 # create-vitul-app
 
 `create-vitul-app` is the frontend template engine used internally by the Vitul
-CLI. Application developers should create projects with `vitul init` (or
-`pnpm vitul init`), which assembles the complete Vitul project around the
-selected frontend template.
+CLI. Application developers should create projects with `vitul create` (or
+`pnpm create vitul-app`), which assembles the complete Vitul project around
+Vitul's preset frontend stack.
 
-The current OpenTool starter uses the `vanilla-ts` frontend. Vitul then adds
+The current OpenTool starter uses React, TypeScript, Tailwind CSS 4, Vite, and
+pnpm. Vitul then adds
 the `src-vitul/vitul.conf.json` desktop configuration, the local OpenTool
 backend, the host IPC bridge, and platform-specific project documentation.
 

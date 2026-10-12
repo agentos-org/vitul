@@ -16,18 +16,14 @@ Generated projects use `@litevar/vitul-cli` as a development dependency.
 GitHub Actions trusted publisher for the root and every target package, using
 `agentos-org/vitul` and `publish-cli-js.yml`.
 
-npm requires a package to exist before a trusted publisher can be configured,
-so the first release needs an authenticated bootstrap publish for the root and
-platform packages. Both publish workflows accept the repository Actions secret
-`NPM_TOKEN` for this initial release. After publishing, configure trusted
-publishers for every package; npm will use OIDC when the workflow is trusted.
-Configure them shortly before the next release: npm expires a new trusted
-publisher configuration unless its first publish succeeds within two days.
-Remove the token secret after confirming an OIDC publish. Do not dispatch the
-workflow before registry ownership, version mapping, and clean installation
-have been checked.
+The root and platform packages have already been published. For each update,
+create the versioned GitHub Release first, then dispatch
+`.github/workflows/publish-cli-js.yml` with that release ID. The workflow uses
+the repository Actions secret `NPM_TOKEN` to publish the packages and attach
+the platform binaries to the release. Keep the registry credential configured
+while this workflow depends on it.
 
-After `@litevar/vitul-cli@2.12.0` is available in npm, manually dispatch
+After `@litevar/vitul-cli@2.13.0` is available in npm, manually dispatch
 `.github/workflows/publish-vitul-commands.yml` to publish `vitul` and
 `create-vitul-app`. Bootstrap each package once so it exists, then configure
 trusted publishing for both packages with `agentos-org/vitul` and

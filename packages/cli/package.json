@@ -1,6 +1,6 @@
 {
   "name": "@litevar/vitul-cli",
-  "version": "2.12.1",
+  "version": "2.13.0",
   "description": "Vitul CLI for OpenTool-first apps, derived from Tauri 2 tooling",
   "repository": {
     "type": "git",

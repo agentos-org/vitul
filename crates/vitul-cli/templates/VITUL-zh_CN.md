@@ -6,8 +6,7 @@ Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS �
 
 ## 命令
 
-- `pnpm install`：安装前端、宿主 API 和项目本地 Vitul CLI。
-- 使用 npm 时，执行 `npm install`，之后可运行 `npm run vitul dev` 和 `npm run build`。
+- `pnpm install`：安装前端、AgentOS SDK、宿主 API 和项目本地 Vitul CLI。
 - `pnpm vitul dev`：构建并启动 OpenTool 后端，使用操作系统分配的 loopback 端口，然后启动 Vitul 桌面应用。
 - `pnpm vitul build`：通过兼容 CLI 构建桌面应用。
 - `pnpm vitul android dev` 和 `pnpm vitul ios dev`：通过兼容移动 CLI 在设备或模拟器上运行应用。
@@ -16,6 +15,9 @@ Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS �
 - `vitul build --target agentos/arm64`：构建 Web 资源，并在 Docker 中构建 ARM64 Linux 后端，最后把 AgentOS `.agt` 包写入 `dist/`。
 - `vitul build --target agentos/x64`：构建 x64 Linux 后端和 `.agt` 包。
 - 可安装的 AgentOS `.agt` 包使用 manifest v1，支持 ARM64 和 x64。OpenTool 使用独立的 `rpc.version: 2` 绑定版本。
+
+预置模板通过官方 Vite 插件使用 Tailwind CSS 4。生成的 iOS 应用以 iOS 26.0
+为最低系统版本，为模板提供现代 WebView 基线。
 
 设置 `VITUL_AGENTOS_BUILD_IMAGE` 可以覆盖容器镜像；也可以修改 `vitul.conf.json` 中的 `agentos.buildImage`。
 
@@ -27,9 +29,9 @@ AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件�
 
 ## 应用 API
 
-将业务操作放在 Rust 后端，并通过 `src/opentool.ts` 调用。脚手架中的 `greet` 示例使用 OpenTool JSON-RPC。
+将业务操作放在 Rust 后端的 `backend/src/tools/`，并通过 `src/opentool.ts` 调用。脚手架中的 `greet` 示例使用 OpenTool JSON-RPC；`backend/src/lib.rs` 负责创建 OpenTool 服务。
 
-默认脚手架不会调用 AgentOS Gateway API。应用需要这些 API 时，再使用 `pnpm add agentos-sdk-ts` 或 `npm install agentos-sdk-ts` 安装 SDK。
+项目已预置 `agentos-sdk-ts`。需要调用 AgentOS Gateway 时，从 `src/lib/agentos.ts` 导入 `createAgentOSClient()`；客户端只会在函数调用时创建。可将 `.env.example` 复制为 `.env`，设置 `VITE_AGENTOS_GATEWAY_URL` 指定网关地址。该地址会打包进前端，不能在 `VITE_*` 变量中存放密钥或其他机密。业务操作继续通过 OpenTool 后端实现。
 
 `src/host.ts` 定义系统 API 边界；`src/desktop-host.ts` 将其映射到桌面和移动原生运行时，AgentOS provider 则调用宿主提供的 `window.agentos.host` 桥接接口。脚手架示例通过宿主 IPC 演示最小化窗口，AgentOS 仅请求 `native.window-control` 权限。只有应用确实需要时，才在 `vitul.conf.json` 中添加其他 `native.*` 权限。AgentOS 使用 `HOST=0.0.0.0` 和 `agentos.port` 启动容器内后端，并将分配的 loopback 宿主端口映射到该端口；同一个已安装 App 的多个窗口共享后端和宿主端口。前端在 `/` 提供，OpenTool RPC 在同一来源的 `/opentool` 提供。由 AgentOS WebShell 通过 `/apps/{appId}/` 托管时，生成的客户端会使用该代理前缀访问同一 App 后端。AgentOS App 的 OpenTool 请求体上限为 1 MiB；生成的 Rust 后端只在 AgentOS 环境应用此限制，其他宿主保留 OpenTool SDK 的 16 MiB 默认值。
 

@@ -161,7 +161,8 @@ Build `command` and `args` are executed directly, in order, from the project
 root (or the step's `cwd`). They are not interpreted by a shell. Use a command
 such as `bash` with `args: [-lc, "your shell command"]` when shell syntax is
 needed. Artifact paths are relative to the project and copied to their `to`
-paths at the package root. Nested relative symbolic links are retained only when
+paths at the package root. Optional `targets` limits an artifact to declared
+AgentOS targets, for example `targets: [agentos/arm64]`. Nested relative symbolic links are retained only when
 their targets stay inside the same artifact directory; absolute and escaping
 links are rejected. Existing `.agt` archives inside artifact directories are
 skipped so rebuilding does not nest previous packages.
@@ -217,10 +218,16 @@ agentos:
 - `agentos.permissions` accepts `native.window-control`, `native.file-dialogs`,
   `native.clipboard`, `native.notifications`, `native.external-links`,
   `native.sidecars`, `native.external-wayland`, and
-  `native.external-wayland.network` for process apps. External Wayland sessions
-  let AgentOS host independent Linux graphical processes; network access is
-  granted only to sessions that request it. Remote CEF pages cannot request
-  these native capabilities.
+  `native.external-wayland.network`, `native.external-wayland.gpu`, and
+  `native.external-wayland.clipboard.read` / `.write` for process apps. External
+  Wayland sessions let AgentOS host independent Linux graphical processes;
+  network, GPU, and clipboard access are independent grants requested per
+  session. Remote CEF pages cannot request these native capabilities.
+- Process packages can request native.providers and declare Host Provider IDs
+  and method allowlists in agentos.providers. AgentOS forwards only declared
+  methods to a registered AgentOS Provider. A package may provide its own
+  Provider executable, which AgentOS runs as the desktop user after the App's
+  native.providers permission is authorized.
 - Dockage and Gitea are candidate apps to package with this format, not
   guaranteed turnkey targets. Their host Docker access, Git/runtime
   dependencies, persistence, and architecture-specific builds need to be

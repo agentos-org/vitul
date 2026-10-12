@@ -126,10 +126,86 @@ impl Vitulfile {
       "native.tray",
       "native.external-wayland",
       "native.external-wayland.network",
+      "native.external-wayland.gpu",
+      "native.external-wayland.clipboard.read",
+      "native.external-wayland.clipboard.write",
+      "native.providers",
     ];
     for permission in &self.agentos.permissions {
       if !SUPPORTED_PERMISSIONS.contains(&permission.as_str()) {
         bail!("unsupported AgentOS permission `{permission}`");
+      }
+    }
+    if self.app.app_type != AppType::Process && !self.agentos.providers.is_empty() {
+      bail!("AgentOS Providers require a process app");
+    }
+    if !self.agentos.providers.is_empty()
+      && !self
+        .agentos
+        .permissions
+        .iter()
+        .any(|permission| permission == "native.providers")
+    {
+      bail!("agentos.providers requires the native.providers permission");
+    }
+    if self
+      .agentos
+      .permissions
+      .iter()
+      .any(|permission| permission == "native.providers")
+      && self.agentos.providers.is_empty()
+    {
+      bail!("native.providers requires at least one agentos.providers declaration");
+    }
+    let mut provider_ids = std::collections::BTreeSet::new();
+    for (index, provider) in self.agentos.providers.iter().enumerate() {
+      let provider_labels = provider.id.split('.').collect::<Vec<_>>();
+      let valid_provider_id = provider.id.len() <= 128
+        && provider_labels.len() >= 2
+        && provider_labels.iter().all(|label| {
+          let bytes = label.as_bytes();
+          bytes.len() <= 63
+            && !bytes.is_empty()
+            && (bytes[0].is_ascii_lowercase() || bytes[0].is_ascii_digit())
+            && (bytes[bytes.len() - 1].is_ascii_lowercase()
+              || bytes[bytes.len() - 1].is_ascii_digit())
+            && bytes
+              .iter()
+              .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
+        });
+      if !valid_provider_id || !provider_ids.insert(provider.id.clone()) {
+        bail!("agentos.providers[{index}].id must be a unique reverse-DNS identifier");
+      }
+      if let Some(executable) = &provider.executable {
+        if executable.is_empty()
+          || executable.starts_with('/')
+          || executable.contains('\\')
+          || executable
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
+          || executable.contains('\0')
+        {
+          bail!("agentos.providers[{index}].executable must be a safe package-relative path");
+        }
+      }
+      if provider.methods.is_empty() || provider.methods.len() > 64 {
+        bail!("agentos.providers[{index}].methods must contain 1 to 64 method names");
+      }
+      let mut method_names = std::collections::BTreeSet::new();
+      for method in &provider.methods {
+        let method_parts = method.split('.').collect::<Vec<_>>();
+        if method.len() > 128
+          || method_parts.len() < 2
+          || !method_parts.iter().all(|part| {
+            let mut bytes = part.bytes();
+            matches!(bytes.next(), Some(b'a'..=b'z'))
+              && bytes
+                .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+          })
+          || !method_names.insert(method)
+        {
+          bail!("agentos.providers[{index}].methods contains an invalid or duplicate method");
+        }
       }
     }
     if let Some(icon) = &self.app.icon {
@@ -160,10 +236,21 @@ impl Vitulfile {
         .with_context(|| format!("invalid build.artifacts[{index}].from"))?;
       validate_package_relative_path(&artifact.to)
         .with_context(|| format!("invalid build.artifacts[{index}].to"))?;
+      let mut artifact_targets = std::collections::BTreeSet::new();
+      for target in &artifact.targets {
+        if !matches!(target.as_str(), "agentos/arm64" | "agentos/x64")
+          || !self.declared_targets().contains(&target.as_str())
+          || !artifact_targets.insert(target)
+        {
+          bail!("build.artifacts[{index}].targets must contain unique declared AgentOS targets");
+        }
+      }
       let source = project_root.join(&artifact.from);
       if source.exists() {
         ensure_project_file(project_root, &artifact.from, "build artifact")?;
-      } else if self.build.steps.is_empty() {
+      } else if self.build.steps.is_empty()
+        && !crate::project_config::is_generated_backend_artifact(project_root, &artifact.from)
+      {
         bail!(
           "build artifact is missing and no build step will create it: {}",
           source.display()

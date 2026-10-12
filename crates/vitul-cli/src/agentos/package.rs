@@ -163,6 +163,7 @@ fn build_project_backend(project_root: &Path, architecture: &str) -> Result<()> 
       "--env",
       "CARGO_TARGET_DIR=/workspace/agentos-build/cargo-target",
     ])
+    .args(docker_proxy_environment())
     .arg(image)
     .args([
       "cargo",
@@ -200,6 +201,37 @@ fn build_project_backend(project_root: &Path, architecture: &str) -> Result<()> 
     )
   })?;
   Ok(())
+}
+
+fn docker_proxy_environment() -> Vec<String> {
+  let mut environment = Vec::new();
+  for (lower_name, upper_name) in [
+    ("http_proxy", "HTTP_PROXY"),
+    ("https_proxy", "HTTPS_PROXY"),
+    ("no_proxy", "NO_PROXY"),
+  ] {
+    let value = std::env::var(lower_name)
+      .ok()
+      .filter(|value| !value.is_empty())
+      .or_else(|| {
+        std::env::var(upper_name)
+          .ok()
+          .filter(|value| !value.is_empty())
+      });
+    let Some(mut value) = value else {
+      continue;
+    };
+    if lower_name != "no_proxy" {
+      value = value
+        .replace("127.0.0.1", "host.docker.internal")
+        .replace("localhost", "host.docker.internal");
+    }
+    environment.push("--env".to_owned());
+    environment.push(format!("{lower_name}={value}"));
+    environment.push("--env".to_owned());
+    environment.push(format!("{upper_name}={value}"));
+  }
+  environment
 }
 
 fn run_build_steps(project_root: &Path, config: &Config, target: &str) -> Result<()> {
@@ -244,6 +276,14 @@ fn stage_package(
 ) -> Result<()> {
   if config.app.app_type == VitulfileAppType::Process {
     for (index, artifact) in config.build.artifacts.iter().enumerate() {
+      if !artifact.targets.is_empty()
+        && !artifact
+          .targets
+          .iter()
+          .any(|target| target == &format!("agentos/{architecture}"))
+      {
+        continue;
+      }
       let source = project_root.join(&artifact.from);
       if !source.exists() {
         bail!(
@@ -441,6 +481,7 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
       "name": config.app.name,
       "version": config.app.version,
       "permissions": config.agentos.permissions,
+      "providers": config.agentos.providers,
       "run": {
         "type": "process",
         "entry": "vitul/launch.sh",
