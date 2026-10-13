@@ -28,7 +28,8 @@ After the versioned `@litevar/vitul-cli` release is available in npm, manually d
 `.github/workflows/publish-vitul-commands.yml` to publish `@litevar/vitul` and
 `create-vitul-app`. Bootstrap each package once so it exists, then configure
 trusted publishing for both packages with `agentos-org/vitul` and
-`publish-vitul-commands.yml` before dispatching subsequent releases.
+`publish-vitul-commands.yml` before dispatching subsequent releases. The workflow
+defaults to publishing both packages; use its `package` input to publish just one.
 
 The inherited Covector and Rust CLI publishing workflows still target upstream
 identities. Do not use them to publish Vitul packages. A release is ready only

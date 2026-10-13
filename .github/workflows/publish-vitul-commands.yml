@@ -2,6 +2,16 @@ name: publish Vitul npm commands
 
 on:
   workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish, or all for a normal release'
+        type: choice
+        options:
+          - all
+          - vitul
+          - create-vitul-app
+        default: all
+        required: true
 
 permissions:
   contents: read
@@ -21,17 +31,13 @@ jobs:
         run: npm view @litevar/vitul-cli@3.2.0 version
 
   publish:
-    name: Publish ${{ matrix.package }}
     runs-on: ubuntu-latest
     needs: check-cli
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - package: '@litevar/vitul'
-            directory: packages/vitul
-          - package: create-vitul-app
-            directory: packages/create-vitul-app
+        package: ${{ fromJSON(inputs.package == 'all' && '["vitul","create-vitul-app"]' || inputs.package == 'vitul' && '["vitul"]' || '["create-vitul-app"]') }}
+    name: Publish ${{ matrix.package == 'vitul' && '@litevar/vitul' || matrix.package }}
     steps:
       - uses: actions/checkout@v7
       - name: Setup Node
@@ -41,9 +47,9 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Review package contents
         run: npm pack --dry-run
-        working-directory: ${{ matrix.directory }}
+        working-directory: ${{ matrix.package == 'vitul' && 'packages/vitul' || 'packages/create-vitul-app' }}
       - name: Publish with provenance
         run: npm publish --access public --provenance
-        working-directory: ${{ matrix.directory }}
+        working-directory: ${{ matrix.package == 'vitul' && 'packages/vitul' || 'packages/create-vitul-app' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
