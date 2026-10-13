@@ -102,6 +102,8 @@ pub struct RunConfig {
   #[serde(default = "default_frontend_entry")]
   pub frontend_entry: String,
   #[serde(default)]
+  pub auto_start: bool,
+  #[serde(default)]
   pub env: BTreeMap<String, String>,
 }
 
@@ -114,6 +116,7 @@ impl Default for RunConfig {
       health_check: default_health_check(),
       ready_timeout: default_ready_timeout(),
       frontend_entry: default_frontend_entry(),
+      auto_start: false,
       env: BTreeMap::new(),
     }
   }
@@ -200,6 +203,20 @@ impl AgentOsConfig {
 #[serde(default, deny_unknown_fields)]
 pub struct ExecutionConfig {
   pub mode: Option<ExecutionMode>,
+  #[serde(default)]
+  pub native: Option<NativeExecutionConfig>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NativeExecutionConfig {
+  pub version: u32,
+  pub identity: String,
+  pub scope: String,
+  #[serde(default = "default_native_last_window_close")]
+  pub last_window_close: String,
+  #[serde(default = "default_native_stop_grace_period_ms")]
+  pub stop_grace_period_ms: u32,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -290,4 +307,12 @@ fn default_rpc_base_path() -> String {
 
 fn default_rpc_discovery() -> String {
   "static".to_owned()
+}
+
+fn default_native_last_window_close() -> String {
+  "stop".to_owned()
+}
+
+fn default_native_stop_grace_period_ms() -> u32 {
+  5000
 }

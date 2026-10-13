@@ -100,10 +100,10 @@ AgentOS process 应用在 `agentos.build` 和 `agentos.run` 中声明构建步�
 `agentos.web.url` 配置，生成与架构无关的 URL 包。AgentOS `.agt` 使用 manifest v1；AgentOS
 会将动态分配的 loopback 宿主端口映射到 `agentos.run.port` 指定的容器内端口（默认 `9627`）。
 
-process 应用默认在容器中运行。设置 `agentos.execution.mode` 为 `"native"` 后，进程会直接在
-Linux 宿主机运行，拥有完整宿主机访问权限；安装或更新时需要用户明确同意高风险授权并输入本地账户密码。
-Native 仅适用于 process 应用，不能与 deployment、Host Provider 或 `native.external-wayland` 同用。
-省略 `execution` 即使用默认容器模式。详见
+process 应用默认在容器中运行。Vitul 的 native 模式要求使用 AgentOS native process profile v1，
+在 `agentos.execution` 中同时设置 `mode: "native"` 和 `native` 对象；旧的仅含 `mode: "native"`
+配置会被拒绝。Native 仅适用于 process 应用，要求持久数据，不能与 deployment、Host Provider
+或 `native.external-wayland` 同用，也不支持开机自启。详见
 [AgentOS 配置说明](crates/vitul-cli/src/agentos_config/README-zh_CN.md)。
 
 OpenTool 的 `rpc.version: 2` 是独立的 API 绑定版本。相关命令不会构建 Ubuntu 24 系统镜像或

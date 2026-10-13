@@ -63,11 +63,14 @@ pub fn build(project_root: &Path, requested_target: &str) -> Result<()> {
     stage_package(&project_root, &config, staging.path(), architecture)?;
     let mut command = Command::new("tar");
     command
-      .args(["-czf"])
+      .args(["--no-xattrs", "-czf"])
       .arg(&archive_path)
       .args(["-C"])
       .arg(staging.path())
       .arg(".");
+    // COPYFILE_DISABLE suppresses AppleDouble files; --no-xattrs also keeps
+    // macOS and host-specific extended attributes out of the PAX headers.
+    command.env("COPYFILE_DISABLE", "1");
     let status = command
       .status()
       .context("failed to start `tar` while creating the AgentOS package")?;
@@ -489,7 +492,7 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
         "healthCheck": config.run.health_check,
         "readyTimeout": config.run.ready_timeout,
         "env": config.run.env,
-        "autoStart": false
+        "autoStart": config.run.auto_start
       },
       "frontend": { "entry": config.run.frontend_entry },
       "open": {
@@ -506,7 +509,18 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
   if !is_remote {
     if config.agentos.execution_mode() == ExecutionMode::Native {
       object.remove("providers");
-      object.insert("execution".into(), json!({ "mode": "native" }));
+      let Some(native) = config
+        .agentos
+        .execution
+        .as_ref()
+        .and_then(|execution| execution.native.as_ref())
+      else {
+        bail!("native execution requires the AgentOS native process profile v1");
+      };
+      let mut execution = json!({ "mode": "native" });
+      execution["native"] = serde_json::to_value(native)
+        .context("could not encode AgentOS native execution profile")?;
+      object.insert("execution".into(), execution);
     }
     if let Some(deployment) = &config.agentos.deployment {
       object.insert("deployment".into(), deployment.clone());

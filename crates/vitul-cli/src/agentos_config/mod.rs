@@ -104,6 +104,59 @@ impl AgentOsPackageConfig {
       }
     }
     let execution_mode = self.agentos.execution_mode();
+    if let Some(execution) = &self.agentos.execution {
+      if execution.mode == Some(schema::ExecutionMode::Native) && execution.native.is_none() {
+        bail!(
+          "agentos.execution.mode `native` requires the AgentOS native process profile v1 in agentos.execution.native"
+        );
+      }
+      if let Some(native) = &execution.native {
+        if execution.mode != Some(schema::ExecutionMode::Native) {
+          bail!("agentos.execution.native requires agentos.execution.mode `native`");
+        }
+        if native.version != 1
+          || native.identity != "desktop-user"
+          || native.scope != "agentos-account"
+          || !matches!(native.last_window_close.as_str(), "stop" | "background")
+          || native.stop_grace_period_ms > 30000
+        {
+          bail!(
+            "agentos.execution.native requires version 1, identity `desktop-user`, scope `agentos-account`, lastWindowClose `stop` or `background`, and stopGracePeriodMs from 0 to 30000"
+          );
+        }
+        if !self.data.persistent {
+          bail!("agentos.execution.native requires agentos.data.persistent: true");
+        }
+        const RESERVED_NATIVE_ENV: &[&str] = &[
+          "HOME",
+          "USER",
+          "LOGNAME",
+          "PATH",
+          "TMPDIR",
+          "XDG_RUNTIME_DIR",
+          "DBUS_SESSION_BUS_ADDRESS",
+          "DISPLAY",
+          "WAYLAND_DISPLAY",
+          "WAYLAND_SOCKET",
+          "XAUTHORITY",
+          "XDG_SESSION_ID",
+          "AGENTOS_SESSION_ID",
+          "AGENTOS_TRAY_SOCKET",
+          "LD_PRELOAD",
+          "LD_AUDIT",
+        ];
+        if let Some(name) = self
+          .run
+          .env
+          .keys()
+          .find(|name| RESERVED_NATIVE_ENV.contains(&name.as_str()))
+        {
+          bail!(
+            "run.env.{name} is reserved by AgentOS and cannot be set for agentos.execution.native"
+          );
+        }
+      }
+    }
     if execution_mode == schema::ExecutionMode::Native {
       if self.app.app_type != AppType::Process {
         bail!("agentos.execution.mode native requires a process App");
@@ -256,6 +309,9 @@ impl AgentOsPackageConfig {
         if self.run.ready_timeout == 0 || self.run.ready_timeout > 600 {
           bail!("run.readyTimeout must be between 1 and 600 seconds");
         }
+        if self.run.auto_start {
+          bail!("manifest v1 process apps require run.autoStart false");
+        }
         if !valid_http_path(&self.run.health_check) {
           bail!("run.healthCheck must be an absolute HTTP path");
         }
@@ -402,8 +458,10 @@ fn validate_platform_providers(config: &AgentOsPackageConfig) -> Result<()> {
     (Some(_), false) => bail!("agentos.deployment requires native.system-deployment"),
     (None, true) => bail!("native.system-deployment requires agentos.deployment"),
     (None, false) => {
-      if system_deployment.is_some() {
-        bail!("{DEPLOYMENT_ID} requires native.system-deployment and agentos.deployment");
+      if let Some(provider) = system_deployment {
+        if provider.executable.is_some() || provider.methods.as_slice() != ["capabilities.get"] {
+          bail!("{DEPLOYMENT_ID} may declare only capabilities.get without agentos.deployment");
+        }
       }
     }
   }

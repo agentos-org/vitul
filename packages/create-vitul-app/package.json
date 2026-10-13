@@ -1,6 +1,6 @@
 {
   "name": "create-vitul-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Create a Vitul application",
   "license": "Apache-2.0 OR MIT",
   "repository": {
@@ -19,7 +19,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@litevar/vitul-cli": "^3.0.0"
+    "@litevar/vitul-cli": "^3.2.0"
   },
   "publishConfig": {
     "access": "public"

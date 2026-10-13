@@ -15,7 +15,7 @@ Process apps declare their build and launch configuration under `agentos`:
   "agentos": {
     "type": "process",
     "targets": ["agentos/arm64", "agentos/x64"],
-    "execution": { "mode": "native" },
+    "execution": { "mode": "container" },
     "build": {
       "steps": [],
       "artifacts": [{ "from": "dist", "to": "web" }]
@@ -31,10 +31,75 @@ Process apps declare their build and launch configuration under `agentos`:
 ```
 
 Omit `agentos.execution`, leave its `mode` empty, or set it to `container` to
-use the default container runtime. Only `mode: "native"` selects native host
-execution. Native mode runs the process directly on the Linux host with full
-host access and requires explicit high-risk consent plus the local account
-password on install or update.
+use the default container runtime. Vitul supports native execution only with
+the AgentOS native process profile v1: `mode: "native"` must include the
+`native` object. The older `{ "mode": "native" }` form is rejected so builds
+cannot silently produce the legacy execution identity, which is not visible
+and manageable in the AgentOS account UI. Native profile processes run on the
+Linux host as the authenticated AgentOS account and still require explicit
+high-risk consent on install or update.
+
+To configure the native profile, add the `native` object and enable persistent
+data:
+
+```json
+{
+  "schemaVersion": 2,
+  "productName": "Generic Service",
+  "identifier": "org.example.generic-service",
+  "version": "1.0.0",
+  "agentos": {
+    "type": "process",
+    "targets": ["agentos/arm64", "agentos/x64"],
+    "execution": {
+      "mode": "native",
+      "native": {
+        "version": 1,
+        "identity": "desktop-user",
+        "scope": "agentos-account",
+        "lastWindowClose": "background",
+        "stopGracePeriodMs": 20000
+      }
+    },
+    "data": { "persistent": true },
+    "build": {
+      "steps": [],
+      "artifacts": [
+        { "from": "dist", "to": "web" },
+        { "from": "service", "to": "service" }
+      ]
+    },
+    "run": {
+      "command": "node",
+      "args": ["service/server.mjs"],
+      "port": 9627,
+      "healthCheck": "/health",
+      "readyTimeout": 30,
+      "autoStart": false,
+      "frontendEntry": "/"
+    }
+  }
+}
+```
+
+For profile v1, `version`, `identity`, and `scope` are required and fixed to
+`1`, `desktop-user`, and `agentos-account`. `lastWindowClose` accepts `stop`
+or `background` and defaults to `stop`; `stopGracePeriodMs` accepts 0 through
+30000 and defaults to 5000. Vitul writes these defaults into the packaged
+`app.json`. The profile requires persistent data, one backend per bundle ID
+in an authenticated AgentOS account, and a manifest-v1 process App. Vitul
+always emits `run.autoStart: false`; profile configs cannot enable autostart.
+`background` only keeps a running
+backend alive after its last window closes; it does not start the App at boot
+or login.
+
+With `lastWindowClose: "background"`, AgentOS Shell shows its generic tray
+with Open and Exit actions while the backend is running. This tray does not
+need an App permission or helper. The separate `native.tray` permission is for
+an App's own custom tray through AgentOS's tray socket and should be requested
+only when the App uses that API. Profile Apps cannot override AgentOS-owned
+environment keys such as `HOME`, `PATH`, `XDG_RUNTIME_DIR`, Wayland/D-Bus
+session values, `AGENTOS_TRAY_SOCKET`, `LD_PRELOAD`, or `LD_AUDIT`.
 
 Native mode requires a process app. AgentOS currently rejects native manifests
 that declare deployment, Host Providers, or `native.external-wayland`; Vitul

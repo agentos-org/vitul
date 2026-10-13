@@ -31,6 +31,19 @@ pub fn run(args: &[OsString]) -> Result<()> {
       println!("Build steps: {}", config.build.steps.len());
       println!("Artifacts: {}", config.build.artifacts.len());
       println!("Execution mode: {}", config.agentos.execution_mode_name());
+      if let Some(native) = config
+        .agentos
+        .execution
+        .as_ref()
+        .and_then(|execution| execution.native.as_ref())
+      {
+        println!(
+          "Native profile: v{} ({}, {})",
+          native.version, native.identity, native.scope
+        );
+        println!("Last window close: {}", native.last_window_close);
+        println!("Stop grace period: {} ms", native.stop_grace_period_ms);
+      }
       println!("OpenTool discovery: {}", config.agentos.rpc_discovery);
       println!("Persistent data: {}", config.data.persistent);
     }

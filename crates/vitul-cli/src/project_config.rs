@@ -138,6 +138,20 @@ pub fn package_config(root: &Path) -> Result<Config> {
     .get("rpc")
     .and_then(Value::as_object)
     .unwrap_or(&empty);
+  let has_native_profile = agentos
+    .get("execution")
+    .and_then(Value::as_object)
+    .and_then(|execution| execution.get("native"))
+    .is_some_and(|native| !native.is_null());
+  if has_native_profile {
+    // `open.multiInstance` is not forwarded by the root-config projection;
+    // reject it explicitly for native profile v1 rather than silently dropping it.
+    if let Some(multi_instance) = open.get("multiInstance")
+      && multi_instance != &Value::Bool(false)
+    {
+      bail!("agentos.execution.native does not support open.multiInstance true");
+    }
+  }
   let targets = agentos
     .get("targets")
     .cloned()

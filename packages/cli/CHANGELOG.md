@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0]
+
+### New Features
+
+- Add generic AgentOS native process profile v1 packaging, validate its protocol constraints, and preserve the complete profile in generated ARM64 and x64 packages.
+- Require the native profile for native builds; mode-only legacy native configs are rejected.
+
 ## [3.1.0]
 
 ### New Features

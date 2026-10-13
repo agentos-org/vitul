@@ -251,11 +251,12 @@ fn package_app(project_root: &Path, package_json: &Path, vitul_config: &Path) ->
 
   let mut tar = Command::new("tar");
   tar
-    .args(["-czf"])
+    .args(["--no-xattrs", "-czf"])
     .arg(&archive)
     .args(["-C"])
     .arg(staging_root)
     .arg(".");
+  tar.env("COPYFILE_DISABLE", "1");
   run_command(&mut tar, "creating the AgentOS .agt archive")?;
 
   println!("AgentOS ARM64 package created: {}", archive.display());

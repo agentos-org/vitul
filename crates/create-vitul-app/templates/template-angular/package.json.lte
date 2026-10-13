@@ -25,7 +25,7 @@
     "@angular/build": "^22.0.1",
     "@angular/cli": "^22.0.1",
     "@angular/compiler-cli": "^22.0.1",
-    "@litevar/vitul-cli": "^3.1.0",
+    "@litevar/vitul-cli": "^3.2.0",
     "typescript": "~6.0.3"
   }
 }

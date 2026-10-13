@@ -123,12 +123,12 @@ app metadata in `vitul.conf.json`, then run `vitul agentos validate` and
 remote-web apps use `agentos.type: "remote-web"` and an HTTPS `agentos.web.url`,
 and produce an architecture-independent URL package.
 
-Process apps run in a container by default. Set `agentos.execution.mode` to
-`"native"` to run the process directly on the Linux host. Native apps have full
-host access and require explicit high-risk consent plus the local account
-password when installed or updated. Native mode is limited to process apps and
-cannot be combined with deployment, Host Providers, or `native.external-wayland`.
-Omit `execution` to keep the default container mode. See the
+Process apps run in a container by default. Vitul native execution requires the
+AgentOS native process profile v1, with both `mode: "native"` and a `native`
+object under `agentos.execution`; mode-only legacy configs are rejected. Native
+profile is limited to process apps, requires persistent data, cannot be combined
+with deployment, Host Providers, or `native.external-wayland`, and does not
+enable autostart. See the
 [AgentOS config guide](crates/vitul-cli/src/agentos_config/README.md) and its
 [Chinese version](crates/vitul-cli/src/agentos_config/README-zh_CN.md).
 
