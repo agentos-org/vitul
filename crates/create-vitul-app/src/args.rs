@@ -10,55 +10,55 @@ use crate::{package_manager::PackageManager, template::Template, utils::colors::
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub enum DesktopTemplateVersion {
-    V1,
-    #[default]
-    V2,
+  V1,
+  #[default]
+  V2,
 }
 
 impl DesktopTemplateVersion {
-    pub fn all() -> [DesktopTemplateVersion; 2] {
-        [DesktopTemplateVersion::V1, DesktopTemplateVersion::V2]
-    }
+  pub fn all() -> [DesktopTemplateVersion; 2] {
+    [DesktopTemplateVersion::V1, DesktopTemplateVersion::V2]
+  }
 }
 
 impl Display for DesktopTemplateVersion {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::V1 => write!(f, "1"),
-            Self::V2 => write!(f, "2"),
-        }
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::V1 => write!(f, "1"),
+      Self::V2 => write!(f, "2"),
     }
+  }
 }
 
 #[derive(Debug)]
 pub struct Args {
-    pub project_name: Option<String>,
-    pub manager: Option<PackageManager>,
-    pub template: Option<Template>,
-    pub identifier: Option<String>,
-    pub skip: bool,
-    pub force: bool,
+  pub project_name: Option<String>,
+  pub manager: Option<PackageManager>,
+  pub template: Option<Template>,
+  pub identifier: Option<String>,
+  pub skip: bool,
+  pub force: bool,
 }
 
 impl Default for Args {
-    fn default() -> Self {
-        Self {
-            project_name: Some("vitul-app".to_string()),
-            identifier: Some("com.vitul.app".to_string()),
-            manager: Some(PackageManager::Npm),
-            template: Some(Template::Vanilla),
-            skip: false,
-            force: false,
-        }
+  fn default() -> Self {
+    Self {
+      project_name: Some("vitul-app".to_string()),
+      identifier: Some("com.vitul.app".to_string()),
+      manager: Some(PackageManager::Npm),
+      template: Some(Template::Vanilla),
+      skip: false,
+      force: false,
     }
+  }
 }
 
 pub fn parse(argv: Vec<OsString>, bin_name: Option<String>) -> anyhow::Result<Args> {
-    let mut pargs = Arguments::from_vec(argv);
+  let mut pargs = Arguments::from_vec(argv);
 
-    if pargs.contains(["-h", "--help"]) {
-        let help = format!(
-            r#"
+  if pargs.contains(["-h", "--help"]) {
+    let help = format!(
+      r#"
 {GREEN}{name}{RESET} {version}
 {desc}
 
@@ -77,37 +77,37 @@ pub fn parse(argv: Vec<OsString>, bin_name: Option<String>) -> anyhow::Result<Ar
   {GREEN}-h{RESET}, {GREEN}--help{RESET}                    Prints help information
   {GREEN}-v{RESET}, {GREEN}--version{RESET}                 Prints version information
 "#,
-            name = bin_name.unwrap_or_else(|| env!("CARGO_PKG_NAME").to_string()),
-            version = env!("CARGO_PKG_VERSION"),
-            desc = env!("CARGO_PKG_DESCRIPTION"),
-            managers = PackageManager::ALL
-                .iter()
-                .map(|e| format!("{GREEN}{e}{RESET}"))
-                .collect::<Vec<_>>()
-                .join(", "),
-            templates = Template::ALL
-                .iter()
-                .map(|e| format!("{GREEN}{e}{RESET}"))
-                .collect::<Vec<_>>()
-                .join(", "),
-        );
+      name = bin_name.unwrap_or_else(|| env!("CARGO_PKG_NAME").to_string()),
+      version = env!("CARGO_PKG_VERSION"),
+      desc = env!("CARGO_PKG_DESCRIPTION"),
+      managers = PackageManager::ALL
+        .iter()
+        .map(|e| format!("{GREEN}{e}{RESET}"))
+        .collect::<Vec<_>>()
+        .join(", "),
+      templates = Template::ALL
+        .iter()
+        .map(|e| format!("{GREEN}{e}{RESET}"))
+        .collect::<Vec<_>>()
+        .join(", "),
+    );
 
-        println!("{help}");
-        std::process::exit(0);
-    }
-    if pargs.contains(["-v", "--version"]) {
-        println!("{}", env!("CARGO_PKG_VERSION"));
-        std::process::exit(0);
-    }
+    println!("{help}");
+    std::process::exit(0);
+  }
+  if pargs.contains(["-v", "--version"]) {
+    println!("{}", env!("CARGO_PKG_VERSION"));
+    std::process::exit(0);
+  }
 
-    let args = Args {
-        manager: pargs.opt_value_from_str(["-m", "--manager"])?,
-        template: pargs.opt_value_from_str(["-t", "--template"])?,
-        skip: pargs.contains(["-y", "--yes"]),
-        force: pargs.contains(["-f", "--force"]),
-        identifier: pargs.opt_value_from_str("--identifier")?,
-        project_name: pargs.opt_free_from_str()?,
-    };
+  let args = Args {
+    manager: pargs.opt_value_from_str(["-m", "--manager"])?,
+    template: pargs.opt_value_from_str(["-t", "--template"])?,
+    skip: pargs.contains(["-y", "--yes"]),
+    force: pargs.contains(["-f", "--force"]),
+    identifier: pargs.opt_value_from_str("--identifier")?,
+    project_name: pargs.opt_free_from_str()?,
+  };
 
-    Ok(args)
+  Ok(args)
 }
