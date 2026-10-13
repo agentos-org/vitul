@@ -160,8 +160,8 @@ public GitHub repositories are listed here.
 - `crates/tauri-*` contains desktop runtime code derived from Tauri. Its Cargo
   package and Rust crate names are retained for the current engine.
 - `packages/` contains the JavaScript API package (`@tauri-apps/api`), the
-  Vitul CLI package (`@litevar/vitul-cli`), and the `vitul` / `create-vitul-app` npm
-  command packages.
+  Vitul CLI package (`@litevar/vitul-cli`), and the `@litevar/vitul` (command
+  `vitul`) / `create-vitul-app` npm command packages.
 - `crates/create-vitul-app/` contains the internal scaffold crate used by
   `vitul create`, derived from the upstream `create-tauri-app` project.
 

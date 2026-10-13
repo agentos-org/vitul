@@ -1,5 +1,5 @@
 {
-  "name": "vitul",
+  "name": "@litevar/vitul",
   "version": "0.2.0",
   "description": "Vitul CLI for creating and building Vitul applications",
   "license": "Apache-2.0 OR MIT",

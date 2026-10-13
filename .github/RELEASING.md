@@ -7,7 +7,8 @@ version, support, and release requirements in
 
 The Rust CLI can be installed from a Vitul source checkout with
 `cargo install --path crates/vitul-cli --locked`. The npm command packages are
-`vitul` and `create-vitul-app`; both depend on the native `@litevar/vitul-cli` package.
+`@litevar/vitul` (command `vitul`) and `create-vitul-app`; both depend on the
+native `@litevar/vitul-cli` package.
 Generated projects use `@litevar/vitul-cli` as a development dependency.
 
 `.github/workflows/publish-cli-js.yml` builds and tests the native bindings for
@@ -24,7 +25,7 @@ the platform binaries to the release. Keep the registry credential configured
 while this workflow depends on it.
 
 After the versioned `@litevar/vitul-cli` release is available in npm, manually dispatch
-`.github/workflows/publish-vitul-commands.yml` to publish `vitul` and
+`.github/workflows/publish-vitul-commands.yml` to publish `@litevar/vitul` and
 `create-vitul-app`. Bootstrap each package once so it exists, then configure
 trusted publishing for both packages with `agentos-org/vitul` and
 `publish-vitul-commands.yml` before dispatching subsequent releases.

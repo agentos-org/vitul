@@ -66,8 +66,9 @@ Vitul release must update this map when any listed version changes.
   toolchain information, and checksums for downloadable artifacts. GitHub
   Releases are the public distribution record.
 - The `@litevar/vitul-cli` npm binding is published through the GitHub Actions
-  workflow after its versioned GitHub Release has been created. The `vitul` and
-  `create-vitul-app` wrapper packages have a separate manual publish workflow.
+  workflow after its versioned GitHub Release has been created. The
+  `@litevar/vitul` and `create-vitul-app` wrapper packages have a separate
+  manual publish workflow.
 - Do not publish packages using the inherited Rust CLI or Covector workflows;
   they still target upstream identities and are not Vitul release automation.
 - Before each npm release, align the CLI package version map and verify

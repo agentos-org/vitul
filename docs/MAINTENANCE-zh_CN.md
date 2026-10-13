@@ -37,7 +37,7 @@ Vitul 当前处于 1.0 之前的预览阶段。指定的公开项目主页、问
 
 - 预览期间项目版本使用 `v0.x.y` tag；首个稳定版本为 `v1.0.0`，此后按上述语义化版本规则发布。
 - 每次发布都包含变更记录、支持平台说明、已测试的工具链信息，以及可下载产物的校验和。GitHub Releases 是公开发布记录。
-- `@litevar/vitul-cli` 的 npm 原生绑定通过 GitHub Actions 发布，需先创建对应版本的 GitHub Release。`vitul` 和 `create-vitul-app` 包由另一条手动发布工作流处理。
+- `@litevar/vitul-cli` 的 npm 原生绑定通过 GitHub Actions 发布，需先创建对应版本的 GitHub Release。`@litevar/vitul`（命令名 `vitul`）和 `create-vitul-app` 包由另一条手动发布工作流处理。
 - 不要使用继承自 Tauri 的 Rust CLI 或 Covector 工作流发布 Vitul 包；它们仍然面向上游身份，不属于 Vitul 发布流程。
 - 每次 npm 发布前，维护者需要同步 CLI 包版本映射，并在干净生成项目中验证安装流程。
 
