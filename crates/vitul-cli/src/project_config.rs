@@ -191,6 +191,9 @@ pub fn package_config(root: &Path) -> Result<Config> {
   if let Some(deployment) = agentos.get("deployment") {
     package_agentos.insert("deployment".into(), deployment.clone());
   }
+  if let Some(network) = agentos.get("network") {
+    package_agentos.insert("network".into(), network.clone());
+  }
   if let Some(execution) = agentos.get("execution") {
     package_agentos.insert("execution".into(), execution.clone());
   }
@@ -261,8 +264,13 @@ pub fn package_config(root: &Path) -> Result<Config> {
     "agentos": Value::Object(package_agentos),
     "data": agentos.get("data").cloned().unwrap_or_else(|| json!({}))
   });
-  let parsed: Config =
-    serde_json::from_value(package_config).context("invalid AgentOS section in vitul.conf.json")?;
+  let parsed: Config = serde_path_to_error::deserialize(package_config).map_err(|error| {
+    anyhow::anyhow!(
+      "invalid AgentOS section in vitul.conf.json at `{}`: {}",
+      error.path(),
+      error.inner()
+    )
+  })?;
   parsed.validate(root)?;
   Ok(parsed)
 }

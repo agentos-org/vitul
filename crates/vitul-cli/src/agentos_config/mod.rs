@@ -1,3 +1,4 @@
+pub(crate) mod network;
 mod schema;
 
 pub mod inspect;
@@ -95,6 +96,9 @@ impl AgentOsPackageConfig {
       "native.external-wayland.clipboard.read",
       "native.external-wayland.clipboard.write",
       "native.providers",
+      "native.network",
+      "native.system-proxy",
+      "native.tun",
       "native.system-deployment",
       "native.desktop-session",
     ];
@@ -104,6 +108,80 @@ impl AgentOsPackageConfig {
       }
     }
     let execution_mode = self.agentos.execution_mode();
+    let has_network_config = self.agentos.network.is_some();
+    let has_network_permission = self.agentos.permissions.iter().any(|permission| {
+      matches!(
+        permission.as_str(),
+        "native.network" | "native.system-proxy" | "native.tun"
+      )
+    });
+    if has_network_config {
+      let network = self
+        .agentos
+        .network
+        .as_ref()
+        .expect("checked network config");
+      network.validate()?;
+      if self.app.app_type != AppType::Process {
+        bail!(
+          "agentos.network requires app.type `process`; remove the network declaration from remote-web apps"
+        );
+      }
+      if execution_mode != schema::ExecutionMode::Native {
+        bail!(
+          "agentos.network requires agentos.execution.mode `native`; add the native profile v1"
+        );
+      }
+      let native = self
+        .agentos
+        .execution
+        .as_ref()
+        .and_then(|execution| execution.native.as_ref())
+        .context("agentos.network requires agentos.execution.native profile v1 with identity `desktop-user`")?;
+      if native.version != 1 || native.identity != "desktop-user" {
+        bail!(
+          "agentos.network requires agentos.execution.native.version 1 and identity `desktop-user`; update the native profile"
+        );
+      }
+      for required in ["native.providers", "native.network"] {
+        if !self
+          .agentos
+          .permissions
+          .iter()
+          .any(|permission| permission == required)
+        {
+          bail!(
+            "agentos.network requires agentos.permissions to include `{required}`; add it to the permissions array"
+          );
+        }
+      }
+      let has_proxy_profiles = !network.proxy_profiles.is_empty();
+      let has_tun_profiles = !network.tun_profiles.is_empty();
+      for (permission, profile_family, declared) in [
+        ("native.system-proxy", "proxyProfiles", has_proxy_profiles),
+        ("native.tun", "tunProfiles", has_tun_profiles),
+      ] {
+        let requested = self
+          .agentos
+          .permissions
+          .iter()
+          .any(|item| item == permission);
+        if declared && !requested {
+          bail!(
+            "agentos.network.{profile_family} requires `{permission}` in agentos.permissions; add that permission"
+          );
+        }
+        if requested && !declared {
+          bail!(
+            "agentos.permissions includes `{permission}` but agentos.network.{profile_family} is empty; remove the unused permission or declare a matching profile"
+          );
+        }
+      }
+    } else if has_network_permission {
+      bail!(
+        "agentos.permissions network permissions require agentos.network; add a protocol v1 network declaration or remove the unused permission"
+      );
+    }
     if let Some(execution) = &self.agentos.execution {
       if execution.mode == Some(schema::ExecutionMode::Native) && execution.native.is_none() {
         bail!(
@@ -161,17 +239,25 @@ impl AgentOsPackageConfig {
       if self.app.app_type != AppType::Process {
         bail!("agentos.execution.mode native requires a process App");
       }
-      if self.agentos.deployment.is_some()
-        || !self.agentos.providers.is_empty()
-        || self.agentos.permissions.iter().any(|permission| {
-          matches!(
-            permission.as_str(),
-            "native.providers" | "native.system-deployment" | "native.desktop-session"
-          ) || permission.starts_with("native.external-wayland")
-        })
-      {
+      if self.agentos.deployment.is_some() {
         bail!(
-          "native execution cannot be combined with deployment, Host Providers, or native.external-wayland"
+          "agentos.deployment cannot be combined with native execution; remove the deployment declaration"
+        );
+      }
+      if !self.agentos.providers.is_empty() {
+        bail!(
+          "agentos.providers cannot declare App-owned Host Providers for native execution; remove them and use only Vitul's generated org.agentos.network Provider"
+        );
+      }
+      if let Some(permission) = self.agentos.permissions.iter().find(|permission| {
+        matches!(
+          permission.as_str(),
+          "native.system-deployment" | "native.desktop-session"
+        ) || permission.starts_with("native.external-wayland")
+          || (permission.as_str() == "native.providers" && !has_network_config)
+      }) {
+        bail!(
+          "agentos.permissions includes `{permission}`, which is unavailable for native execution; remove that permission"
         );
       }
     }
@@ -193,6 +279,7 @@ impl AgentOsPackageConfig {
       .iter()
       .any(|permission| permission == "native.providers")
       && self.agentos.providers.is_empty()
+      && !has_network_config
     {
       bail!("native.providers requires at least one agentos.providers declaration");
     }

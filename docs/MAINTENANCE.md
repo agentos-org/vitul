@@ -22,20 +22,20 @@ The project maintainer is [@LiteVar](https://github.com/LiteVar).
   baseline. This records source lineage and does not promise Tauri app, API, or
   plugin compatibility. Each Vitul release must publish a version map for the
   CLI, API, runtime, and generated templates.
-- The Rust CLI (`vitul-cli`) is currently version `0.1.0`; the JavaScript CLI
-  binding is released independently as `@litevar/vitul-cli` and is at `3.2.0`
+- The Rust CLI (`vitul-cli`) is currently version `0.2.0`; the JavaScript CLI
+  binding is released independently as `@litevar/vitul-cli` and is at `3.3.0`
   in this source snapshot.
 
 ### Version map for this source snapshot
 
 | Component                                                                   | Source version | Meaning                                                                    |
 | --------------------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------- |
-| Vitul Rust CLI (`vitul-cli`)                                                | `0.1.0`        | Vitul's current preview CLI version.                                       |
+| Vitul Rust CLI (`vitul-cli`)                                                | `0.2.0`        | Vitul's current preview CLI version.                                       |
 | Core desktop runtime source (`tauri`, `tauri-runtime`, `tauri-runtime-wry`) | `2.12.0`       | Tauri-derived source baseline; not a compatibility commitment.             |
 | JavaScript host API (`@tauri-apps/api`)                                     | `2.12.0`       | Inherited package identity; not a promise that Tauri apps or plugins work. |
-| JavaScript CLI binding (`@litevar/vitul-cli`)                               | `3.2.0`        | Native CLI package; its version tracks the CLI binding release.            |
-| Global npm command (`vitul`)                                                | `0.2.0`        | Wrapper package for the `vitul` executable.                                |
-| npm project creator (`create-vitul-app`)                                    | `0.2.0`        | Wrapper package for `npm create vitul-app`.                                |
+| JavaScript CLI binding (`@litevar/vitul-cli`)                               | `3.3.0`        | Native CLI package; its version tracks the CLI binding release.            |
+| Global npm command (`vitul`)                                                | `0.3.0`        | Wrapper package for the `vitul` executable.                                |
+| npm project creator (`create-vitul-app`)                                    | `0.3.0`        | Wrapper package for `npm create vitul-app`.                                |
 | Generated app and backend defaults                                          | `0.1.0`        | Starter app versions, independent of the Vitul CLI version.                |
 | AgentOS app manifest                                                        | `1`            | Manifest schema version, independent of the Vitul release version.         |
 

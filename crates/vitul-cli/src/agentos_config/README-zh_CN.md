@@ -95,6 +95,55 @@ process 应用。Vitul 始终输出
 Native 仅适用于 process 应用。AgentOS 当前拒绝同时声明 deployment、Host Provider 或
 `native.external-wayland` 的 native manifest；Vitul 会在配置校验阶段报告这些组合。使用这些功能时须保留默认容器模式。
 
+### Native App 网络 profile
+
+Vitul 支持 AgentOS Native App 网络 manifest v1。仅限
+`execution.mode: "native"` 且 native profile v1 的 `identity` 为
+`desktop-user` 的 process 应用。可执行文件和 TUN 配置文件使用最终包内的相对路径；
+Vitul 会针对每个目标 staging 中的文件计算小写 SHA-256。不要在 `vitul.conf.json`
+中填写摘要。
+
+下面是通用代理配置示例。请通过 `build.artifacts` 把可执行文件放入包内的
+`bin/network-client`。代理与 TUN 的完整配置示例见
+[`examples/agentos/native-network/`](../../../../examples/agentos/native-network/README-zh_CN.md)：
+
+```json
+{
+  "permissions": ["native.providers", "native.network", "native.system-proxy"],
+  "network": {
+    "protocolVersion": 1,
+    "executables": [{ "id": "network-client", "path": "bin/network-client" }],
+    "proxyProfiles": [{
+      "id": "account-proxy",
+      "executable": "network-client",
+      "http": { "host": "proxy.example.invalid", "port": 8080 },
+      "https": { "host": "proxy.example.invalid", "port": 8443 },
+      "socks": { "host": "127.0.0.1", "port": 1080 },
+      "bypass": ["localhost", "127.0.0.0/8", "::1"]
+    }]
+  }
+}
+```
+
+TUN profile 还需声明 `native.tun`，并提供有界的固定 `arguments`、包内
+`configuration.path`、`interfaceName`、1–8 个固定 IPv4 `outerEndpoints`，将
+`ipv4` 和 `ipv6` 都设为 `true`，并提供 1–8 个单播 IP literal 作为 `dnsServers`。
+唯一允许的退出策略是 `restore-previous`；argv 唯一允许的占位符是 `${config}`。
+TUN 配置和 executable 都必须由 `build.artifacts` 放入声明的包内路径。Vitul 会生成
+内置 `org.agentos.network` Provider 和完整 v1 方法集合；不要为它声明 App 自带的 Provider。
+
+所有网络声明都需要 `native.providers` 和 `native.network`。仅在存在
+`proxyProfiles` 时添加 `native.system-proxy`，仅在存在 `tunProfiles` 时添加
+`native.tun`。Vitul 会拒绝 container、remote-web 和 App 自定义 Host Provider 组合。
+打包前运行 `vitul agentos validate` 和 `vitul agentos inspect`。
+
+Manifest 校验只能确认声明和包内文件摘要符合协议，不能证明第三方 TUN 内核或远端
+隧道 endpoint 兼容。代理行为和 TUN 可用性也取决于 AgentOS 主机及其网络服务。当前
+Linux TUN 后端要求 AgentOS 服务运行于 systemd/systemd-resolved 主机，且具备
+`iproute2`、`nft`、`/dev/net/tun` 和管理员预先启用的 IPv4/IPv6 转发；同时检查主机
+resolver、策略规则、DNS 路由域以及到每个固定 IPv4 endpoint 的物理路由。系统代理
+修改已认证账户的 GNOME 代理设置；忽略这些设置的程序仍可能直接连接。
+
 托管网站可将 `agentos.type` 设为 `remote-web`，并在 `agentos.web.url` 中填写 HTTPS 地址。
 remote-web 包会在 AgentOS 内嵌 CEF 窗口中打开网站，不会打包本地进程。
 

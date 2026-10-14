@@ -46,6 +46,33 @@ pub fn run(args: &[OsString]) -> Result<()> {
       }
       println!("OpenTool discovery: {}", config.agentos.rpc_discovery);
       println!("Persistent data: {}", config.data.persistent);
+      if let Some(network) = &config.agentos.network {
+        println!("Network protocol version: {}", network.protocol_version);
+        let mut profile_types = Vec::new();
+        if !network.proxy_profiles.is_empty() {
+          profile_types.push("proxy");
+        }
+        if !network.tun_profiles.is_empty() {
+          profile_types.push("tun");
+        }
+        println!("Network profile types: {}", profile_types.join(", "));
+        println!("Network executables: {}", network.executables.len());
+        println!("Network proxy profiles: {}", network.proxy_profiles.len());
+        println!("Network TUN profiles: {}", network.tun_profiles.len());
+        let network_permissions = config
+          .agentos
+          .permissions
+          .iter()
+          .filter(|permission| {
+            matches!(
+              permission.as_str(),
+              "native.providers" | "native.network" | "native.system-proxy" | "native.tun"
+            )
+          })
+          .map(String::as_str)
+          .collect::<Vec<_>>();
+        println!("Network permissions: {}", network_permissions.join(", "));
+      }
     }
     super::PackageAppType::RemoteWeb => {
       println!("Website: {}", config.web.url.as_deref().unwrap_or(""));

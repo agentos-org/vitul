@@ -154,6 +154,9 @@ pub struct AgentOsConfig {
   /// AgentOS validates and authorizes the closed action set at install time.
   #[serde(default)]
   pub deployment: Option<serde_json::Value>,
+  /// Closed AgentOS Native App network declaration, protocol v1.
+  #[serde(default)]
+  pub network: Option<NetworkConfig>,
   /// Where AgentOS runs the process. Omitted or empty means container.
   #[serde(default)]
   pub execution: Option<ExecutionConfig>,
@@ -175,11 +178,87 @@ impl Default for AgentOsConfig {
       permissions: Vec::new(),
       providers: Vec::new(),
       deployment: None,
+      network: None,
       execution: None,
       rpc_base_path: default_rpc_base_path(),
       rpc_discovery: default_rpc_discovery(),
     }
   }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NetworkConfig {
+  pub protocol_version: u32,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub executables: Vec<NetworkExecutable>,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub proxy_profiles: Vec<NetworkProxyProfile>,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub tun_profiles: Vec<NetworkTunProfile>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NetworkExecutable {
+  pub id: String,
+  pub path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NetworkProxyProfile {
+  pub id: String,
+  pub executable: String,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub http: Option<NetworkProxyEndpoint>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub https: Option<NetworkProxyEndpoint>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub socks: Option<NetworkProxyEndpoint>,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub bypass: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NetworkProxyEndpoint {
+  pub host: String,
+  pub port: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NetworkTunProfile {
+  pub id: String,
+  pub executable: String,
+  pub arguments: Vec<String>,
+  pub configuration: NetworkConfigurationFile,
+  pub interface_name: String,
+  pub outer_endpoints: Vec<NetworkTunnelEndpoint>,
+  pub ipv4: bool,
+  pub ipv6: bool,
+  pub dns_servers: Vec<String>,
+  #[serde(default = "default_network_exit_policy")]
+  pub exit_policy: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NetworkConfigurationFile {
+  pub path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NetworkTunnelEndpoint {
+  pub address: String,
+  pub port: u32,
+  pub protocol: String,
+}
+
+fn default_network_exit_policy() -> String {
+  "restore-previous".to_owned()
 }
 
 impl AgentOsConfig {

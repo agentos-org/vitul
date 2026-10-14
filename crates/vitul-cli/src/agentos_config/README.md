@@ -106,6 +106,63 @@ that declare deployment, Host Providers, or `native.external-wayland`; Vitul
 reports these combinations during config validation. The default container
 mode remains required for those features.
 
+### Native App network profiles
+
+Vitul supports AgentOS Native App network manifest v1 for process apps using
+`execution.mode: "native"` and the native profile v1 with
+`identity: "desktop-user"`. Declare executable and TUN configuration paths
+relative to the final package; Vitul computes their lowercase SHA-256 values
+from each target's staged files. Do not provide digests in `vitul.conf.json`.
+
+The following generic proxy profile shows the configuration shape. Add the
+referenced executable through `build.artifacts`, including the final package
+path `bin/network-client`. A complete proxy and TUN config example is available
+at [`examples/agentos/native-network/`](../../../../examples/agentos/native-network/README.md):
+
+```json
+{
+  "permissions": ["native.providers", "native.network", "native.system-proxy"],
+  "network": {
+    "protocolVersion": 1,
+    "executables": [{ "id": "network-client", "path": "bin/network-client" }],
+    "proxyProfiles": [{
+      "id": "account-proxy",
+      "executable": "network-client",
+      "http": { "host": "proxy.example.invalid", "port": 8080 },
+      "https": { "host": "proxy.example.invalid", "port": 8443 },
+      "socks": { "host": "127.0.0.1", "port": 1080 },
+      "bypass": ["localhost", "127.0.0.0/8", "::1"]
+    }]
+  }
+}
+```
+
+For TUN, add `native.tun` and a `tunProfiles` entry containing bounded fixed
+`arguments`, a package-relative `configuration.path`, `interfaceName`, one to
+eight fixed IPv4 `outerEndpoints`, both `ipv4` and `ipv6` set to `true`, and
+one to eight unicast IP literals in `dnsServers`. The only exit policy is
+`restore-previous`; `${config}` is the only argv placeholder. TUN configuration
+and executable files must be included in `build.artifacts` at their declared
+package paths. Vitul generates the built-in `org.agentos.network` Provider and
+its complete v1 method set; do not declare an app-owned Provider for it.
+
+Network declarations require `native.providers` and `native.network`.
+`native.system-proxy` is required exactly when `proxyProfiles` is non-empty,
+and `native.tun` exactly when `tunProfiles` is non-empty. Vitul rejects
+container, remote-web, and app-defined Host Provider combinations. Run
+`vitul agentos validate` and `vitul agentos inspect` before packaging.
+
+Manifest validation confirms the declaration and packaged file digests. It
+does not prove that a third-party tunnel kernel or remote tunnel endpoint is
+compatible. Proxy behavior and TUN availability also depend on the AgentOS
+host and its network services. The current Linux TUN backend requires the
+AgentOS service with systemd and systemd-resolved, `iproute2`, `nft`,
+`/dev/net/tun`, and administrator-enabled IPv4 and IPv6 forwarding. It also
+checks the host resolver, policy rules, DNS routing domain, and physical route
+to each fixed IPv4 endpoint. The system proxy backend writes the authenticated
+account's GNOME proxy settings; applications that ignore those settings may
+continue to connect directly.
+
 For a hosted site, set `agentos.type` to `remote-web` and `agentos.web.url` to
 an HTTPS address. Remote-web packages open the site in AgentOS's embedded CEF
 window and do not package a local process.

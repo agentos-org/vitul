@@ -362,6 +362,9 @@ fn stage_package(
     }
     manifest["sidecars"] = json!(sidecars);
   }
+  if let Some(network) = &config.agentos.network {
+    manifest["network"] = network.manifest_for_staging(staging_root)?;
+  }
   let manifest_bytes =
     serde_json::to_vec_pretty(&manifest).context("could not encode AgentOS app.json")?;
   fs::write(staging_root.join("app.json"), manifest_bytes)
@@ -521,6 +524,15 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
       execution["native"] = serde_json::to_value(native)
         .context("could not encode AgentOS native execution profile")?;
       object.insert("execution".into(), execution);
+      if config.agentos.network.is_some() {
+        object.insert(
+          "providers".into(),
+          json!([{
+            "id": crate::agentos_config::network::NETWORK_PROVIDER_ID,
+            "methods": crate::agentos_config::network::NETWORK_PROVIDER_METHODS
+          }]),
+        );
+      }
     }
     if let Some(deployment) = &config.agentos.deployment {
       object.insert("deployment".into(), deployment.clone());

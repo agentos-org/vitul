@@ -1,6 +1,6 @@
 {
   "name": "@litevar/vitul",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Vitul CLI for creating and building Vitul applications",
   "license": "Apache-2.0 OR MIT",
   "repository": {
@@ -19,7 +19,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@litevar/vitul-cli": "^3.2.0"
+    "@litevar/vitul-cli": "^3.3.0"
   },
   "publishConfig": {
     "access": "public"
