@@ -511,7 +511,6 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
   let object = manifest.as_object_mut().expect("manifest is a JSON object");
   if !is_remote {
     if config.agentos.execution_mode() == ExecutionMode::Native {
-      object.remove("providers");
       let Some(native) = config
         .agentos
         .execution
@@ -524,14 +523,21 @@ fn manifest(config: &Config, architecture: &str) -> Result<Value> {
       execution["native"] = serde_json::to_value(native)
         .context("could not encode AgentOS native execution profile")?;
       object.insert("execution".into(), execution);
+      let mut providers = object
+        .get("providers")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
       if config.agentos.network.is_some() {
-        object.insert(
-          "providers".into(),
-          json!([{
-            "id": crate::agentos_config::network::NETWORK_PROVIDER_ID,
-            "methods": crate::agentos_config::network::NETWORK_PROVIDER_METHODS
-          }]),
-        );
+        providers.push(json!({
+          "id": crate::agentos_config::network::NETWORK_PROVIDER_ID,
+          "methods": crate::agentos_config::network::NETWORK_PROVIDER_METHODS
+        }));
+      }
+      if providers.is_empty() {
+        object.remove("providers");
+      } else {
+        object.insert("providers".into(), Value::Array(providers));
       }
     }
     if let Some(deployment) = &config.agentos.deployment {

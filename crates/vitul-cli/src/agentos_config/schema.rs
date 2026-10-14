@@ -233,32 +233,18 @@ pub struct NetworkTunProfile {
   pub id: String,
   pub executable: String,
   pub arguments: Vec<String>,
-  pub configuration: NetworkConfigurationFile,
+  pub configuration: NetworkTunConfiguration,
   pub interface_name: String,
-  pub outer_endpoints: Vec<NetworkTunnelEndpoint>,
   pub ipv4: bool,
   pub ipv6: bool,
-  pub dns_servers: Vec<String>,
-  #[serde(default = "default_network_exit_policy")]
   pub exit_policy: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct NetworkConfigurationFile {
-  pub path: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct NetworkTunnelEndpoint {
-  pub address: String,
-  pub port: u32,
-  pub protocol: String,
-}
-
-fn default_network_exit_policy() -> String {
-  "restore-previous".to_owned()
+pub struct NetworkTunConfiguration {
+  pub source: String,
+  pub max_bytes: u32,
 }
 
 impl AgentOsConfig {

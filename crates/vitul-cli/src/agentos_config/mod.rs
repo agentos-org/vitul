@@ -239,26 +239,40 @@ impl AgentOsPackageConfig {
       if self.app.app_type != AppType::Process {
         bail!("agentos.execution.mode native requires a process App");
       }
-      if self.agentos.deployment.is_some() {
-        bail!(
-          "agentos.deployment cannot be combined with native execution; remove the deployment declaration"
-        );
-      }
-      if !self.agentos.providers.is_empty() {
-        bail!(
-          "agentos.providers cannot declare App-owned Host Providers for native execution; remove them and use only Vitul's generated org.agentos.network Provider"
-        );
-      }
       if let Some(permission) = self.agentos.permissions.iter().find(|permission| {
-        matches!(
-          permission.as_str(),
-          "native.system-deployment" | "native.desktop-session"
-        ) || permission.starts_with("native.external-wayland")
-          || (permission.as_str() == "native.providers" && !has_network_config)
+        matches!(permission.as_str(), "native.audio" | "native.audio.exclusive")
       }) {
         bail!(
-          "agentos.permissions includes `{permission}`, which is unavailable for native execution; remove that permission"
+          "agentos.permissions includes `{permission}`, which is not available to desktop-user native Apps"
         );
+      }
+      if let Some(deployment) = &self.agentos.deployment {
+        const CONTAINER_ONLY_ACTIONS: &[&str] = &[
+          "linux.device.assign",
+          "linux.bind-mount",
+          "linux.lxc.ensure",
+          "linux.lxc.lifecycle",
+        ];
+        if let Some(action) = deployment
+          .get("operations")
+          .and_then(serde_json::Value::as_array)
+          .into_iter()
+          .flatten()
+          .flat_map(|operation| operation.get("actions").and_then(serde_json::Value::as_array))
+          .into_iter()
+          .flatten()
+          .find(|action| {
+            action
+              .get("type")
+              .and_then(serde_json::Value::as_str)
+              .is_some_and(|kind| CONTAINER_ONLY_ACTIONS.contains(&kind))
+          })
+        {
+          bail!(
+            "desktop-user native deployment cannot request container-only action `{}`",
+            action.get("type").and_then(serde_json::Value::as_str).unwrap_or("unknown")
+          );
+        }
       }
     }
     if self.app.app_type != AppType::Process && !self.agentos.providers.is_empty() {
@@ -481,6 +495,14 @@ impl AgentOsPackageConfig {
 fn validate_platform_providers(config: &AgentOsPackageConfig) -> Result<()> {
   const DEPLOYMENT_ID: &str = "org.agentos.system-deployment";
   const DESKTOP_SESSION_ID: &str = "org.agentos.desktop-session";
+  const EXTERNAL_WAYLAND_ID: &str = "org.agentos.external-wayland";
+  const NETWORK_ID: &str = "org.agentos.network";
+  const EXTERNAL_WAYLAND_METHODS: &[&str] = &[
+    "session.start",
+    "session.prepare_restart",
+    "session.restart",
+    "session.stop",
+  ];
   const DEPLOYMENT_METHODS: &[&str] = &[
     "capabilities.get",
     "operation.plan",
@@ -507,6 +529,23 @@ fn validate_platform_providers(config: &AgentOsPackageConfig) -> Result<()> {
 
   let system_deployment = find_provider(DEPLOYMENT_ID);
   let desktop_session = find_provider(DESKTOP_SESSION_ID);
+  let external_wayland = find_provider(EXTERNAL_WAYLAND_ID);
+  if config.agentos.network.is_some() && find_provider(NETWORK_ID).is_some() {
+    bail!("org.agentos.network is generated from agentos.network; remove its manual provider declaration");
+  }
+  if config.agentos.network.is_none() && find_provider(NETWORK_ID).is_some() {
+    bail!("org.agentos.network requires an agentos.network declaration");
+  }
+  if let Some(provider) = external_wayland {
+    let declared = provider.methods.iter().map(String::as_str).collect::<std::collections::BTreeSet<_>>();
+    let expected = EXTERNAL_WAYLAND_METHODS.iter().copied().collect::<std::collections::BTreeSet<_>>();
+    if provider.executable.is_some()
+      || declared != expected
+      || !has_permission("native.external-wayland")
+    {
+      bail!("{EXTERNAL_WAYLAND_ID} requires native.external-wayland and its fixed built-in methods without an executable");
+    }
+  }
   match (
     &config.agentos.deployment,
     has_permission("native.system-deployment"),

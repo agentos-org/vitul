@@ -159,12 +159,10 @@ fn tun_network_config() -> Value {
       "id": "full-tunnel",
       "executable": "tunnel-kernel",
       "arguments": ["--config", "${config}"],
-      "configuration": { "path": "network/config/client.conf" },
+      "configuration": { "source": "runtime-snapshot", "maxBytes": 4194304 },
       "interfaceName": "app-tun0",
-      "outerEndpoints": [{ "address": "198.51.100.17", "port": 51820, "protocol": "udp" }],
       "ipv4": true,
       "ipv6": true,
-      "dnsServers": ["1.1.1.1", "2606:4700:4700::1111"],
       "exitPolicy": "restore-previous"
     }]
   })
@@ -602,20 +600,14 @@ fn native_proxy_network_validates_and_emits_the_builtin_provider_and_package_dig
 
 #[cfg(unix)]
 #[test]
-fn native_tun_manifest_hashes_the_final_packaged_configuration_file() {
+fn native_tun_manifest_emits_runtime_snapshot_without_packaging_configuration() {
   let (root, mut config) = project();
   config["agentos"]["targets"] = json!(["agentos/arm64"]);
   write_network_executable(root.path(), "network/tunnel-kernel", b"tunnel executable\n");
-  fs::create_dir_all(root.path().join("network/config")).unwrap();
-  fs::write(
-    root.path().join("network/config/client.conf"),
-    "tunnel configuration fixture\n",
-  )
-  .unwrap();
   config["agentos"]["build"]["artifacts"]
     .as_array_mut()
     .unwrap()
-    .push(json!({ "from": "network", "to": "network" }));
+    .push(json!({ "from": "network/tunnel-kernel", "to": "network/tunnel-kernel" }));
   enable_native_network(
     &mut config,
     &["native.providers", "native.network", "native.tun"],
@@ -626,6 +618,14 @@ fn native_tun_manifest_hashes_the_final_packaged_configuration_file() {
     invoke(root.path(), &["agentos", "validate"]),
     "native TUN network config should validate",
   );
+  let inspect = invoke(root.path(), &["agentos", "inspect"]);
+  assert!(
+    inspect.status.success(),
+    "agentos inspect should show the TUN runtime snapshot declaration\n{}",
+    String::from_utf8_lossy(&inspect.stderr)
+  );
+  let inspect = String::from_utf8_lossy(&inspect.stdout);
+  assert!(inspect.contains("configuration runtime-snapshot up to 4194304 bytes"));
   assert_cli_success(
     invoke(root.path(), &["build", "--target", "agentos/arm64"]),
     "native TUN network package should build",
@@ -638,12 +638,20 @@ fn native_tun_manifest_hashes_the_final_packaged_configuration_file() {
   assert_eq!(manifest["network"]["tunProfiles"][0]["ipv4"], true);
   assert_eq!(manifest["network"]["tunProfiles"][0]["ipv6"], true);
   assert_eq!(
-    manifest["network"]["tunProfiles"][0]["configuration"]["sha256"],
-    sha256(&package_file(
-      root.path(),
-      "arm64",
-      "network/config/client.conf"
-    ))
+    manifest["network"]["tunProfiles"][0]["configuration"],
+    json!({ "source": "runtime-snapshot", "maxBytes": 4194304 })
+  );
+  assert!(manifest["network"]["tunProfiles"][0]["configuration"]["path"].is_null());
+  assert!(manifest["network"]["tunProfiles"][0]["configuration"]["sha256"].is_null());
+  assert!(
+    manifest["network"]["tunProfiles"][0]
+      .get("outerEndpoints")
+      .is_none()
+  );
+  assert!(
+    manifest["network"]["tunProfiles"][0]
+      .get("dnsServers")
+      .is_none()
   );
   assert_eq!(
     manifest["network"]["executables"][0]["sha256"],
@@ -678,16 +686,14 @@ fn generic_native_network_example_passes_validate_and_build_for_both_targets() {
     "network/x64/tunnel-kernel",
     b"x64 generic tunnel kernel\n",
   );
-  fs::create_dir_all(root.path().join("network")).unwrap();
-  fs::write(
-    root.path().join("network/client.conf"),
-    "generic tunnel config\n",
-  )
-  .unwrap();
   write_config(root.path(), &example);
   assert_cli_success(
     invoke(root.path(), &["agentos", "validate"]),
     "the checked-in generic network example should validate",
+  );
+  assert_cli_success(
+    invoke(root.path(), &["agentos", "inspect"]),
+    "the checked-in generic network example should inspect",
   );
   assert_cli_success(
     invoke(root.path(), &["build", "--target", "agentos"]),
@@ -892,57 +898,112 @@ fn tun_manifest_v1_closed_fields_and_network_values_are_enforced() {
       Box::new(|network| network["executables"][0]["path"] = json!("/usr/bin/client")),
     ),
     (
-      "path traversal",
+      "unsupported runtime snapshot source",
       Box::new(|network| {
-        network["tunProfiles"][0]["configuration"]["path"] = json!("../client.conf")
+        network["tunProfiles"][0]["configuration"]["source"] = json!("package-file")
       }),
     ),
     (
-      "configuration digest supplied by the developer",
+      "runtime snapshot below minimum",
+      Box::new(|network| network["tunProfiles"][0]["configuration"]["maxBytes"] = json!(1023)),
+    ),
+    (
+      "runtime snapshot above maximum",
+      Box::new(|network| network["tunProfiles"][0]["configuration"]["maxBytes"] = json!(4194305)),
+    ),
+    (
+      "non-integer runtime snapshot maximum",
+      Box::new(|network| network["tunProfiles"][0]["configuration"]["maxBytes"] = json!(1024.5)),
+    ),
+    (
+      "unknown configuration field",
+      Box::new(|network| network["tunProfiles"][0]["configuration"]["unexpected"] = json!(true)),
+    ),
+    (
+      "legacy static configuration path",
+      Box::new(|network| {
+        network["tunProfiles"][0]["configuration"]["path"] = json!("config/client.conf")
+      }),
+    ),
+    (
+      "legacy configuration digest",
       Box::new(|network| {
         network["tunProfiles"][0]["configuration"]["sha256"] = json!("0".repeat(64))
       }),
+    ),
+    (
+      "legacy outer endpoints",
+      Box::new(|network| {
+        network["tunProfiles"][0]["outerEndpoints"] = json!([{
+          "address": "198.51.100.17", "port": 443, "protocol": "udp"
+        }])
+      }),
+    ),
+    (
+      "legacy DNS servers",
+      Box::new(|network| network["tunProfiles"][0]["dnsServers"] = json!(["1.1.1.1"])),
     ),
     (
       "single stack TUN",
       Box::new(|network| network["tunProfiles"][0]["ipv6"] = json!(false)),
     ),
     (
-      "non literal outer endpoint",
-      Box::new(|network| {
-        network["tunProfiles"][0]["outerEndpoints"][0]["address"] = json!("tunnel.example.invalid")
-      }),
-    ),
-    (
-      "loopback outer endpoint",
-      Box::new(|network| {
-        network["tunProfiles"][0]["outerEndpoints"][0]["address"] = json!("127.0.0.1")
-      }),
-    ),
-    (
-      "invalid tunnel protocol",
-      Box::new(|network| {
-        network["tunProfiles"][0]["outerEndpoints"][0]["protocol"] = json!("icmp")
-      }),
-    ),
-    (
-      "DNS hostname",
-      Box::new(|network| network["tunProfiles"][0]["dnsServers"][0] = json!("dns.example.invalid")),
-    ),
-    (
-      "duplicate normalized DNS server",
-      Box::new(|network| {
-        network["tunProfiles"][0]["dnsServers"] =
-          json!(["2606:4700:4700::1111", "2606:4700:4700:0:0:0:0:1111"])
-      }),
+      "single stack IPv4 disabled",
+      Box::new(|network| network["tunProfiles"][0]["ipv4"] = json!(false)),
     ),
     (
       "unsupported argv placeholder",
       Box::new(|network| network["tunProfiles"][0]["arguments"][1] = json!("${command}")),
     ),
     (
+      "legacy config placeholder",
+      Box::new(|network| network["tunProfiles"][0]["arguments"][1] = json!("{config}")),
+    ),
+    (
+      "missing config placeholder",
+      Box::new(|network| {
+        network["tunProfiles"][0]["arguments"] = json!(["--config", "client.conf"])
+      }),
+    ),
+    (
       "host path in argv",
       Box::new(|network| network["tunProfiles"][0]["arguments"][1] = json!("/etc/agentos.conf")),
+    ),
+    (
+      "Windows host path in argv",
+      Box::new(|network| {
+        network["tunProfiles"][0]["arguments"][1] = json!(r"C:\\AgentOS\\client.conf")
+      }),
+    ),
+    (
+      "path traversal in argv",
+      Box::new(|network| network["tunProfiles"][0]["arguments"][0] = json!("../client.conf")),
+    ),
+    (
+      "too many argv entries",
+      Box::new(|network| {
+        let mut arguments = vec!["--option"; 64];
+        arguments.push("${config}");
+        network["tunProfiles"][0]["arguments"] = json!(arguments);
+      }),
+    ),
+    (
+      "argv entry exceeds bound",
+      Box::new(|network| {
+        let mut argument = "a".repeat(4091);
+        argument.push_str("${config}");
+        network["tunProfiles"][0]["arguments"] = json!([argument]);
+      }),
+    ),
+    (
+      "invalid interface name",
+      Box::new(|network| network["tunProfiles"][0]["interfaceName"] = json!("invalid/name")),
+    ),
+    (
+      "interface name exceeds Linux bound",
+      Box::new(|network| {
+        network["tunProfiles"][0]["interfaceName"] = json!("interface-name-too-long")
+      }),
     ),
     (
       "mutable exit policy",
@@ -1013,52 +1074,6 @@ fn missing_network_files_and_non_executable_binaries_fail_builds() {
       !build.status.success(),
       "missing={missing} should fail\nstdout: {}\nstderr: {}",
       String::from_utf8_lossy(&build.stdout),
-      String::from_utf8_lossy(&build.stderr)
-    );
-  }
-}
-
-#[cfg(unix)]
-#[test]
-fn tun_configuration_must_be_a_packaged_regular_file() {
-  for case in ["missing", "directory", "symlink"] {
-    let (root, mut config) = project();
-    let network = root.path().join("network");
-    fs::create_dir_all(network.join("config")).unwrap();
-    write_network_executable(root.path(), "network/tunnel-kernel", b"tunnel executable\n");
-    let mut network_config = tun_network_config();
-    match case {
-      "missing" => {}
-      "directory" => {
-        network_config["tunProfiles"][0]["configuration"]["path"] = json!("network/config");
-      }
-      "symlink" => {
-        fs::write(network.join("config/real.conf"), "configuration\n").unwrap();
-        std::os::unix::fs::symlink("real.conf", network.join("config/client.conf")).unwrap();
-      }
-      _ => unreachable!(),
-    }
-    config["agentos"]["build"]["artifacts"]
-      .as_array_mut()
-      .unwrap()
-      .push(json!({ "from": "network", "to": "network" }));
-    enable_native_network(
-      &mut config,
-      &["native.providers", "native.network", "native.tun"],
-      network_config,
-    );
-    write_config(root.path(), &config);
-    let build = invoke(root.path(), &["build", "--target", "agentos/arm64"]);
-    assert!(
-      !build.status.success(),
-      "{case} TUN configuration must fail the build\nstdout: {}\nstderr: {}",
-      String::from_utf8_lossy(&build.stdout),
-      String::from_utf8_lossy(&build.stderr)
-    );
-    assert!(
-      String::from_utf8_lossy(&build.stderr)
-        .contains("agentos.network.tunProfiles[0].configuration.path"),
-      "configuration file errors should include the field path: {}",
       String::from_utf8_lossy(&build.stderr)
     );
   }

@@ -6,7 +6,7 @@ use std::{
   collections::BTreeSet,
   fs::{self, File},
   io::Read,
-  net::{IpAddr, Ipv4Addr, Ipv6Addr},
+  net::IpAddr,
   path::{Component, Path},
 };
 
@@ -113,28 +113,37 @@ impl NetworkConfig {
         );
       }
       validate_executable_reference(&profile.executable, &field, &self.executables)?;
-      validate_package_path(
-        &profile.configuration.path,
-        &format!("{field}.configuration.path"),
-      )?;
+      if profile.configuration.source != "runtime-snapshot" {
+        bail!(
+          "{field}.configuration.source must be `runtime-snapshot`; use an App-provided runtime configuration snapshot"
+        );
+      }
+      if !(1024..=4_194_304).contains(&profile.configuration.max_bytes) {
+        bail!("{field}.configuration.maxBytes must be an integer from 1024 through 4194304");
+      }
       if profile.arguments.len() > 64 {
         bail!("{field}.arguments accepts at most 64 strings; remove extra arguments");
       }
       let mut total_argument_units = 0usize;
+      let mut has_config_placeholder = false;
       for (argument_index, argument) in profile.arguments.iter().enumerate() {
         let argument_field = format!("{field}.arguments[{argument_index}]");
         let utf16_len = argument.encode_utf16().count();
         total_argument_units += utf16_len;
+        has_config_placeholder |= argument.contains("${config}");
         if utf16_len > 4096
           || argument.chars().any(|character| character.is_control())
-          || argument.starts_with('/')
-          || argument.split('/').any(|part| part == "..")
+          || contains_absolute_host_path(argument)
+          || argument.split(['/', '\\']).any(|part| part == "..")
           || has_unsupported_placeholder(argument)
         {
           bail!(
-            "{argument_field} is invalid; use a bounded fixed argv string, with `${{config}}` as the only placeholder and no absolute path or `..` segment"
+            "{argument_field} is invalid; use a bounded fixed argv string, with `${{config}}` as the only placeholder and no host absolute path or `..` segment"
           );
         }
+      }
+      if !has_config_placeholder {
+        bail!("{field}.arguments must contain the `${{config}}` placeholder at least once");
       }
       if total_argument_units > 24 * 1024 {
         bail!("{field}.arguments exceeds 24 KiB; shorten or remove arguments");
@@ -152,59 +161,10 @@ impl NetworkConfig {
           "{field}.interfaceName must be a Linux interface name of 1 to 15 ASCII letters, digits, `.`, `_`, or `-`"
         );
       }
-      if profile.outer_endpoints.is_empty() || profile.outer_endpoints.len() > 8 {
-        bail!(
-          "{field}.outerEndpoints must contain 1 to 8 fixed IPv4 endpoints; add a fixed endpoint or remove extras"
-        );
-      }
-      let mut endpoint_ids = BTreeSet::new();
-      for (endpoint_index, endpoint) in profile.outer_endpoints.iter().enumerate() {
-        let endpoint_field = format!("{field}.outerEndpoints[{endpoint_index}]");
-        let address = parse_ip(&endpoint.address, &format!("{endpoint_field}.address"))?;
-        if !matches!(address, IpAddr::V4(_)) || !usable_unicast(address) {
-          bail!(
-            "{endpoint_field}.address must be a usable fixed IPv4 literal; hostnames, IPv6, loopback, link-local, multicast, unspecified, and broadcast addresses are unsupported"
-          );
-        }
-        if !(1..=65535).contains(&endpoint.port) {
-          bail!("{endpoint_field}.port must be from 1 to 65535");
-        }
-        if !matches!(endpoint.protocol.as_str(), "tcp" | "udp") {
-          bail!("{endpoint_field}.protocol must be `tcp` or `udp`");
-        }
-        if !endpoint_ids.insert((address, endpoint.port, endpoint.protocol.as_str())) {
-          bail!("{endpoint_field} duplicates an outer endpoint; remove the duplicate");
-        }
-      }
       if !profile.ipv4 || !profile.ipv6 {
         bail!(
           "{field}.ipv4 and {field}.ipv6 must both be true for the protocol v1 dual-stack host capture"
         );
-      }
-      if profile.dns_servers.is_empty() || profile.dns_servers.len() > 8 {
-        bail!("{field}.dnsServers must contain 1 to 8 unique unicast IP literals");
-      }
-      let mut dns = BTreeSet::new();
-      for (dns_index, address) in profile.dns_servers.iter().enumerate() {
-        let dns_field = format!("{field}.dnsServers[{dns_index}]");
-        let parsed = parse_ip(address, &dns_field)?;
-        if !usable_unicast(parsed) {
-          bail!(
-            "{dns_field} must be a usable unicast IPv4 or IPv6 literal; hostnames, loopback, link-local, multicast, unspecified, and broadcast addresses are unsupported"
-          );
-        }
-        if !dns.insert(parsed) {
-          bail!("{dns_field} duplicates a DNS server after IP normalization; remove the duplicate");
-        }
-        if profile
-          .outer_endpoints
-          .iter()
-          .any(|endpoint| endpoint.address.parse::<IpAddr>().ok() == Some(parsed))
-        {
-          bail!(
-            "{dns_field} cannot reuse an outer tunnel endpoint address; choose a separate DNS server"
-          );
-        }
       }
       if profile.exit_policy != "restore-previous" {
         bail!(
@@ -231,34 +191,6 @@ impl NetworkConfig {
         )
       })?;
       manifest["executables"][index]["sha256"] = Value::String(digest);
-    }
-    for (index, profile) in self.tun_profiles.iter().enumerate() {
-      let digest = staged_digest(&root, &profile.configuration.path, false).with_context(|| {
-        format!(
-          "invalid agentos.network.tunProfiles[{index}].configuration.path `{}`; add a regular build artifact under that package path",
-          profile.configuration.path
-        )
-      })?;
-      manifest["tunProfiles"][index]["configuration"]["sha256"] = Value::String(digest);
-      manifest["tunProfiles"][index]["configuration"]["path"] =
-        Value::String(profile.configuration.path.clone());
-      for (endpoint_index, endpoint) in profile.outer_endpoints.iter().enumerate() {
-        let address = endpoint
-          .address
-          .parse::<IpAddr>()
-          .expect("validated outer endpoint address")
-          .to_string();
-        manifest["tunProfiles"][index]["outerEndpoints"][endpoint_index]["address"] =
-          Value::String(address);
-      }
-      for (dns_index, address) in profile.dns_servers.iter().enumerate() {
-        manifest["tunProfiles"][index]["dnsServers"][dns_index] = Value::String(
-          address
-            .parse::<IpAddr>()
-            .expect("validated DNS address")
-            .to_string(),
-        );
-      }
     }
     Ok(manifest)
   }
@@ -383,39 +315,26 @@ fn valid_bypass_rule(rule: &str) -> bool {
   valid_network_host(rule)
 }
 
-fn parse_ip(value: &str, field: &str) -> Result<IpAddr> {
-  value
-    .parse::<IpAddr>()
-    .with_context(|| format!("{field} must be an IP literal; use a numeric IPv4 or IPv6 address"))
-}
-
-fn usable_unicast(address: IpAddr) -> bool {
-  match address {
-    IpAddr::V4(address) => usable_ipv4(address),
-    IpAddr::V6(address) => usable_ipv6(address),
-  }
-}
-
-fn usable_ipv4(address: Ipv4Addr) -> bool {
-  let octets = address.octets();
-  !address.is_unspecified()
-    && !address.is_loopback()
-    && !address.is_multicast()
-    && octets != [255, 255, 255, 255]
-    && !(octets[0] == 169 && octets[1] == 254)
-}
-
-fn usable_ipv6(address: Ipv6Addr) -> bool {
-  let segments = address.segments();
-  !address.is_unspecified()
-    && !address.is_loopback()
-    && !address.is_multicast()
-    && (segments[0] & 0xffc0) != 0xfe80
-}
-
 fn has_unsupported_placeholder(argument: &str) -> bool {
   let without_config = argument.replace("${config}", "");
-  without_config.contains("${") || without_config.contains('{') || without_config.contains('}')
+  without_config.contains('$') || without_config.contains('{') || without_config.contains('}')
+}
+
+fn contains_absolute_host_path(argument: &str) -> bool {
+  argument
+    .split(|character: char| character.is_whitespace() || matches!(character, '=' | ',' | ';'))
+    .map(|part| part.trim_matches(['"', '\'']))
+    .any(|part| {
+      if Path::new(part).is_absolute() {
+        return true;
+      }
+      let bytes = part.as_bytes();
+      (bytes.len() >= 3
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && matches!(bytes[2], b'/' | b'\\'))
+        || part.starts_with('\\')
+    })
 }
 
 fn staged_digest(staging_root: &Path, package_path: &str, executable: bool) -> Result<String> {

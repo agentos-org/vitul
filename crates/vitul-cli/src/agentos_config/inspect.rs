@@ -59,6 +59,19 @@ pub fn run(args: &[OsString]) -> Result<()> {
         println!("Network executables: {}", network.executables.len());
         println!("Network proxy profiles: {}", network.proxy_profiles.len());
         println!("Network TUN profiles: {}", network.tun_profiles.len());
+        for profile in &network.tun_profiles {
+          println!(
+            "TUN profile: {} (executable {}, interface {}, configuration {} up to {} bytes, IPv4 {}, IPv6 {}, exit policy {})",
+            profile.id,
+            profile.executable,
+            profile.interface_name,
+            profile.configuration.source,
+            profile.configuration.max_bytes,
+            profile.ipv4,
+            profile.ipv6,
+            profile.exit_policy
+          );
+        }
         let network_permissions = config
           .agentos
           .permissions
