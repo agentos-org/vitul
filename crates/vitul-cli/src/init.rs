@@ -12,6 +12,8 @@ const BACKEND_TOOLS_MOD: &str = include_str!("../templates/backend-tools-mod.rs"
 const BACKEND_TOOL_GREET: &str = include_str!("../templates/backend-tool-greet.rs");
 const FRONTEND_INDEX: &str = include_str!("../templates/index.html");
 const FRONTEND_MAIN: &str = include_str!("../templates/frontend-main.tsx");
+const FRONTEND_CONTEXT: &str = include_str!("../templates/host-context.ts");
+const FRONTEND_MESSAGES: &str = include_str!("../templates/messages.ts");
 const FRONTEND_APP: &str = include_str!("../templates/App.tsx");
 const FRONTEND_BUTTON: &str = include_str!("../templates/components/ui/Button.tsx");
 const FRONTEND_CARD: &str = include_str!("../templates/components/ui/Card.tsx");
@@ -329,6 +331,8 @@ fn scaffold(
   write_file(project_root, "src/lib/agentos.ts", FRONTEND_AGENTOS)?;
   write_file(project_root, "src/main.tsx", FRONTEND_MAIN)?;
   write_file(project_root, "src/App.tsx", FRONTEND_APP)?;
+  write_file(project_root, "src/host-context.ts", FRONTEND_CONTEXT)?;
+  write_file(project_root, "src/messages.ts", FRONTEND_MESSAGES)?;
   write_file(project_root, "src/styles.css", FRONTEND_STYLES)?;
   write_file(
     project_root,

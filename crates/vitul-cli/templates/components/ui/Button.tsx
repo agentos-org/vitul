@@ -13,7 +13,7 @@ export function Button({
   const styles =
     variant === 'primary'
       ? 'border border-cyan-200/20 bg-cyan-200 text-slate-950 hover:bg-cyan-100 disabled:bg-cyan-200/50'
-      : 'border border-white/10 bg-white/[0.06] text-slate-200 hover:bg-white/10 disabled:opacity-50'
+      : 'border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--inset)] disabled:opacity-50'
 
   return (
     <button

@@ -5,6 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vitul App</title>
     <meta name="theme-color" content="#0b0d12" />
+    <script>
+      ;(() => {
+        const params = new URLSearchParams(location.search)
+        const hosted =
+          params.get('runtime') === 'agentos' || params.has('hostOrigin')
+        const locale = hosted ? params.get('locale') : null
+        const requestedTheme = hosted ? params.get('theme') : null
+        const appearance = hosted ? params.get('appearance') : null
+        const theme =
+          requestedTheme === 'light' || requestedTheme === 'dark'
+            ? requestedTheme
+            : appearance === 'light' || appearance === 'dark'
+              ? appearance
+              : matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+        const root = document.documentElement
+        root.lang =
+          locale === 'zh' || locale === 'zh-CN'
+            ? 'zh-CN'
+            : locale === 'en' || locale === 'en-US'
+              ? 'en-US'
+              : navigator.language.toLowerCase().startsWith('zh')
+                ? 'zh-CN'
+                : 'en-US'
+        root.dataset.theme = theme
+        root.style.colorScheme = theme
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === 'dark' ? '#0b0d12' : '#f5f7fa'
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </head>
 

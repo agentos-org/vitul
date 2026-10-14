@@ -5,6 +5,8 @@ This project is a Vitul app with a preset stack: React, TypeScript, Tailwind CSS
 
 ## Project map
 
+- `src/host-context.ts` initializes language/theme and subscribes to host changes.
+- `src/messages.ts` holds UI translations; `src/styles.css` defines theme tokens.
 - `src/App.tsx` is the main application screen.
 - `src/components/ui/` contains small reusable interface components.
 - `src/opentool.ts` calls this app's Rust business backend.

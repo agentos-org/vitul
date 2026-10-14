@@ -6,6 +6,20 @@ Vitul uses the system WebView on macOS, Windows, Android, and iOS. The AgentOS
 target packages the same web build with its Rust OpenTool process and displays
 it in an embedded WebView based on Chromium.
 
+## Language and appearance
+
+The starter supports English/Chinese and light/dark themes. `index.html` initializes
+`lang`, `data-theme`, and `color-scheme` before React starts. `src/host-context.ts`
+reads AgentOS/WebShell launch parameters and subscribes to native `agentos:host`
+context changes and parent `shell:theme` / `shell:locale` messages, with source and
+origin validation. Host themes take priority over the local system theme. Browser
+previews follow browser language and system appearance, including live changes.
+Use `src/messages.ts` for UI translations and the semantic variables in
+`src/styles.css` for colors. Subscribe through `useSyncExternalStore` so context
+changes update the screen without resetting input or backend results. Raw backend
+results and diagnostics retain their original text; the product title retains the
+configured name.
+
 ## Commands
 
 - `pnpm install` installs the frontend, AgentOS SDK, host API, and the local Vitul CLI.

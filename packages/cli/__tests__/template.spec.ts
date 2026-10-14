@@ -42,6 +42,10 @@ describe('[CLI] @litevar/vitul-cli', () => {
         ])
 
         const projectRoot = testRoot
+        expect(existsSync(resolve(projectRoot, 'src/host-context.ts'))).toBe(
+          true
+        )
+        expect(existsSync(resolve(projectRoot, 'src/messages.ts'))).toBe(true)
         const projectConfig = JSON.parse(
           readFileSync(resolve(projectRoot, 'vitul.conf.json'), 'utf8')
         )

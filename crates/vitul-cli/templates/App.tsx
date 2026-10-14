@@ -1,4 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type FormEvent
+} from 'react'
+import { getHostContext, subscribeHostContext } from './host-context'
+import { messages } from './messages'
 import { callOpenTool } from './opentool'
 import { createHostProvider, type HostProvider } from './host'
 import { Button } from './components/ui/Button'
@@ -10,17 +17,18 @@ function errorMessage(error: unknown): string {
 }
 
 export default function App() {
+  const context = useSyncExternalStore(subscribeHostContext, getHostContext)
+  const t = messages[context.locale]
   const [host, setHost] = useState<HostProvider | null>(null)
   const [hostError, setHostError] = useState<string | null>(null)
   const [name, setName] = useState('')
-  const [greeting, setGreeting] = useState(
-    'Your first OpenTool call will appear here.'
-  )
+  const [greeting, setGreeting] = useState<string | null>(null)
   const [greetingError, setGreetingError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [windowMessage, setWindowMessage] = useState(
-    'Try a native host action.'
-  )
+  const [windowStatus, setWindowStatus] = useState<
+    'windowInitial' | 'windowSending' | 'windowDone'
+  >('windowInitial')
+  const [windowError, setWindowError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -58,31 +66,32 @@ export default function App() {
 
   async function minimizeWindow() {
     if (!host) return
-    setWindowMessage('Sending window.minimize through host IPC…')
+    setWindowError(null)
+    setWindowStatus('windowSending')
     try {
       await host.window.minimize()
-      setWindowMessage('The native host minimized the window.')
+      setWindowStatus('windowDone')
     } catch (error) {
-      setWindowMessage(errorMessage(error))
+      setWindowError(errorMessage(error))
     }
   }
 
   const hostLabel = hostError
-    ? 'Host bridge unavailable'
+    ? t.hostUnavailable
     : host
-      ? `${host.platform} host connected`
-      : 'Connecting to host…'
+      ? t.hostConnected.replace('{platform}', host.platform)
+      : t.hostConnecting
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0b0d12] text-slate-100 selection:bg-cyan-300/30">
+    <main className="min-h-screen overflow-hidden bg-[var(--page)] text-[var(--text)] selection:bg-cyan-300/30">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_50%_-20%,rgba(34,211,238,0.13),transparent_55%)]" />
       <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-7 sm:px-10 sm:py-10">
         <header className="flex items-center justify-between">
           <a
-            className="flex items-center gap-3 text-sm font-semibold tracking-wide text-white"
+            className="flex items-center gap-3 text-sm font-semibold tracking-wide text-[var(--text)]"
             href="#"
           >
-            <span className="grid size-9 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-cyan-200">
+            <span className="grid size-9 place-items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--accent)]">
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
@@ -100,43 +109,45 @@ export default function App() {
             </span>
             <span>
               Vitul{' '}
-              <span className="font-normal text-slate-500">/ starter</span>
+              <span className="font-normal text-[var(--muted)]">
+                / {t.starter}
+              </span>
             </span>
           </a>
-          <span className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-xs text-slate-400 sm:flex">
+          <span className="hidden items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--muted)] sm:flex">
             <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />
-            Ready to build
+            {t.ready}
           </span>
         </header>
 
         <section className="grid flex-1 content-center gap-12 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:py-20">
           <div className="flex flex-col justify-center">
-            <p className="mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+            <p className="mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
               <span className="h-px w-7 bg-cyan-300/60" />
-              Your app starts here
+              {t.eyebrow}
             </p>
-            <h1 className="max-w-xl text-5xl font-semibold leading-[1.06] tracking-[-0.055em] text-white sm:text-6xl">
-              Make an idea
-              <span className="block bg-gradient-to-r from-cyan-200 via-sky-300 to-indigo-300 bg-clip-text pb-2 text-transparent">
-                feel real.
+            <h1 className="max-w-xl text-5xl font-semibold leading-[1.06] tracking-[-0.055em] text-[var(--text)] sm:text-6xl">
+              {t.headline}
+              <span className="block bg-gradient-to-r from-[var(--accent)] via-[var(--accent)] to-[var(--badge)] bg-clip-text pb-2 text-transparent">
+                {t.headlineAccent}
               </span>
             </h1>
-            <p className="mt-6 max-w-lg text-base leading-7 text-slate-400">
-              Your React interface, Rust business tools, and native app APIs are
-              ready to work together. Replace this starter screen with the app
-              you have in mind.
+            <p className="mt-6 max-w-lg text-base leading-7 text-[var(--muted)]">
+              {t.intro}
             </p>
-            <div className="mt-8 flex flex-wrap gap-2 text-xs text-slate-400">
+            <div className="mt-8 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
               {[
                 ['01', 'React + TypeScript'],
                 ['02', 'Tailwind CSS'],
-                ['03', 'OpenTool backend']
+                ['03', t.backend]
               ].map(([number, label]) => (
                 <span
                   key={number}
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 py-2"
+                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
                 >
-                  <span className="font-mono text-cyan-300/70">{number}</span>
+                  <span className="font-mono text-[var(--accent)]">
+                    {number}
+                  </span>
                   {label}
                 </span>
               ))}
@@ -147,14 +158,14 @@ export default function App() {
             <Card className="p-6 sm:p-7">
               <div className="mb-6 flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-                    Business logic
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
+                    {t.business}
                   </p>
-                  <h2 className="mt-2 text-lg font-semibold text-white">
-                    Call your Rust backend
+                  <h2 className="mt-2 text-lg font-semibold text-[var(--text)]">
+                    {t.callBackend}
                   </h2>
                 </div>
-                <span className="rounded-lg border border-indigo-300/15 bg-indigo-300/[0.08] px-2.5 py-1.5 font-mono text-[11px] text-indigo-200">
+                <span className="rounded-lg border border-indigo-300/15 bg-indigo-300/[0.08] px-2.5 py-1.5 font-mono text-[11px] text-[var(--badge)]">
                   OpenTool
                 </span>
               </div>
@@ -163,28 +174,28 @@ export default function App() {
                 onSubmit={submitGreeting}
               >
                 <label className="sr-only" htmlFor="greet-name">
-                  Name
+                  {t.name}
                 </label>
                 <TextInput
                   id="greet-name"
                   autoComplete="name"
-                  placeholder="Enter a name"
+                  placeholder={t.namePlaceholder}
                   value={name}
                   onChange={(event) => setName(event.currentTarget.value)}
                   required
                 />
                 <Button type="submit" disabled={busy || !name.trim()}>
-                  {busy ? 'Calling…' : 'Say hello'}
+                  {busy ? t.calling : t.sayHello}
                   {!busy && <span aria-hidden="true">↗</span>}
                 </Button>
               </form>
               <div
-                className={`mt-4 rounded-xl border px-4 py-3 text-sm ${greetingError ? 'border-rose-300/15 bg-rose-300/[0.06] text-rose-200' : 'border-white/[0.07] bg-black/20 text-slate-300'}`}
+                className={`mt-4 rounded-xl border px-4 py-3 text-sm ${greetingError ? 'border-rose-300/15 bg-rose-300/[0.06] text-[var(--danger)]' : 'border-[var(--border)] bg-[var(--inset)] text-[var(--text)]'}`}
                 aria-live="polite"
               >
-                {greetingError ?? greeting}
+                {greetingError ?? greeting ?? t.greetingInitial}
               </div>
-              <p className="mt-3 font-mono text-[11px] text-slate-600">
+              <p className="mt-3 font-mono text-[11px] text-[var(--muted)]">
                 callOpenTool("greet", &#123; name &#125;)
               </p>
             </Card>
@@ -192,22 +203,22 @@ export default function App() {
             <Card className="p-6 sm:p-7">
               <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-                    System integration
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--muted)]">
+                    {t.system}
                   </p>
-                  <h2 className="mt-2 text-lg font-semibold text-white">
-                    Talk to the host
+                  <h2 className="mt-2 text-lg font-semibold text-[var(--text)]">
+                    {t.talkHost}
                   </h2>
                 </div>
-                <span className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.08] px-2.5 py-1.5 font-mono text-[11px] text-emerald-200">
+                <span className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.08] px-2.5 py-1.5 font-mono text-[11px] text-[var(--success)]">
                   Host API
                 </span>
               </div>
-              <div className="flex items-center gap-3 rounded-xl border border-white/[0.07] bg-black/20 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--inset)] px-4 py-3">
                 <span
                   className={`size-2 rounded-full ${hostError ? 'bg-rose-400' : host ? 'bg-emerald-400' : 'animate-pulse bg-amber-300'}`}
                 />
-                <span className="text-sm text-slate-300" role="status">
+                <span className="text-sm text-[var(--text)]" role="status">
                   {hostError ?? hostLabel}
                 </span>
               </div>
@@ -217,22 +228,22 @@ export default function App() {
                   onClick={minimizeWindow}
                   disabled={!host}
                 >
-                  Minimize window
+                  {t.minimize}
                 </Button>
                 <p
-                  className="min-w-0 flex-1 text-xs leading-5 text-slate-500"
+                  className="min-w-0 flex-1 text-xs leading-5 text-[var(--muted)]"
                   aria-live="polite"
                 >
-                  {windowMessage}
+                  {windowError ?? t[windowStatus]}
                 </p>
               </div>
             </Card>
           </div>
         </section>
 
-        <footer className="flex flex-col gap-2 border-t border-white/[0.07] pt-5 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-          <span>Built with Vitul</span>
-          <span>Change this screen. Keep the foundation.</span>
+        <footer className="flex flex-col gap-2 border-t border-[var(--border)] pt-5 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
+          <span>{t.builtWith}</span>
+          <span>{t.footer}</span>
         </footer>
       </div>
     </main>
