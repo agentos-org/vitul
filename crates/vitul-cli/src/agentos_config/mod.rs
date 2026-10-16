@@ -240,7 +240,10 @@ impl AgentOsPackageConfig {
         bail!("agentos.execution.mode native requires a process App");
       }
       if let Some(permission) = self.agentos.permissions.iter().find(|permission| {
-        matches!(permission.as_str(), "native.audio" | "native.audio.exclusive")
+        matches!(
+          permission.as_str(),
+          "native.audio" | "native.audio.exclusive"
+        )
       }) {
         bail!(
           "agentos.permissions includes `{permission}`, which is not available to desktop-user native Apps"
@@ -258,7 +261,11 @@ impl AgentOsPackageConfig {
           .and_then(serde_json::Value::as_array)
           .into_iter()
           .flatten()
-          .flat_map(|operation| operation.get("actions").and_then(serde_json::Value::as_array))
+          .flat_map(|operation| {
+            operation
+              .get("actions")
+              .and_then(serde_json::Value::as_array)
+          })
           .into_iter()
           .flatten()
           .find(|action| {
@@ -270,7 +277,10 @@ impl AgentOsPackageConfig {
         {
           bail!(
             "desktop-user native deployment cannot request container-only action `{}`",
-            action.get("type").and_then(serde_json::Value::as_str).unwrap_or("unknown")
+            action
+              .get("type")
+              .and_then(serde_json::Value::as_str)
+              .unwrap_or("unknown")
           );
         }
       }
@@ -535,19 +545,30 @@ fn validate_platform_providers(config: &AgentOsPackageConfig) -> Result<()> {
   let desktop_session = find_provider(DESKTOP_SESSION_ID);
   let external_wayland = find_provider(EXTERNAL_WAYLAND_ID);
   if config.agentos.network.is_some() && find_provider(NETWORK_ID).is_some() {
-    bail!("org.agentos.network is generated from agentos.network; remove its manual provider declaration");
+    bail!(
+      "org.agentos.network is generated from agentos.network; remove its manual provider declaration"
+    );
   }
   if config.agentos.network.is_none() && find_provider(NETWORK_ID).is_some() {
     bail!("org.agentos.network requires an agentos.network declaration");
   }
   if let Some(provider) = external_wayland {
-    let declared = provider.methods.iter().map(String::as_str).collect::<std::collections::BTreeSet<_>>();
-    let expected = EXTERNAL_WAYLAND_METHODS.iter().copied().collect::<std::collections::BTreeSet<_>>();
+    let declared = provider
+      .methods
+      .iter()
+      .map(String::as_str)
+      .collect::<std::collections::BTreeSet<_>>();
+    let expected = EXTERNAL_WAYLAND_METHODS
+      .iter()
+      .copied()
+      .collect::<std::collections::BTreeSet<_>>();
     if provider.executable.is_some()
       || declared != expected
       || !has_permission("native.external-wayland")
     {
-      bail!("{EXTERNAL_WAYLAND_ID} requires native.external-wayland and its fixed built-in methods without an executable");
+      bail!(
+        "{EXTERNAL_WAYLAND_ID} requires native.external-wayland and its fixed built-in methods without an executable"
+      );
     }
   }
   match (
