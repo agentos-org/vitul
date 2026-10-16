@@ -187,6 +187,108 @@ fn native_profile(config: &mut Value) -> &mut Value {
   &mut config["agentos"]["execution"]["native"]
 }
 
+fn enable_native_system_deployment(config: &mut Value, methods: &[&str]) {
+  native_profile(config);
+  config["agentos"]["data"]["persistent"] = json!(true);
+  config["agentos"]["permissions"] = json!(["native.providers", "native.system-deployment"]);
+  config["agentos"]["providers"] = json!([
+    { "id": "org.agentos.system-deployment", "methods": methods }
+  ]);
+  config["agentos"]["deployment"] = json!({
+    "protocolVersion": 1,
+    "operations": [{
+      "id": "runtime-setup",
+      "version": 1,
+      "title": "Prepare runtime",
+      "summary": "Prepare the example runtime.",
+      "parameters": {},
+      "actions": []
+    }]
+  });
+}
+
+#[test]
+fn system_deployment_reauthorization_methods_are_optional_as_a_pair_and_preserved() {
+  const REQUIRED_METHODS: &[&str] = &[
+    "capabilities.get",
+    "operation.plan",
+    "authorization.status",
+    "task.get",
+    "task.cancel",
+    "task.events",
+    "resources.list",
+  ];
+  const OPTIONAL_METHODS: &[&str] = &[
+    "authorization.reauthorize",
+    "authorization.reauthorization.get",
+  ];
+
+  let (legacy_root, mut legacy) = project();
+  enable_native_system_deployment(&mut legacy, REQUIRED_METHODS);
+  write_config(legacy_root.path(), &legacy);
+  assert_cli_success(
+    invoke(legacy_root.path(), &["agentos", "validate"]),
+    "the legacy system-deployment method list should remain valid",
+  );
+  assert_cli_success(
+    invoke(legacy_root.path(), &["build", "--target", "agentos/arm64"]),
+    "the legacy system-deployment method list should remain buildable",
+  );
+  let legacy_manifest = package_manifest(legacy_root.path(), "arm64");
+  assert_eq!(
+    legacy_manifest["providers"][0]["methods"],
+    json!(REQUIRED_METHODS),
+    "the legacy provider methods should be retained in app.json"
+  );
+
+  let (reauthorization_root, mut reauthorization) = project();
+  let mut methods = REQUIRED_METHODS.to_vec();
+  methods.extend_from_slice(OPTIONAL_METHODS);
+  enable_native_system_deployment(&mut reauthorization, &methods);
+  write_config(reauthorization_root.path(), &reauthorization);
+  assert_cli_success(
+    invoke(
+      reauthorization_root.path(),
+      &["build", "--target", "agentos/arm64"],
+    ),
+    "the paired system-deployment reauthorization methods should be accepted",
+  );
+  let reauthorization_manifest = package_manifest(reauthorization_root.path(), "arm64");
+  assert_eq!(
+    reauthorization_manifest["providers"][0]["methods"],
+    json!(methods),
+    "the optional provider methods should be retained in app.json"
+  );
+
+  for method in OPTIONAL_METHODS {
+    let (root, mut config) = project();
+    let mut methods = REQUIRED_METHODS.to_vec();
+    methods.push(method);
+    enable_native_system_deployment(&mut config, &methods);
+    write_config(root.path(), &config);
+    let output = invoke(root.path(), &["agentos", "validate"]);
+    assert!(
+      !output.status.success(),
+      "declaring only {method} must be rejected\nstdout: {}\nstderr: {}",
+      String::from_utf8_lossy(&output.stdout),
+      String::from_utf8_lossy(&output.stderr)
+    );
+  }
+
+  let (unknown_root, mut unknown) = project();
+  let mut methods = REQUIRED_METHODS.to_vec();
+  methods.push("authorization.unknown");
+  enable_native_system_deployment(&mut unknown, &methods);
+  write_config(unknown_root.path(), &unknown);
+  let output = invoke(unknown_root.path(), &["agentos", "validate"]);
+  assert!(
+    !output.status.success(),
+    "unknown system-deployment methods must be rejected\nstdout: {}\nstderr: {}",
+    String::from_utf8_lossy(&output.stdout),
+    String::from_utf8_lossy(&output.stderr)
+  );
+}
+
 #[test]
 fn official_build_embeds_the_complete_profile_in_arm64_and_x64_packages() {
   let (root, mut config) = project();

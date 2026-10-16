@@ -503,7 +503,7 @@ fn validate_platform_providers(config: &AgentOsPackageConfig) -> Result<()> {
     "session.restart",
     "session.stop",
   ];
-  const DEPLOYMENT_METHODS: &[&str] = &[
+  const DEPLOYMENT_REQUIRED_METHODS: &[&str] = &[
     "capabilities.get",
     "operation.plan",
     "authorization.status",
@@ -511,6 +511,10 @@ fn validate_platform_providers(config: &AgentOsPackageConfig) -> Result<()> {
     "task.cancel",
     "task.events",
     "resources.list",
+  ];
+  const DEPLOYMENT_OPTIONAL_METHODS: &[&str] = &[
+    "authorization.reauthorize",
+    "authorization.reauthorization.get",
   ];
   let has_permission = |permission: &str| {
     config
@@ -569,16 +573,27 @@ fn validate_platform_providers(config: &AgentOsPackageConfig) -> Result<()> {
       let Some(provider) = system_deployment else {
         bail!("native.system-deployment requires the built-in {DEPLOYMENT_ID} Provider");
       };
+      let has_reauthorize = provider
+        .methods
+        .iter()
+        .any(|declared| declared == DEPLOYMENT_OPTIONAL_METHODS[0]);
+      let has_reauthorization_get = provider
+        .methods
+        .iter()
+        .any(|declared| declared == DEPLOYMENT_OPTIONAL_METHODS[1]);
       if provider.executable.is_some()
-        || DEPLOYMENT_METHODS
+        || DEPLOYMENT_REQUIRED_METHODS
           .iter()
           .any(|method| !provider.methods.iter().any(|declared| declared == method))
-        || provider
-          .methods
-          .iter()
-          .any(|method| !DEPLOYMENT_METHODS.contains(&method.as_str()))
+        || has_reauthorize != has_reauthorization_get
+        || provider.methods.iter().any(|method| {
+          !DEPLOYMENT_REQUIRED_METHODS.contains(&method.as_str())
+            && !DEPLOYMENT_OPTIONAL_METHODS.contains(&method.as_str())
+        })
       {
-        bail!("{DEPLOYMENT_ID} must register its fixed built-in method set without an executable");
+        bail!(
+          "{DEPLOYMENT_ID} must register its required built-in methods and either both optional reauthorization methods or neither, without an executable"
+        );
       }
     }
     (Some(_), false) => bail!("agentos.deployment requires native.system-deployment"),
