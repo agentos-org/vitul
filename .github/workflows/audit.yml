@@ -17,6 +17,7 @@ on:
       - '**/pnpm-lock.yaml'
   push:
     branches:
+      - main
       - dev
     paths:
       - '.github/workflows/audit.yml'

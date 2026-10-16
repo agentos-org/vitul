@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 2,
+  "productName": "Generic Native Network App",
+  "identifier": "org.example.native-network",
+  "version": "1.0.0",
+  "agentos": {
+    "type": "process",
+    "targets": ["agentos/arm64", "agentos/x64"],
+    "permissions": [
+      "native.providers",
+      "native.network",
+      "native.system-proxy",
+      "native.tun"
+    ],
+    "execution": {
+      "mode": "native",
+      "native": {
+        "version": 1,
+        "identity": "desktop-user",
+        "scope": "agentos-account"
+      }
+    },
+    "data": { "persistent": true },
+    "build": {
+      "steps": [],
+      "artifacts": [
+        { "from": "dist", "to": "web" },
+        { "from": "service", "to": "service" },
+        {
+          "from": "network/arm64/network-client",
+          "to": "bin/network-client",
+          "targets": ["agentos/arm64"]
+        },
+        {
+          "from": "network/x64/network-client",
+          "to": "bin/network-client",
+          "targets": ["agentos/x64"]
+        },
+        {
+          "from": "network/arm64/tunnel-kernel",
+          "to": "bin/tunnel-kernel",
+          "targets": ["agentos/arm64"]
+        },
+        {
+          "from": "network/x64/tunnel-kernel",
+          "to": "bin/tunnel-kernel",
+          "targets": ["agentos/x64"]
+        }
+      ]
+    },
+    "run": {
+      "command": "node",
+      "args": ["service/server.mjs"],
+      "port": 9627,
+      "healthCheck": "/health",
+      "readyTimeout": 30,
+      "autoStart": false,
+      "frontendEntry": "/"
+    },
+    "network": {
+      "protocolVersion": 1,
+      "executables": [
+        { "id": "network-client", "path": "bin/network-client" },
+        { "id": "tunnel-kernel", "path": "bin/tunnel-kernel" }
+      ],
+      "proxyProfiles": [
+        {
+          "id": "account-proxy",
+          "executable": "network-client",
+          "http": { "host": "proxy.example.invalid", "port": 8080 },
+          "https": { "host": "proxy.example.invalid", "port": 8443 },
+          "socks": { "host": "127.0.0.1", "port": 1080 },
+          "bypass": ["localhost", "127.0.0.0/8", "::1"]
+        }
+      ],
+      "tunProfiles": [
+        {
+          "id": "full-tunnel",
+          "executable": "tunnel-kernel",
+          "arguments": ["--config", "${config}"],
+          "configuration": {
+            "source": "runtime-snapshot",
+            "maxBytes": 4194304
+          },
+          "interfaceName": "app-tun0",
+          "ipv4": true,
+          "ipv6": true,
+          "exitPolicy": "restore-previous"
+        }
+      ]
+    }
+  }
+}

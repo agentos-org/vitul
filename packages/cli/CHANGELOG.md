@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.4.0]
+
+### New Features
+
+- Support native AgentOS platform providers, system deployment, desktop sessions, and external Wayland packaging.
+- Allow the paired system-deployment reauthorization methods while preserving existing provider declarations.
+- Initialize generated frontends from the host locale and theme, and synchronize later context changes.
+- Generate projects with `agentos-sdk-ts` 2.1 and the Vitul CLI 3.4 dependency.
+
+### Bug Fixes
+
+- Reject overrides of the AgentOS provider socket, runtime instance ID, and TUN environment variables in native process apps.
+
+### Maintenance
+
+- Align native execution regression coverage with the current provider and permission contract.
+- Resolve the wrapper publish prerequisite from the source CLI version.
+- Refresh vulnerable development dependencies and remove the API build's glob dependency.
+
 ## [3.2.0]
 
 ### New Features

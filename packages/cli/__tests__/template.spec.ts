@@ -11,10 +11,13 @@ import { beforeAll, describe, expect, it } from 'vitest'
 // Build CLI before tests, for local usage only.
 // CI builds the CLI on different platforms and architectures
 if (!process.env.CI) {
-  beforeAll(() => {
-    const cliDir = resolve(__dirname, '..')
-    exec('pnpm', ['build:debug'], { cwd: cliDir })
-  })
+  beforeAll(
+    () => {
+      const cliDir = resolve(__dirname, '..')
+      exec('pnpm', ['build:debug'], { cwd: cliDir })
+    },
+    15 * 60 * 1000
+  )
 }
 
 describe('[CLI] @litevar/vitul-cli', () => {
@@ -77,7 +80,8 @@ describe('[CLI] @litevar/vitul-cli', () => {
         expect(projectConfig.agentos.targets).toContain('agentos/arm64')
         expect(packageJson.name).not.toBe('vitul-app')
         expect(packageJson.name).toMatch(/^[a-z][a-z0-9_-]*$/)
-        expect(packageJson.dependencies['agentos-sdk-ts']).toBe('^2.0.0')
+        expect(packageJson.dependencies['agentos-sdk-ts']).toBe('^2.1.0')
+        expect(packageJson.devDependencies['@litevar/vitul-cli']).toBe('^3.4.0')
         expect(packageJson.dependencies.react).toBe('^19.1.0')
         expect(packageJson.devDependencies['@vitejs/plugin-react']).toBe(
           '^6.0.2'
@@ -132,7 +136,14 @@ function exec(
     cwd?: string
   }
 ) {
-  process.platform === 'win32'
-    ? spawnSync('cmd', ['/c', bin, ...(args ?? [])], { cwd: opts?.cwd })
-    : spawnSync(bin, args, { cwd: opts?.cwd })
+  const result =
+    process.platform === 'win32'
+      ? spawnSync('cmd', ['/c', bin, ...(args ?? [])], {
+          cwd: opts?.cwd,
+          stdio: 'inherit'
+        })
+      : spawnSync(bin, args, { cwd: opts?.cwd, stdio: 'inherit' })
+  if (result.error) throw result.error
+  if (result.status !== 0)
+    throw new Error(`${bin} failed with status ${result.status}`)
 }

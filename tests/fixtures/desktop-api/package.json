@@ -13,7 +13,7 @@
     "@tauri-apps/api": "../../../packages/api/dist"
   },
   "devDependencies": {
-    "@litevar/vitul-cli": "^3.3.0",
+    "@litevar/vitul-cli": "^3.4.0",
     "@iconify-json/codicon": "^1.2.49",
     "@iconify-json/ph": "^1.2.2",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",

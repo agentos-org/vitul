@@ -7,13 +7,19 @@ name: test `@litevar/vitul-cli`
 on:
   push:
     branches:
+      - main
       - dev
   pull_request:
     paths:
       - '.github/workflows/test-cli-js.yml'
       - 'packages/cli/**'
-      # The CLI package currently tests the generated template.
-      - 'crates/tauri-cli/templates/app/**'
+      - 'crates/vitul-cli/**'
+      - 'crates/create-vitul-app/**'
+      - 'crates/tauri-cli/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
 
 env:
   RUST_BACKTRACE: 1

@@ -5,4 +5,5 @@
 - [WebApp 多语言与主题接入指南](process/docs/webapp-localization-theme-zh_CN.md) 说明如何读取宿主语言和主题并响应运行时变更。
 
 - [Process 应用](process/README-zh_CN.md) 会在 AgentOS 中运行应用进程，示例涵盖原生宿主执行和容器沙盒。
+- [通用 Native App 网络配置](native-network/README-zh_CN.md) 展示 Vitul 支持的 manifest v1 代理和 TUN profile。
 - [URL 应用](url/README-zh_CN.md) 会在 AgentOS 应用窗口中打开已托管的 HTTPS 网站，不会打包本地服务。

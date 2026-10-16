@@ -290,6 +290,127 @@ fn system_deployment_reauthorization_methods_are_optional_as_a_pair_and_preserve
 }
 
 #[test]
+fn native_wayland_and_custom_providers_validate_and_survive_packaging() {
+  for with_provider in [false, true] {
+    let (root, mut config) = project();
+    native_profile(&mut config);
+    config["agentos"]["data"]["persistent"] = json!(true);
+    config["agentos"]["permissions"] = json!(["native.external-wayland"]);
+    if with_provider {
+      config["agentos"]["permissions"] = json!(["native.external-wayland", "native.providers"]);
+      config["agentos"]["providers"] = json!([
+        { "id": "org.example.host", "methods": ["host.get"] },
+        { "id": "org.agentos.external-wayland", "methods": [
+          "session.start", "session.prepare_restart", "session.restart", "session.stop"
+        ] }
+      ]);
+    }
+    write_config(root.path(), &config);
+    assert_cli_success(
+      invoke(root.path(), &["agentos", "validate"]),
+      "native Wayland config should validate",
+    );
+    assert_cli_success(
+      invoke(root.path(), &["build", "--target", "agentos"]),
+      "native Wayland config should build for both targets",
+    );
+    for architecture in ["arm64", "x64"] {
+      let manifest = package_manifest(root.path(), architecture);
+      assert_eq!(manifest["permissions"], config["agentos"]["permissions"]);
+      if with_provider {
+        assert_eq!(manifest["providers"], config["agentos"]["providers"]);
+      } else {
+        assert!(manifest.get("providers").is_none());
+      }
+    }
+  }
+}
+
+#[test]
+fn invalid_wayland_provider_declarations_are_rejected() {
+  let methods = json!([
+    "session.start",
+    "session.prepare_restart",
+    "session.restart",
+    "session.stop"
+  ]);
+  for case in [
+    "missing permission",
+    "missing method",
+    "unknown method",
+    "executable",
+  ] {
+    let (root, mut config) = project();
+    native_profile(&mut config);
+    config["agentos"]["data"]["persistent"] = json!(true);
+    config["agentos"]["permissions"] = json!(["native.providers", "native.external-wayland"]);
+    config["agentos"]["providers"] =
+      json!([{ "id": "org.agentos.external-wayland", "methods": methods }]);
+    match case {
+      "missing permission" => config["agentos"]["permissions"] = json!(["native.providers"]),
+      "missing method" => {
+        config["agentos"]["providers"][0]["methods"]
+          .as_array_mut()
+          .unwrap()
+          .pop();
+      }
+      "unknown method" => {
+        config["agentos"]["providers"][0]["methods"]
+          .as_array_mut()
+          .unwrap()
+          .push(json!("session.unknown"));
+      }
+      "executable" => config["agentos"]["providers"][0]["executable"] = json!("service/server.mjs"),
+      _ => unreachable!(),
+    }
+    write_config(root.path(), &config);
+    let output = invoke(root.path(), &["agentos", "validate"]);
+    assert!(!output.status.success(), "{case} must be rejected");
+    assert!(String::from_utf8_lossy(&output.stderr).contains("org.agentos.external-wayland"));
+  }
+}
+
+#[cfg(unix)]
+#[test]
+fn custom_provider_coexists_with_generated_network_provider() {
+  let (root, mut config) = project();
+  write_network_executable(root.path(), "network/client", b"network executable\n");
+  config["agentos"]["build"]["artifacts"]
+    .as_array_mut()
+    .unwrap()
+    .push(json!({ "from": "network/client", "to": "bin/network-client" }));
+  enable_native_network(
+    &mut config,
+    &["native.providers", "native.network", "native.system-proxy"],
+    proxy_network_config(),
+  );
+  let provider = json!({ "id": "org.example.host", "methods": ["host.get"] });
+  config["agentos"]["providers"] = json!([provider]);
+  write_config(root.path(), &config);
+  assert_cli_success(
+    invoke(root.path(), &["agentos", "validate"]),
+    "custom and network providers should validate together",
+  );
+  assert_cli_success(
+    invoke(root.path(), &["build", "--target", "agentos"]),
+    "custom and network providers should build together",
+  );
+  for architecture in ["arm64", "x64"] {
+    let manifest = package_manifest(root.path(), architecture);
+    let providers = manifest["providers"].as_array().unwrap();
+    assert_eq!(providers.len(), 2);
+    assert!(providers.contains(&provider));
+    assert_eq!(
+      providers
+        .iter()
+        .filter(|item| item["id"] == "org.agentos.network")
+        .count(),
+      1
+    );
+  }
+}
+
+#[test]
 fn official_build_embeds_the_complete_profile_in_arm64_and_x64_packages() {
   let (root, mut config) = project();
   config["agentos"]["data"]["persistent"] = json!(true);
@@ -531,13 +652,6 @@ fn invalid_native_profiles_and_incompatible_options_are_rejected() {
       native_profile(config);
       config["agentos"]["providers"] =
         json!([{ "id": "org.example.host", "methods": ["host.get"] }]);
-    }),
-  ));
-  cases.push((
-    "external Wayland".to_owned(),
-    Box::new(|config| {
-      native_profile(config);
-      config["agentos"]["permissions"] = json!(["native.external-wayland"]);
     }),
   ));
 
@@ -889,7 +1003,7 @@ fn unsupported_network_app_types_providers_fields_and_permissions_are_rejected()
       }),
     ),
     (
-      "arbitrary native provider",
+      "manual built-in network provider",
       Box::new(|config| {
         enable_native_network(
           config,
@@ -897,7 +1011,7 @@ fn unsupported_network_app_types_providers_fields_and_permissions_are_rejected()
           proxy_network_config(),
         );
         config["agentos"]["providers"] =
-          json!([{ "id": "org.example.host", "methods": ["host.get"] }]);
+          json!([{ "id": "org.agentos.network", "methods": ["capabilities.get"] }]);
       }),
     ),
     (
@@ -939,10 +1053,10 @@ fn unsupported_network_app_types_providers_fields_and_permissions_are_rejected()
       String::from_utf8_lossy(&output.stdout),
       String::from_utf8_lossy(&output.stderr)
     );
-    if name == "arbitrary native provider" {
+    if name == "manual built-in network provider" {
       assert!(
-        String::from_utf8_lossy(&output.stderr).contains("agentos.providers"),
-        "native Provider errors should identify the config field: {}",
+        String::from_utf8_lossy(&output.stderr).contains("org.agentos.network"),
+        "built-in Provider errors should identify the reserved provider: {}",
         String::from_utf8_lossy(&output.stderr)
       );
     }

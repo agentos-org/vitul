@@ -5,16 +5,22 @@
 import { defineConfig, Plugin, RollupLog } from 'rollup'
 import typescript from '@rollup/plugin-typescript'
 import terser from '@rollup/plugin-terser'
-import fg from 'fast-glob'
 import { basename, dirname, join } from 'path'
-import { copyFileSync, opendirSync, rmSync, Dir } from 'fs'
+import { copyFileSync, opendirSync, readdirSync, rmSync, Dir } from 'fs'
 import { fileURLToPath } from 'url'
 
 // cleanup dist dir
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 cleanDir(join(__dirname, './dist'))
 
-const modules = fg.sync(['!./src/*.d.ts', './src/*.ts'])
+const modules = readdirSync('./src', { withFileTypes: true })
+  .filter(
+    (entry) =>
+      entry.isFile()
+      && entry.name.endsWith('.ts')
+      && !entry.name.endsWith('.d.ts')
+  )
+  .map((entry) => join('./src', entry.name))
 
 export default defineConfig([
   {
@@ -85,9 +91,15 @@ function makeFlatPackageInDist(): Plugin {
     name: 'makeFlatPackageInDist',
     writeBundle() {
       // copy necessary files like `CHANGELOG.md` , `README.md` and Licenses to `./dist`
-      fg.sync('(LICENSE*|*.md|package.json)').forEach((f) =>
-        copyFileSync(f, `dist/${f}`)
-      )
+      readdirSync('.', { withFileTypes: true })
+        .filter(
+          (entry) =>
+            entry.isFile()
+            && (entry.name.startsWith('LICENSE')
+              || entry.name.endsWith('.md')
+              || entry.name === 'package.json')
+        )
+        .forEach((entry) => copyFileSync(entry.name, `dist/${entry.name}`))
     }
   }
 }

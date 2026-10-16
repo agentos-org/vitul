@@ -220,6 +220,10 @@ impl AgentOsPackageConfig {
           "XDG_SESSION_ID",
           "AGENTOS_SESSION_ID",
           "AGENTOS_TRAY_SOCKET",
+          "AGENTOS_PROVIDER_SOCKET",
+          "AGENTOS_APP_RUNTIME_INSTANCE_ID",
+          "AGENTOS_TUN_CONFIG_PATH",
+          "AGENTOS_TUN_INTERFACE",
           "LD_PRELOAD",
           "LD_AUDIT",
         ];
