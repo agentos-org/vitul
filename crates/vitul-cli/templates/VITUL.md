@@ -6,6 +6,23 @@ Vitul uses the system WebView on macOS, Windows, Android, and iOS. The AgentOS
 target packages the same web build with its Rust OpenTool process and displays
 it in an embedded WebView based on Chromium.
 
+## App icon
+
+`app-icon.png` is the full-bleed square source for the default app icon. Replace
+this file when designing your logo. Extend the background to all four edges;
+avoid transparent outer padding, an extra frame, or pre-rounded corners, which
+can make the icon appear smaller in the Dock. Keep the logo itself inside the
+canvas so it remains visible when the platform applies its icon shape.
+
+Regenerate the platform assets from the project root:
+
+```sh
+pnpm vitul icon app-icon.png --output src-vitul/icons
+```
+
+Rebuild the app to use the updated assets. Edit the source instead of individual
+generated PNG, ICO, or ICNS files so all resolutions stay consistent.
+
 ## Language and appearance
 
 The starter supports English/Chinese and light/dark themes. `index.html` initializes

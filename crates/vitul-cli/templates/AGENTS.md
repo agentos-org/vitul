@@ -31,6 +31,10 @@ This project is a Vitul app with a preset stack: React, TypeScript, Tailwind CSS
 
 ## Working with the preset
 
+- `app-icon.png` is the editable app icon master. Keep its background full-bleed
+  across the square canvas; do not add an outer frame, transparent padding, or
+  pre-rounded corners. After replacing it, run
+  `pnpm vitul icon app-icon.png --output src-vitul/icons` to regenerate all sizes.
 - Keep the preset React, TypeScript, Tailwind CSS 4, Vite, and pnpm setup intact.
 - Put screens and app-specific UI in `src/`; add shared UI primitives to
   `src/components/ui/`.

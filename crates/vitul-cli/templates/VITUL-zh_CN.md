@@ -4,6 +4,20 @@
 
 Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS 目标会将相同的 Web 前端和 Rust OpenTool 后端打包，并通过基于 Chromium 的嵌入式 WebView 显示页面。
 
+## 应用图标
+
+`app-icon.png` 是默认图标的铺满式方形源文件。设计新 Logo 时替换此文件，
+让背景延伸到画布四边，不要添加外围透明留白、额外边框或预制圆角，以免在
+Dock 中显得偏小。Logo 主体保留在画布内部，避免平台应用图标形状时被裁切。
+
+在项目根目录重新生成各平台图标：
+
+```sh
+pnpm vitul icon app-icon.png --output src-vitul/icons
+```
+
+重新构建应用后生效。请修改源文件，再统一生成 PNG、ICO 和 ICNS，保持各分辨率一致。
+
 ## 语言和外观
 
 默认起始页面支持中英文和浅深色主题。`index.html` 在 React 启动前初始化
