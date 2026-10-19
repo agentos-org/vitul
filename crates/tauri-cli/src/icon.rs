@@ -8,7 +8,6 @@ use crate::{
 };
 
 use std::{
-  collections::HashMap,
   fs::{File, create_dir_all},
   io::{BufWriter, Write},
   path::{Path, PathBuf},
@@ -29,7 +28,8 @@ use image::{
 };
 use rayon::iter::ParallelIterator;
 use resvg::{tiny_skia, usvg};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Deserialize)]
 struct IcnsEntry {
@@ -64,6 +64,10 @@ struct Manifest {
   android_fg: Option<String>,
   android_monochrome: Option<String>,
   android_fg_scale: Option<f32>,
+  macos_mode: Option<MacOSMode>,
+  macos_kind: Option<MacOSKind>,
+  macos_background: Option<String>,
+  macos_logo_scale: Option<u32>,
 }
 
 #[derive(Debug, Parser)]
@@ -78,7 +82,11 @@ pub struct Options {
   ///   "android_bg": "app-icon-bg.png",
   ///   "android_fg": "app-icon-fg.png",
   ///   "android_fg_scale": 85,
-  ///   "android_monochrome": "app-icon-monochrome.png"
+  ///   "android_monochrome": "app-icon-monochrome.png",
+  ///   "macos_mode": "auto",
+  ///   "macos_kind": "logo",
+  ///   "macos_background": "#ffffff",
+  ///   "macos_logo_scale": 72
   /// }
   ///
   /// All file paths defined in the manifest JSON are relative to the manifest file path.
@@ -106,6 +114,71 @@ pub struct Options {
   /// When not set, a non-square source is rejected.
   #[clap(long, value_enum)]
   fit: Option<Fit>,
+
+  /// How to prepare the macOS ICNS icon. `auto` applies Vitul's macOS template;
+  /// `passthrough` keeps the source pixels and layout unchanged.
+  #[clap(long, value_enum)]
+  macos_mode: Option<MacOSMode>,
+
+  /// Interpret the source as a complete square illustration or as a foreground logo.
+  #[clap(long, value_enum)]
+  macos_kind: Option<MacOSKind>,
+
+  /// Solid baseplate color when `--macos-kind logo` is selected.
+  #[clap(long)]
+  macos_background: Option<String>,
+
+  /// Foreground logo size as a percentage of the macOS icon shape (1–100).
+  #[clap(long, value_parser = clap::value_parser!(u32).range(1..=100))]
+  macos_logo_scale: Option<u32>,
+}
+
+/// macOS image adaptation behavior used by both `vitul icon` and desktop builds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MacOSMode {
+  Auto,
+  Passthrough,
+}
+
+impl Default for MacOSMode {
+  fn default() -> Self {
+    Self::Auto
+  }
+}
+
+/// How the source is composed inside the macOS icon silhouette.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MacOSKind {
+  Square,
+  Logo,
+}
+
+impl Default for MacOSKind {
+  fn default() -> Self {
+    Self::Square
+  }
+}
+
+/// Settings shared by Vitul's icon command and its desktop config projection.
+#[derive(Debug, Clone)]
+pub struct MacOSIconOptions {
+  pub mode: MacOSMode,
+  pub kind: MacOSKind,
+  pub background: String,
+  pub logo_scale: u32,
+}
+
+impl Default for MacOSIconOptions {
+  fn default() -> Self {
+    Self {
+      mode: MacOSMode::Auto,
+      kind: MacOSKind::Square,
+      background: "#ffffff".to_owned(),
+      logo_scale: 72,
+    }
+  }
 }
 
 /// How to fit a non-square source image into the square icon canvas.
@@ -129,6 +202,13 @@ enum Source {
 }
 
 impl Source {
+  fn is_square(&self) -> bool {
+    match self {
+      Self::Svg { tree, fit } => fit.is_some() || tree.size().width() == tree.size().height(),
+      Self::DynamicImage(image) => image.width() == image.height(),
+    }
+  }
+
   fn resize_exact(&self, size: u32) -> Result<DynamicImage> {
     match self {
       Self::Svg { tree, fit } => rasterize_svg(tree, *fit, size),
@@ -328,8 +408,38 @@ pub fn command(options: Options) -> Result<()> {
     None
   };
 
-  let bg_color_string = match manifest {
-    Some(ref manifest) => manifest
+  let macos_options = MacOSIconOptions {
+    mode: options
+      .macos_mode
+      .or_else(|| manifest.as_ref().and_then(|manifest| manifest.macos_mode))
+      .unwrap_or_default(),
+    kind: options
+      .macos_kind
+      .or_else(|| manifest.as_ref().and_then(|manifest| manifest.macos_kind))
+      .unwrap_or_default(),
+    background: options
+      .macos_background
+      .or_else(|| {
+        manifest
+          .as_ref()
+          .and_then(|manifest| manifest.macos_background.clone())
+      })
+      .unwrap_or_else(|| "#ffffff".to_owned()),
+    logo_scale: options
+      .macos_logo_scale
+      .or_else(|| {
+        manifest
+          .as_ref()
+          .and_then(|manifest| manifest.macos_logo_scale)
+      })
+      .unwrap_or(72),
+  };
+  if !(1..=100).contains(&macos_options.logo_scale) {
+    crate::error::bail!("macOS logo scale must be between 1 and 100");
+  }
+
+  let bg_color_string = match manifest.as_ref() {
+    Some(manifest) => manifest
       .bg_color
       .as_ref()
       .unwrap_or(&options.ios_color)
@@ -338,12 +448,24 @@ pub fn command(options: Options) -> Result<()> {
   };
   let bg_color = parse_bg_color(&bg_color_string)?;
 
-  let default_icon = match manifest {
-    Some(ref manifest) => input.parent().unwrap().join(manifest.default.clone()),
+  let default_icon = match manifest.as_ref() {
+    Some(manifest) => input.parent().unwrap().join(manifest.default.clone()),
     None => input.clone(),
   };
 
-  let mut source = read_source(default_icon)?;
+  if default_icon
+    .extension()
+    .and_then(|extension| extension.to_str())
+    .is_some_and(|extension| extension.eq_ignore_ascii_case("icns"))
+  {
+    let destination = out_dir.join("icon.icns");
+    std::fs::copy(&default_icon, &destination)
+      .fs_context("failed to copy custom macOS ICNS icon", &destination)?;
+    let _ = std::fs::remove_file(out_dir.join("icon.icns.vitul.json"));
+    return Ok(());
+  }
+
+  let mut source = read_source(default_icon.clone())?;
 
   let (width, height) = match &source {
     Source::Svg { tree, .. } => (tree.size().width() as u32, tree.size().height() as u32),
@@ -362,7 +484,8 @@ pub fn command(options: Options) -> Result<()> {
 
   if png_icon_sizes.is_empty() {
     appx(&source, &out_dir).context("Failed to generate appx icons")?;
-    icns(&source, &out_dir).context("Failed to generate .icns file")?;
+    write_macos_icon(&source, &default_icon, &out_dir, &macos_options)
+      .context("Failed to generate macOS .icns file")?;
     ico(&source, &out_dir).context("Failed to generate .ico file")?;
 
     png(&source, &out_dir, bg_color).context("Failed to generate png icons")?;
@@ -413,44 +536,159 @@ fn appx(source: &Source, out_dir: &Path) -> Result<()> {
   Ok(())
 }
 
-// Main target: macOS
-fn icns(source: &Source, out_dir: &Path) -> Result<()> {
-  log::info!(action = "ICNS"; "Creating icon.icns");
-  let entries: HashMap<String, IcnsEntry> =
-    serde_json::from_slice(include_bytes!("helpers/icns.json")).unwrap();
+// The traditional ICNS fallback uses the silhouette measured from Apple's
+// shipped Calculator AppIcon.icns on macOS 27.0.1 (256 px alpha bounds: x/y
+// 25..230). It is deliberately versioned in the sidecar; the newer .icon
+// format lets macOS apply its own mask and is handled by the bundle pipeline.
+const MACOS_TEMPLATE_EDGE: u32 = 824;
+const MACOS_TEMPLATE_MARGIN: u32 = (1024 - MACOS_TEMPLATE_EDGE) / 2;
+const MACOS_TEMPLATE_CORNER_RADIUS: f32 = 176.0;
+const MACOS_TEMPLATE_REFERENCE: &str =
+  "Apple macOS 27.0.1 Calculator.app AppIcon.icns, 256px silhouette sampled; scaled 4x";
+
+/// Creates the macOS master PNG, complete ICNS family, and provenance sidecar.
+pub fn generate_macos_icon(
+  source_path: &Path,
+  out_dir: &Path,
+  options: &MacOSIconOptions,
+) -> Result<PathBuf> {
+  create_dir_all(out_dir).fs_context("Can't create macOS icon output directory", out_dir)?;
+  let source = read_source(source_path.to_path_buf())?;
+  if !source.is_square() {
+    crate::error::bail!("macOS icon source must be square");
+  }
+  write_macos_icon(&source, source_path, out_dir, options)
+}
+
+fn write_macos_icon(
+  source: &Source,
+  source_path: &Path,
+  out_dir: &Path,
+  options: &MacOSIconOptions,
+) -> Result<PathBuf> {
+  create_dir_all(out_dir).fs_context("Can't create macOS icon output directory", out_dir)?;
+  log::info!(action = "ICNS"; "Creating macOS icon master and icon.icns");
+  let master = create_macos_master(source, options)?;
+  let master_path = out_dir.join("icon-macos-master.png");
+  let mut master_file = BufWriter::new(
+    File::create(&master_path).fs_context("failed to create macOS master PNG", &master_path)?,
+  );
+  write_png(master.as_bytes(), &mut master_file, 1024)
+    .context("failed to write macOS master PNG")?;
+  master_file
+    .flush()
+    .fs_context("failed to flush macOS master PNG", &master_path)?;
+
+  let mut entries: Vec<IcnsEntry> =
+    serde_json::from_slice::<serde_json::Value>(include_bytes!("helpers/icns.json"))
+      .unwrap()
+      .as_object()
+      .unwrap()
+      .values()
+      .map(|entry| serde_json::from_value(entry.clone()).unwrap())
+      .collect();
+  entries.sort_by(|a, b| (a.size, &a.ostype).cmp(&(b.size, &b.ostype)));
 
   let mut family = IconFamily::new();
-
-  for (_name, entry) in entries {
+  for entry in entries {
     let size = entry.size;
-    let mut buf = Vec::new();
-
-    let image = source.resize_exact(size)?;
-
-    write_png(image.as_bytes(), &mut buf, size).context("failed to write output file")?;
-
-    let image = icns::Image::read_png(&buf[..]).context("failed to read output file")?;
-
+    let image = resize_image(&master, size, size);
+    let mut png = Vec::new();
+    write_png(image.as_bytes(), &mut png, size).context("failed to encode ICNS layer")?;
+    let image = icns::Image::read_png(&png[..]).context("failed to read ICNS layer")?;
     family
       .add_icon_with_type(
         &image,
         IconType::from_ostype(entry.ostype.parse().unwrap()).unwrap(),
       )
-      .context("failed to add icon to Icns Family")?;
+      .context("failed to add icon to ICNS family")?;
   }
 
   let icns_path = out_dir.join("icon.icns");
-  let mut out_file = BufWriter::new(
-    File::create(&icns_path).fs_context("failed to create output file", &icns_path)?,
-  );
+  let mut out_file =
+    BufWriter::new(File::create(&icns_path).fs_context("failed to create ICNS file", &icns_path)?);
   family
     .write(&mut out_file)
-    .fs_context("failed to write output file", &icns_path)?;
+    .fs_context("failed to write ICNS file", &icns_path)?;
   out_file
     .flush()
-    .fs_context("failed to flush output file", &icns_path)?;
+    .fs_context("failed to flush ICNS file", &icns_path)?;
 
-  Ok(())
+  let source_path = source_path
+    .canonicalize()
+    .unwrap_or_else(|_| source_path.to_path_buf());
+  let source_bytes = std::fs::read(&source_path).fs_context(
+    "failed to read macOS icon source for provenance",
+    &source_path,
+  )?;
+  let source_sha256 = format!("{:x}", Sha256::digest(source_bytes));
+  let metadata = serde_json::json!({
+    "schemaVersion": 1,
+    "generator": "vitul-macos-icon-v1",
+    "source": source_path,
+    "sourceSha256": source_sha256,
+    "mode": options.mode,
+    "kind": options.kind,
+    "background": options.background,
+    "logoScale": options.logo_scale,
+    "template": MACOS_TEMPLATE_REFERENCE,
+    "templateEdge": MACOS_TEMPLATE_EDGE,
+    "templateCornerRadius": MACOS_TEMPLATE_CORNER_RADIUS,
+    "master": master_path.file_name().unwrap().to_string_lossy(),
+    "icns": icns_path.file_name().unwrap().to_string_lossy(),
+  });
+  let sidecar_path = out_dir.join("icon.icns.vitul.json");
+  let metadata =
+    serde_json::to_vec_pretty(&metadata).context("failed to encode macOS icon provenance")?;
+  std::fs::write(&sidecar_path, metadata)
+    .fs_context("failed to write macOS icon provenance", &sidecar_path)?;
+
+  Ok(icns_path)
+}
+
+fn create_macos_master(source: &Source, options: &MacOSIconOptions) -> Result<DynamicImage> {
+  let base = source.resize_exact(1024)?.to_rgba8();
+  if options.mode == MacOSMode::Passthrough {
+    return Ok(DynamicImage::ImageRgba8(base));
+  }
+
+  let mut canvas = ImageBuffer::from_pixel(1024, 1024, Rgba([0, 0, 0, 0]));
+  let margin = MACOS_TEMPLATE_MARGIN as i64;
+  let edge = MACOS_TEMPLATE_EDGE;
+
+  match options.kind {
+    MacOSKind::Square => {
+      let base = resize_image(&DynamicImage::ImageRgba8(base), edge, edge).to_rgba8();
+      image::imageops::overlay(&mut canvas, &base, margin, margin);
+    }
+    MacOSKind::Logo => {
+      let background = parse_bg_color(&options.background)?;
+      let baseplate = ImageBuffer::from_pixel(edge, edge, background);
+      image::imageops::overlay(&mut canvas, &baseplate, margin, margin);
+
+      let logo_edge = (edge * options.logo_scale / 100).max(1);
+      let logo = resize_image(&DynamicImage::ImageRgba8(base), logo_edge, logo_edge).to_rgba8();
+      let logo_offset = margin + ((edge - logo_edge) / 2) as i64;
+      image::imageops::overlay(&mut canvas, &logo, logo_offset, logo_offset);
+    }
+  }
+
+  apply_macos_template_mask(&mut canvas);
+  Ok(DynamicImage::ImageRgba8(canvas))
+}
+
+fn apply_macos_template_mask(image: &mut image::RgbaImage) {
+  let center = 512.0_f32;
+  let half_edge = MACOS_TEMPLATE_EDGE as f32 / 2.0;
+  let inner = half_edge - MACOS_TEMPLATE_CORNER_RADIUS;
+  for (x, y, pixel) in image.enumerate_pixels_mut() {
+    let dx = (x as f32 + 0.5 - center).abs() - inner;
+    let dy = (y as f32 + 0.5 - center).abs() - inner;
+    let outside = dx.max(0.0).hypot(dy.max(0.0));
+    let distance = outside + dx.max(dy).min(0.0) - MACOS_TEMPLATE_CORNER_RADIUS;
+    let coverage = (0.5 - distance).clamp(0.0, 1.0);
+    pixel[3] = (pixel[3] as f32 * coverage).round() as u8;
+  }
 }
 
 // Generate .ico file with layers for the most common sizes.
@@ -1161,6 +1399,134 @@ mod tests {
       fit: Some(Fit::Cover),
     };
     assert!(source.resize_exact(0).is_err());
+  }
+
+  #[test]
+  fn macos_template_gives_the_icon_apple_sized_silhouette_and_rounded_corners() {
+    let source = Source::DynamicImage(DynamicImage::ImageRgba8(ImageBuffer::from_pixel(
+      128,
+      128,
+      Rgba([255, 0, 0, 255]),
+    )));
+    let master = create_macos_master(&source, &MacOSIconOptions::default()).unwrap();
+    assert_eq!((master.width(), master.height()), (1024, 1024));
+    assert_eq!(master.get_pixel(0, 512)[3], 0);
+    assert_eq!(master.get_pixel(99, 512)[3], 0);
+    assert_eq!(master.get_pixel(100, 512)[3], 255);
+    assert_eq!(master.get_pixel(512, 100)[3], 255);
+    assert_eq!(master.get_pixel(100, 100)[3], 0);
+    assert_eq!(master.get_pixel(512, 512)[3], 255);
+  }
+
+  #[test]
+  fn macos_passthrough_keeps_full_canvas_and_logo_uses_separate_scale() {
+    let source = Source::DynamicImage(DynamicImage::ImageRgba8(ImageBuffer::from_pixel(
+      128,
+      128,
+      Rgba([255, 0, 0, 255]),
+    )));
+    let passthrough = create_macos_master(
+      &source,
+      &MacOSIconOptions {
+        mode: MacOSMode::Passthrough,
+        ..MacOSIconOptions::default()
+      },
+    )
+    .unwrap();
+    assert_eq!(passthrough.get_pixel(0, 0)[3], 255);
+
+    let logo = create_macos_master(
+      &source,
+      &MacOSIconOptions {
+        kind: MacOSKind::Logo,
+        background: "#0000ff".to_owned(),
+        logo_scale: 50,
+        ..MacOSIconOptions::default()
+      },
+    )
+    .unwrap();
+    let center = logo.get_pixel(512, 512);
+    let baseplate_left = logo.get_pixel(200, 512);
+    let baseplate_right = logo.get_pixel(800, 512);
+    assert_eq!((center[0], center[1], center[2]), (255, 0, 0));
+    assert_eq!(
+      (baseplate_left[0], baseplate_left[1], baseplate_left[2]),
+      (0, 0, 255)
+    );
+    assert_eq!(
+      (baseplate_right[0], baseplate_right[1], baseplate_right[2]),
+      (0, 0, 255)
+    );
+    assert_eq!(logo.get_pixel(100, 100)[3], 0);
+  }
+
+  #[test]
+  fn generated_icns_contains_every_standard_resolution_and_provenance() {
+    let temp = tempfile::tempdir().unwrap();
+    let source_path = temp.path().join("source.png");
+    let source_image = ImageBuffer::from_pixel(64, 64, Rgba([10, 20, 30, 255]));
+    let mut source_file = BufWriter::new(File::create(&source_path).unwrap());
+    write_png(source_image.as_raw(), &mut source_file, 64).unwrap();
+    source_file.flush().unwrap();
+
+    let source = Source::DynamicImage(DynamicImage::ImageRgba8(source_image));
+    let output_dir = temp.path().join("out");
+    write_macos_icon(
+      &source,
+      &source_path,
+      &output_dir,
+      &MacOSIconOptions::default(),
+    )
+    .unwrap();
+
+    let family = IconFamily::read(File::open(output_dir.join("icon.icns")).unwrap()).unwrap();
+    assert_eq!(family.available_icons().len(), 10);
+    let mut sizes: Vec<_> = family
+      .available_icons()
+      .into_iter()
+      .map(|icon_type| {
+        let image = family.get_icon_with_type(icon_type).unwrap();
+        (image.width(), image.height())
+      })
+      .collect();
+    sizes.sort_unstable();
+    sizes.dedup();
+    assert_eq!(
+      sizes,
+      [
+        (16, 16),
+        (32, 32),
+        (64, 64),
+        (128, 128),
+        (256, 256),
+        (512, 512),
+        (1024, 1024)
+      ]
+    );
+
+    let master = image::open(output_dir.join("icon-macos-master.png")).unwrap();
+    assert_eq!((master.width(), master.height()), (1024, 1024));
+    let metadata: serde_json::Value =
+      serde_json::from_slice(&std::fs::read(output_dir.join("icon.icns.vitul.json")).unwrap())
+        .unwrap();
+    assert_eq!(metadata["sourceSha256"].as_str().unwrap().len(), 64);
+    assert_eq!(metadata["mode"], "auto");
+  }
+
+  #[test]
+  fn macos_generator_rejects_non_square_sources_in_desktop_projection() {
+    let temp = tempfile::tempdir().unwrap();
+    let source_path = temp.path().join("source.png");
+    let source_image = ImageBuffer::from_pixel(64, 32, Rgba([10_u8, 20, 30, 255]));
+    source_image.save(&source_path).unwrap();
+
+    let error = generate_macos_icon(
+      &source_path,
+      &temp.path().join("out"),
+      &MacOSIconOptions::default(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("must be square"));
   }
 
   #[test]

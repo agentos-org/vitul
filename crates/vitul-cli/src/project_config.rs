@@ -32,6 +32,7 @@ pub fn write_runtime_config(root: &Path) -> Result<()> {
   object.remove("description");
   object.remove("nameZh");
   object.remove("descriptionZh");
+  crate::macos_icon::prepare_projection(root, &mut runtime)?;
   add_runtime_path_prefixes(&mut runtime);
 
   let runtime_path = root.join("src-vitul/vitul.conf.json");
@@ -433,7 +434,7 @@ pub fn desktop_fields_from_runtime(runtime: &mut Value) {
 mod tests {
   use super::{package_config, write_runtime_config};
   use serde_json::{Value, json};
-  use std::fs;
+  use std::{fs, path::Path};
 
   #[test]
   fn runtime_config_is_projected_from_the_root_config() {
@@ -446,7 +447,7 @@ mod tests {
         "productName": "Time Memo",
         "identifier": "com.litevar.agentos.timeMemo",
         "build": { "frontendDist": "dist" },
-        "bundle": { "icon": ["src-vitul/icons/icon.png"] },
+        "bundle": { "icon": ["src-vitul/icons/icon.png", "src-vitul/icons/icon.icns"] },
         "backend": { "type": "opentool" },
         "agentos": { "targets": ["agentos/arm64"] }
       }))
@@ -461,11 +462,60 @@ mod tests {
         .unwrap();
     assert_eq!(runtime["build"]["frontendDist"], "../dist");
     assert_eq!(runtime["bundle"]["icon"][0], "icons/icon.png");
+    assert_eq!(runtime["bundle"]["icon"][1], "icons/icon.icns");
     assert_eq!(runtime["productName"], "Time Memo");
     assert_eq!(runtime["identifier"], "com.litevar.agentos.timeMemo");
     assert!(runtime.get("schemaVersion").is_none());
     assert!(runtime.get("backend").is_none());
     assert!(runtime.get("agentos").is_none());
+  }
+
+  #[test]
+  fn auto_macos_icon_is_generated_and_projected_with_host_relative_paths() {
+    let root = tempfile::tempdir().unwrap();
+    let icons = root.path().join("src-vitul/icons");
+    fs::create_dir_all(&icons).unwrap();
+    fs::copy(
+      Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/fixtures/desktop-api/.icons/icon.png"),
+      icons.join("icon.png"),
+    )
+    .unwrap();
+    let config = json!({
+      "schemaVersion": 2,
+      "build": {},
+      "bundle": {
+        "icon": ["src-vitul/icons/icon.png"],
+        "macosIcon": {
+          "mode": "auto",
+          "kind": "logo",
+          "background": "#ffffff",
+          "logoScale": 72
+        }
+      },
+      "backend": { "type": "opentool" },
+      "agentos": {}
+    });
+    fs::write(
+      root.path().join("vitul.conf.json"),
+      serde_json::to_vec(&config).unwrap(),
+    )
+    .unwrap();
+
+    write_runtime_config(root.path()).unwrap();
+
+    let runtime: Value =
+      serde_json::from_slice(&fs::read(root.path().join("src-vitul/vitul.conf.json")).unwrap())
+        .unwrap();
+    assert_eq!(runtime["bundle"]["icon"][0], "icons/icon.png");
+    assert_eq!(runtime["bundle"]["icon"][1], "icons/macos/icon.icns");
+    assert!(runtime["bundle"].get("macosIcon").is_none());
+    assert!(
+      root
+        .path()
+        .join("src-vitul/icons/macos/icon.icns")
+        .is_file()
+    );
   }
 
   #[test]

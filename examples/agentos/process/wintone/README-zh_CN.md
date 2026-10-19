@@ -1,6 +1,6 @@
 # WinTone 温易通
 
-WinTone 是使用根目录 `vitul.conf.json` 配置的 AgentOS process 应用。首次启动时，WinTone 会在后台准备 Windows 运行环境。用户拖入 `.exe` 或 `.msi` 安装包后，WinTone 为安装创建独立环境，并通过 AgentOS Wayland 会话打开安装向导；安装完成后即可启动或卸载应用。
+WinTone 是使用根目录 `vitul.conf.json` 配置的 AgentOS desktop-user Native process 应用。后端监听 manifest 配置的 28641 端口，窗口关闭后仍可通过 AgentOS 托盘重新打开。首次启动时，WinTone 会在后台准备 Windows 运行环境。用户拖入 `.exe` 或 `.msi` 安装包后，WinTone 为安装创建独立环境，并通过 AgentOS Wayland 会话打开安装向导；安装完成后即可启动或卸载应用。
 
 ## 当前实现
 
@@ -8,10 +8,12 @@ WinTone 是使用根目录 `vitul.conf.json` 配置的 AgentOS process 应用。
 - ARM64 `.agt` 自带两种架构路径所需的运行文件：x86/x64 应用在 x86-64 Ubuntu RootFS 中运行，ARM64 PE 文件使用原生 ARM64 路径。首次启动 WinTone 时会在后台校验并解包共享运行环境；每个安装有独立的 prefix 目录。
 - 导入 `.exe` 时读取 PE Machine 字段，自动选择 x86/x64 或 ARM64 Wine prefix 和启动路径；ARM64EC/ARM64X 暂不支持。`.msi` 目前默认走 x86/x64 路径。
 - 使用 AgentOS 的 `native.external-wayland` 会话 API 启动安装器和应用；ARM64 Windows PE 由原生 ARM64 Wine 启动，不经过 FEX。
+- 导入时可选择“安装程序”或“直接运行 EXE”；普通 `.exe` 应用不会被误当作安装器，运行结束后可从任务列表再次启动。示例 GUI 程序应选择直接运行模式。
 - 通过 Wine prefix 中的卸载注册表识别应用入口和卸载程序；同一安装任务可登记多个应用入口。
 - 监视和恢复 AgentOS 会话状态；管理界面提供应用启动、卸载和安装任务状态。
 - 管理界面使用 React、TypeScript、Tailwind CSS、Vite 和 pnpm 构建，支持简体中文和 English，并提供跟随系统、浅色和深色主题；配色以 Windows 蓝色为主，偏好保存在当前浏览器中。
 - 提供运行时准备、安装任务、应用列表 API，并暴露 `runtime.status`、`installations.list` 和 `apps.list` OpenTool 方法。
+- 通过 AgentOS 托盘 socket 向 Shell 注册温易通图标；窗口关闭后，用户仍可从 Shell 托盘菜单重新打开或退出温易通。
 - 迁移旧版暂存安装包记录，并在温易通界面展示任务状态。
 - `vitul.conf.json` 声明 AgentOS ARM64 和 x64 目标；Vitul 使用 Docker 为所选目标编译 Rust 后端并打包。
 

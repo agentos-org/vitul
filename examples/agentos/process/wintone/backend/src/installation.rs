@@ -4,11 +4,12 @@ use std::{
 };
 
 use crate::{
-  external_wayland::{CreateSession, ExternalSession, FileGrant, WindowHints},
+  AppState,
+  external_wayland::{CreateSession, ExternalSession, FileGrant, SessionLogEntry, WindowHints},
   model::{InstallTask, InstalledApp, SessionPreferences, Store},
   pe_arch::WindowsArchitecture,
   runtime::InstalledRuntime,
-  shortcuts, AppState,
+  shortcuts,
 };
 use serde_json::Value;
 use uuid::Uuid;
@@ -226,7 +227,7 @@ async fn launch_installer(state: &AppState, task: &InstallTask, runtime: &Instal
       return;
     }
   };
-  let application_id = format!("wintone.install.{}", task.id);
+  let application_id = task_application_id(task);
   if let Some(session) = sessions
     .iter()
     .find(|session| session.application_id == application_id)
@@ -240,10 +241,16 @@ async fn launch_installer(state: &AppState, task: &InstallTask, runtime: &Instal
         if active {
           "awaiting-user"
         } else {
-          "starting-installer"
+          task_starting_status(task)
         },
-        "installer",
-        if active {
+        task_session_phase(task),
+        if task.kind == "portable" {
+          if active {
+            "Recovered the existing AgentOS application session."
+          } else {
+            "Recovered the completed AgentOS application session."
+          }
+        } else if active {
           "Recovered the existing AgentOS installer session."
         } else {
           "Recovered the completed AgentOS installer session."
@@ -276,12 +283,24 @@ async fn launch_installer(state: &AppState, task: &InstallTask, runtime: &Instal
     }
   };
   apply_session_preferences(state, &mut request, &capabilities).await;
+  let start_status = task_starting_status(task);
+  let session_phase = task_session_phase(task);
+  let start_message = if task.kind == "portable" {
+    "Starting the Windows app in an AgentOS Wayland session."
+  } else {
+    "Starting the Windows installer in an AgentOS Wayland session."
+  };
+  let created_message = if task.kind == "portable" {
+    "The Windows app is running in an AgentOS Wayland session."
+  } else {
+    "The session was created; installer window mapping and Shell presentation remain unverified."
+  };
   let _ = update(
     state,
     &task.id,
-    "starting-installer",
+    start_status,
     "window-session",
-    "Starting the Windows installer in an AgentOS Wayland session.",
+    start_message,
   )
   .await;
   match state.external_wayland.create(&request).await {
@@ -291,22 +310,28 @@ async fn launch_installer(state: &AppState, task: &InstallTask, runtime: &Instal
         .update_install_task_session(
           &task.id,
           Some(session.session_id),
-          "starting-installer",
-          "installer",
-          "The session was created; installer window mapping and Shell presentation remain unverified.",
+          start_status,
+          session_phase,
+          created_message,
         )
         .await;
     }
     Err(error) => {
-      if let Some(session_id) = error.session_id {
+      if let Some(session_id) = error.session_id.as_deref() {
+        let message = message_with_session_diagnostics(state, &error.message, session_id).await;
+        let failed = error.status.is_some_and(|status| status.as_u16() < 500);
         let _ = state
           .repository
           .update_install_task_session(
             &task.id,
-            Some(session_id),
-            "starting-installer",
-            "installer",
-            &error.message,
+            Some(session_id.to_owned()),
+            if failed { "failed" } else { start_status },
+            if failed {
+              "window-session"
+            } else {
+              session_phase
+            },
+            &message,
           )
           .await;
       } else if error.status.is_some_and(|status| status.as_u16() < 500) {
@@ -489,6 +514,31 @@ fn make_session_request(
   })
 }
 
+fn task_application_id(task: &InstallTask) -> String {
+  let kind = if task.kind == "portable" {
+    "portable"
+  } else {
+    "install"
+  };
+  format!("wintone.{kind}.{}", task.id)
+}
+
+fn task_starting_status(task: &InstallTask) -> &'static str {
+  if task.kind == "portable" {
+    "starting-app"
+  } else {
+    "starting-installer"
+  }
+}
+
+fn task_session_phase(task: &InstallTask) -> &'static str {
+  if task.kind == "portable" {
+    "application"
+  } else {
+    "installer"
+  }
+}
+
 fn shell_join_command(command: &[String]) -> String {
   command
     .iter()
@@ -667,11 +717,18 @@ async fn start_app_session(
     return Ok(existing);
   }
   request.application_id = format!("{application_prefix}.{}", Uuid::new_v4());
-  let session = state
-    .external_wayland
-    .create(&request)
-    .await
-    .map_err(|error| error.message)?;
+  let session = match state.external_wayland.create(&request).await {
+    Ok(session) => session,
+    Err(error) => {
+      let message = match error.session_id.as_deref() {
+        Some(session_id) => {
+          message_with_session_diagnostics(state, &error.message, session_id).await
+        }
+        None => error.message,
+      };
+      return Err(message);
+    }
+  };
   if let Err(error) = state
     .repository
     .update_app_session(
@@ -744,6 +801,51 @@ impl Drop for ActiveAppOperation {
 }
 
 pub async fn resume_waiting_tasks(state: AppState) {
+  resume_failed_discovery_tasks(state.clone()).await;
+  resume_tasks(state, true).await;
+}
+
+async fn resume_failed_discovery_tasks(state: AppState) {
+  match state.snapshot().await {
+    Ok(store) => {
+      for task in store.install_tasks.into_iter().filter(|task| {
+        task.kind == "installer" && task.status == "failed" && task.phase == "discovery"
+      }) {
+        let task_state = state.clone();
+        tokio::spawn(async move {
+          if !task_state.claim_install_task(&task.id) {
+            return;
+          }
+          let _claim = ActiveTaskClaim {
+            state: task_state.clone(),
+            task_id: task.id.clone(),
+          };
+          let Ok(Some(task)) = task_by_id(&task_state, &task.id).await else {
+            return;
+          };
+          if task.status != "failed" || task.phase != "discovery" {
+            return;
+          }
+          let session = ExternalSession {
+            session_id: task.session_id.clone().unwrap_or_else(|| task.id.clone()),
+            application_id: task_application_id(&task),
+            state: "terminated".to_owned(),
+            exit_code: None,
+            error: Some(task.message.clone()),
+            windows: Vec::new(),
+          };
+          finish_install_task(&task_state, &task, &session).await;
+        });
+      }
+    }
+    Err(error) => eprintln!(
+      "WinTone could not restore failed install scans: {}",
+      error.0
+    ),
+  }
+}
+
+async fn resume_tasks(state: AppState, retry_failed_runtime: bool) {
   match state.snapshot().await {
     Ok(store) => {
       for task in store.install_tasks.into_iter().filter(|task| {
@@ -754,8 +856,9 @@ pub async fn resume_waiting_tasks(state: AppState) {
               | "preparing-runtime"
               | "preparing-prefix"
               | "waiting-window-session"
+              | "starting-app"
               | "starting-installer"
-          ) || is_retryable_runtime_preparation_failure(task))
+          ) || (retry_failed_runtime && is_retryable_runtime_preparation_failure(task)))
       }) {
         let task_state = state.clone();
         tokio::spawn(async move {
@@ -810,7 +913,7 @@ pub async fn monitor_sessions(state: AppState) {
         None => {
           let lost = ExternalSession {
             session_id: session_id.to_owned(),
-            application_id: format!("wintone.install.{}", task.id),
+            application_id: task_application_id(task),
             state: "failed".to_owned(),
             exit_code: None,
             error: Some("The AgentOS session was lost after restart.".to_owned()),
@@ -819,12 +922,24 @@ pub async fn monitor_sessions(state: AppState) {
           finish_install_task(&state, task, &lost).await;
         }
         Some(session)
-          if session.mapped_window_observed() && task.status == "starting-installer" =>
+          if session.mapped_window_observed() && task.status == task_starting_status(task) =>
         {
-          let _ = state.repository.update_install_task_session(
-            &task.id, Some(session.session_id.clone()), "awaiting-user", "installer",
-            "A mapped window was reported; Flutter presentation and input still require verification.",
-          ).await;
+          let phase = task_session_phase(task);
+          let message = if task.kind == "portable" {
+            "The Windows app is running in an AgentOS Wayland session."
+          } else {
+            "A mapped window was reported; Flutter presentation and input still require verification."
+          };
+          let _ = state
+            .repository
+            .update_install_task_session(
+              &task.id,
+              Some(session.session_id.clone()),
+              "awaiting-user",
+              phase,
+              message,
+            )
+            .await;
         }
         _ => {}
       }
@@ -894,12 +1009,28 @@ pub async fn monitor_sessions(state: AppState) {
       }
     }
 
-    resume_waiting_tasks(state.clone()).await;
+    // Failed extraction is retried only on explicit preparation or restart.
+    // Polling must not repeatedly unpack/delete a multi-gigabyte runtime.
+    resume_tasks(state.clone(), false).await;
   }
 }
 
 async fn finish_install_task(state: &AppState, task: &InstallTask, session: &ExternalSession) {
-  if task.status == "completed" || task.status == "failed" {
+  if task.status == "completed" || (task.status == "failed" && task.phase != "discovery") {
+    return;
+  }
+  if task.kind == "portable" {
+    let succeeded = session.state == "exited" && session.exit_code == Some(0);
+    let status = if succeeded { "completed" } else { "failed" };
+    let message = if succeeded {
+      "The Windows app closed. You can launch it again from this task.".to_owned()
+    } else {
+      session_error_with_diagnostics(state, session).await
+    };
+    let _ = state
+      .repository
+      .update_install_task_session(&task.id, None, status, "application", &message)
+      .await;
     return;
   }
   let _ = state
@@ -988,14 +1119,57 @@ async fn finish_install_task(state: &AppState, task: &InstallTask, session: &Ext
     }
   }
 
-  let message = session
-    .error
-    .clone()
-    .unwrap_or_else(|| "The installer session ended, but no launchable app was found.".to_owned());
+  let message = session_error_with_diagnostics(state, session).await;
   let _ = state
     .repository
     .update_install_task_session(&task.id, None, "failed", "discovery", &message)
     .await;
+}
+
+async fn session_error_with_diagnostics(state: &AppState, session: &ExternalSession) -> String {
+  let message = session
+    .error
+    .clone()
+    .unwrap_or_else(|| "The Windows app session ended unexpectedly.".to_owned());
+  if session.exit_code == Some(0) && session.state == "exited" {
+    return message;
+  }
+  message_with_session_diagnostics(state, &message, &session.session_id).await
+}
+
+async fn message_with_session_diagnostics(
+  state: &AppState,
+  message: &str,
+  session_id: &str,
+) -> String {
+  let Ok(entries) = state.external_wayland.session_logs(session_id).await else {
+    return message.to_owned();
+  };
+  let diagnostic = stderr_tail(&entries);
+  if diagnostic.is_empty() {
+    message.to_owned()
+  } else {
+    format!("{message}\n{diagnostic}")
+  }
+}
+
+fn stderr_tail(entries: &[SessionLogEntry]) -> String {
+  const MAX_DIAGNOSTIC_CHARS: usize = 1200;
+  let diagnostic = entries
+    .iter()
+    .filter(|entry| matches!(entry.stream.as_str(), "stderr" | "compositor-stderr"))
+    .map(|entry| entry.text.trim())
+    .filter(|text| !text.is_empty())
+    .collect::<Vec<_>>()
+    .join("\n");
+  let chars = diagnostic.chars().count();
+  if chars <= MAX_DIAGNOSTIC_CHARS {
+    return diagnostic;
+  }
+  diagnostic
+    .chars()
+    .skip(chars - MAX_DIAGNOSTIC_CHARS)
+    .collect()
 }
 
 async fn finish_app_session(state: &AppState, app: &InstalledApp, session: &ExternalSession) {
@@ -1078,7 +1252,7 @@ async fn remove_installer(state: &AppState, task: &InstallTask) {
 }
 
 fn terminal(state: &str) -> bool {
-  matches!(state, "exited" | "failed" | "terminated")
+  matches!(state, "exited" | "failed" | "terminated" | "cleanupFailed")
 }
 
 async fn task_by_id(state: &AppState, task_id: &str) -> Result<Option<InstallTask>, String> {
@@ -1128,6 +1302,14 @@ mod tests {
   }
 
   #[test]
+  fn cleanup_failure_is_terminal_for_the_windows_process() {
+    assert!(terminal("cleanupFailed"));
+    assert!(terminal("exited"));
+    assert!(!terminal("running"));
+    assert!(!terminal("terminating"));
+  }
+
+  #[test]
   fn defaults_to_available_session_capabilities() {
     let capabilities = serde_json::json!({
       "gpu": { "available": false },
@@ -1173,5 +1355,37 @@ mod tests {
     let mut task = task;
     task.message = "The Windows runtime does not support this app architecture.".to_owned();
     assert!(!is_retryable_runtime_preparation_failure(&task));
+  }
+
+  #[test]
+  fn task_diagnostics_use_only_the_bounded_stderr_tail() {
+    let entries = vec![
+      SessionLogEntry {
+        sequence: 1,
+        stream: "stdout".to_owned(),
+        text: "not shown".to_owned(),
+      },
+      SessionLogEntry {
+        sequence: 2,
+        stream: "stderr".to_owned(),
+        text: "  Wine failed to start.  ".to_owned(),
+      },
+      SessionLogEntry {
+        sequence: 3,
+        stream: "compositor-stderr".to_owned(),
+        text: "{\"type\":\"compositor.startup\",\"stage\":\"input.xkb-context.create\",\"result\":\"failed\",\"errno\":2}".to_owned(),
+      },
+    ];
+    assert_eq!(
+      stderr_tail(&entries),
+      "Wine failed to start.\n{\"type\":\"compositor.startup\",\"stage\":\"input.xkb-context.create\",\"result\":\"failed\",\"errno\":2}"
+    );
+
+    let long = vec![SessionLogEntry {
+      sequence: 3,
+      stream: "stderr".to_owned(),
+      text: "x".repeat(1400),
+    }];
+    assert_eq!(stderr_tail(&long).chars().count(), 1200);
   }
 }

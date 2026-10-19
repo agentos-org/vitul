@@ -120,7 +120,7 @@ test('modern Shell context works without launch query and system media follows h
 for (const locale of ['zh', 'en']) test(`runtime terminology stays user friendly in ${locale} diagnostics`, async ({ page }) => {
   await page.route('**/apps/androidtone/api/**', route => {
     const path = new URL(route.request().url()).pathname;
-    return route.fulfill({ json: path.endsWith('/status') ? { provider: { available: false, state: 'provider-unavailable', canInstall: false, message: 'Waydroid Host Provider unavailable', runtimeBundle: { included: true, waydroidVersion: '1.6.2', androidVersion: '13', packageCount: 260 } } }
+    return route.fulfill({ json: path.endsWith('/status') ? { provider: { available: false, state: 'provider-unavailable', canInstall: false, message: 'Waydroid Host Provider unavailable', runtimeBundle: { included: true, waydroidVersion: '1.6.2', androidVersion: '13', packageCount: 261 } } }
       : path.endsWith('/apps') ? { apps: [] } : { installTasks: [{ id: 'one', fileName: 'demo.apk', status: 'failed', message: 'Waydroid Provider failed' }] } });
   });
   await page.goto(`/apps/androidtone/?runtime=agentos&locale=${locale}&theme=dark`);

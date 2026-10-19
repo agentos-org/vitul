@@ -30,6 +30,13 @@ pub struct ExternalSession {
   pub windows: Vec<Value>,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct SessionLogEntry {
+  pub sequence: u64,
+  pub stream: String,
+  pub text: String,
+}
+
 impl ExternalSession {
   pub fn mapped_window_observed(&self) -> bool {
     self.windows.iter().any(|window| window["mapped"] == true)
@@ -105,6 +112,21 @@ impl ExternalWaylandClient {
       message: format!("Invalid AgentOS session list: {error}"),
       status: None,
       session_id: None,
+    })
+  }
+
+  pub async fn session_logs(&self, session_id: &str) -> Result<Vec<SessionLogEntry>, WaylandError> {
+    let response = self
+      .request(
+        Method::GET,
+        &format!("/v1/sessions/{session_id}/logs?after=0"),
+        None,
+      )
+      .await?;
+    serde_json::from_value(response["entries"].clone()).map_err(|error| WaylandError {
+      message: format!("Invalid AgentOS session log response: {error}"),
+      status: None,
+      session_id: Some(session_id.to_owned()),
     })
   }
 
@@ -235,10 +257,17 @@ async fn decode_response(response: hyper::Response<Incoming>) -> Result<Value, W
         .unwrap_or("AgentOS rejected the Wayland session request.")
         .to_owned(),
       status: Some(status),
-      session_id: value["sessionId"].as_str().map(str::to_owned),
+      session_id: error_session_id(&value),
     });
   }
   Ok(value)
+}
+
+fn error_session_id(value: &Value) -> Option<String> {
+  value["sessionId"]
+    .as_str()
+    .or_else(|| value["error"]["sessionId"].as_str())
+    .map(str::to_owned)
 }
 
 fn protocol_error(error: impl std::fmt::Display) -> WaylandError {
@@ -246,6 +275,32 @@ fn protocol_error(error: impl std::fmt::Display) -> WaylandError {
     message: format!("AgentOS Wayland API request failed: {error}"),
     status: None,
     session_id: None,
+  }
+}
+
+#[cfg(test)]
+mod error_response_tests {
+  use super::*;
+
+  #[test]
+  fn reads_session_id_from_nested_agentos_error() {
+    let value = json!({
+      "error": {
+        "code": "compositor-exited",
+        "message": "Wayland host exited before readiness with status 1.",
+        "sessionId": "session-123"
+      }
+    });
+    assert_eq!(error_session_id(&value).as_deref(), Some("session-123"));
+  }
+
+  #[test]
+  fn prefers_legacy_top_level_session_id_when_present() {
+    let value = json!({
+      "sessionId": "legacy-session",
+      "error": {"sessionId": "nested-session"}
+    });
+    assert_eq!(error_session_id(&value).as_deref(), Some("legacy-session"));
   }
 }
 

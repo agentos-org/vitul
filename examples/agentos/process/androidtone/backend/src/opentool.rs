@@ -6,12 +6,13 @@ use crate::provider::ProviderClient;
 
 const OPENTOOL_SPEC: &str = r#"{
   "opentool": "1.0.0",
-  "info": { "title": "AndroidTone", "version": "0.1.4" },
+  "info": { "title": "AndroidTone", "version": "0.1.6" },
   "functions": [
     {"name":"runtime.status","description":"Get Waydroid installation, kernel, initialization, and session status.","parameters":[],"returns":{"type":"object","properties":{"state":{"type":"string"},"message":{"type":"string"}}}},
-    {"name":"runtime.install","description":"Install the Waydroid host package after operating-system authorization.","parameters":[],"returns":{"type":"object"}},
-    {"name":"runtime.initialize","description":"Initialize Waydroid Android system images after operating-system authorization.","parameters":[],"returns":{"type":"object"}},
-    {"name":"runtime.start","description":"Start Waydroid and attach its Android windows to AgentOS.","parameters":[],"returns":{"type":"object"}},
+    {"name":"runtime.install","description":"Install the bundled Android runtime through a declared AgentOS system deployment operation when the complete platform contract is available.","parameters":[],"returns":{"type":"object"}},
+    {"name":"runtime.initialize","description":"Initialize the bundled Android system images through a declared AgentOS system deployment operation when available.","parameters":[],"returns":{"type":"object"}},
+    {"name":"runtime.recover","description":"Request AgentOS Shell authorization to prepare Binder and restart the fixed Waydroid service without installing packages.","parameters":[],"returns":{"type":"object"}},
+    {"name":"runtime.start","description":"Start the Android runtime and request its private AgentOS Wayland session when the platform contract is available.","parameters":[],"returns":{"type":"object"}},
     {"name":"runtime.stop","description":"Stop the AndroidTone Waydroid display session.","parameters":[],"returns":{"type":"object"}},
     {"name":"apps.list","description":"List installed Android applications managed by AndroidTone.","parameters":[],"returns":{"type":"object","properties":{"apps":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"version":{"type":"string"}}}}}}},
     {"name":"installations.list","description":"List imported APK installation tasks.","parameters":[],"returns":{"type":"object","properties":{"installTasks":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"fileName":{"type":"string"},"status":{"type":"string"},"message":{"type":"string"}}}}}}}
@@ -34,7 +35,7 @@ impl Tool for AndroidToneTool {
       }),
       "apps.list" => Ok(match self.provider.apps().await {
         Ok(value) => value,
-        Err(error) => json!({ "available": false, "error": error.0, "apps": [] }),
+        Err(error) => json!({ "available": false, "error": error.message, "apps": [] }),
       }),
       "installations.list" => {
         let local = self.repository.snapshot().await.install_tasks;
@@ -61,11 +62,12 @@ impl Tool for AndroidToneTool {
           Err(_) => json!({ "installTasks": local }),
         })
       }
-      "runtime.install" | "runtime.initialize" | "runtime.start" | "runtime.stop" => self
+      "runtime.install" | "runtime.initialize" | "runtime.start" | "runtime.recover"
+      | "runtime.stop" => self
         .provider
         .invoke(method, json!({}))
         .await
-        .map_err(|error| ToolError::execution(error.0)),
+        .map_err(|error| ToolError::execution(error.message)),
       _ => Err(ToolError::method_not_found(method)),
     }
   }
@@ -90,4 +92,15 @@ pub async fn create_server(
       .max_request_body_bytes(1024 * 1024)
       .build(),
   )
+}
+
+#[cfg(test)]
+mod tests {
+  use super::OPENTOOL_SPEC;
+
+  #[test]
+  fn reauthorization_is_not_exposed_as_an_opentool_action() {
+    assert!(!OPENTOOL_SPEC.contains("runtime.reauthorize"));
+    assert!(!OPENTOOL_SPEC.contains("authorization.reauthorize"));
+  }
 }

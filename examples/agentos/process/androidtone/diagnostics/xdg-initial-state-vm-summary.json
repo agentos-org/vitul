@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-18",
+  "vm": "192.168.64.34",
+  "compositor": "/opt/agentos-shell/labwc/bin/agentos-wayland-host",
+  "compositorSha256": "a577f8499731597ce173b5910fa8cb4ed7fe59d839c18b4516bc1f650606ee71",
+  "results": [
+    {
+      "case": "after-commit-maximize",
+      "exitBeforeCleanup": null,
+      "error": null,
+      "compositorCrashed": false,
+      "assertions": []
+    },
+    {
+      "case": "before-commit-maximize",
+      "exitBeforeCleanup": -6,
+      "error": "Compositor closed the Wayland connection",
+      "compositorCrashed": true,
+      "assertions": [
+        "agentos-wayland-host: types/xdg_shell/wlr_xdg_surface.c:168: wlr_xdg_surface_schedule_configure: Assertion `surface->initialized' failed."
+      ]
+    },
+    {
+      "case": "before-commit-unmaximize",
+      "exitBeforeCleanup": -6,
+      "error": "Compositor closed the Wayland connection",
+      "compositorCrashed": true,
+      "assertions": [
+        "agentos-wayland-host: types/xdg_shell/wlr_xdg_surface.c:168: wlr_xdg_surface_schedule_configure: Assertion `surface->initialized' failed."
+      ]
+    },
+    {
+      "case": "before-commit-fullscreen",
+      "exitBeforeCleanup": -6,
+      "error": "Compositor closed the Wayland connection",
+      "compositorCrashed": true,
+      "assertions": [
+        "agentos-wayland-host: types/xdg_shell/wlr_xdg_surface.c:168: wlr_xdg_surface_schedule_configure: Assertion `surface->initialized' failed."
+      ]
+    }
+  ]
+}

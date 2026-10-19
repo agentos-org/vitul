@@ -176,7 +176,7 @@ impl RuntimeManager {
       .store(PREPARATION_ACTIVE, Ordering::Release);
     let catalog = self.read_catalog().await?;
     self.validate_catalog(&catalog)?;
-    if let Some(runtime) = self.installed_runtime_version(&catalog.version).await? {
+    if let Ok(Some(runtime)) = self.installed_runtime_version(&catalog.version).await {
       if runtime.artifact_sha256 != catalog.artifact.sha256.to_ascii_lowercase() {
         return Err(RuntimeError(
           "The runtime catalog reused a version identifier for different bundle contents."
@@ -188,7 +188,10 @@ impl RuntimeManager {
       preparation.complete();
       return Ok(runtime);
     }
-    if let Some(runtime) = self.installed_runtime().await? {
+    // A previously extracted bundle may be incomplete (for example, older
+    // releases omitted FEXServer and Wine preloaders). Do not let an invalid
+    // active bundle prevent the configured bundle from repairing it.
+    if let Ok(Some(runtime)) = self.installed_runtime().await {
       if runtime.version == catalog.version {
         if runtime.artifact_sha256 != catalog.artifact.sha256.to_ascii_lowercase() {
           return Err(RuntimeError(
@@ -689,6 +692,11 @@ impl RuntimeManager {
     runtime_dir: &Path,
   ) -> Result<(), RuntimeError> {
     if runtime.host_architecture == "aarch64" {
+      for required_host_tool in ["fex/bin/FEX", "fex/bin/FEXBash", "fex/bin/FEXServer"] {
+        self
+          .validate_executable(runtime_dir, &[required_host_tool.to_owned()])
+          .await?;
+      }
       let rootfs = runtime
         .fex_rootfs
         .as_deref()
@@ -699,6 +707,15 @@ impl RuntimeManager {
           .validate_guest_executable(&rootfs_path, command)
           .await?;
       }
+      for preloader in [
+        "usr/lib/wine/wine64-preloader",
+        "usr/lib/wine/wine-preloader",
+      ] {
+        self
+          .validate_guest_executable(&rootfs_path, &[preloader.to_owned()])
+          .await?;
+      }
+      self.validate_rootfs_devices(&rootfs_path).await?;
     } else {
       for command in [&runtime.wine_command, &runtime.wineboot_command] {
         self.validate_executable(runtime_dir, command).await?;
@@ -717,8 +734,38 @@ impl RuntimeManager {
     {
       self.validate_executable(runtime_dir, command).await?;
     }
+    if runtime.native_wine_command.is_some() {
+      let native_rootfs = runtime_dir.join("native-arm64/rootfs");
+      for required_native_file in [
+        "usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+        "usr/lib/wine/wine64-preloader",
+      ] {
+        self
+          .validate_guest_executable(&native_rootfs, &[required_native_file.to_owned()])
+          .await?;
+      }
+      self.validate_rootfs_devices(&native_rootfs).await?;
+    }
     if let Some(rootfs) = &runtime.fex_rootfs {
       self.validate_file_or_directory(runtime_dir, rootfs).await?;
+    }
+    Ok(())
+  }
+
+  async fn validate_rootfs_devices(&self, rootfs: &Path) -> Result<(), RuntimeError> {
+    for device in [
+      "full", "ptmx", "console", "null", "urandom", "tty", "zero", "random",
+    ] {
+      let path = rootfs.join("dev").join(device);
+      // Device entries must be absent so FEX resolves them in the session's
+      // /dev. A /dev/null symlink inside the guest root resolves to itself.
+      match fs::symlink_metadata(&path).await {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(RuntimeError(format!(
+          "Could not inspect runtime device {}: {error}.", path.display()))),
+        Ok(_) => return Err(RuntimeError(format!(
+          "Runtime device {} must be omitted to use the sandbox device.", path.display()))),
+      }
     }
     Ok(())
   }
@@ -770,7 +817,7 @@ impl RuntimeManager {
       .await
       .map_err(|error| {
         RuntimeError(format!(
-          "Wine executable {} is missing from the x86-64 RootFS: {}.",
+          "Runtime executable {} is missing from its packaged RootFS: {}.",
           rootfs.join(relative).display(),
           error.0
         ))
@@ -925,11 +972,40 @@ fn unpack_tar_zstd(archive_path: &Path, destination: &Path) -> Result<(), Runtim
   for entry in entries {
     let mut entry =
       entry.map_err(|error| RuntimeError(format!("Invalid runtime archive entry: {error}")))?;
+    let entry_type = entry.header().entry_type();
+    let device_link =
+      if entry_type.is_character_special() || entry_type.is_block_special() || entry_type.is_fifo()
+      {
+        if !entry_type.is_character_special() {
+          return Err(RuntimeError(
+            "Runtime bundle contains an unsupported special file.".to_owned(),
+          ));
+        }
+        let path = entry
+          .path()
+          .map_err(|error| RuntimeError(format!("Invalid runtime archive path: {error}")))?
+          .into_owned();
+        let relative = archive_relative_path(&path)?;
+        let target = runtime_device_target(&relative).ok_or_else(|| {
+          RuntimeError(format!(
+            "Runtime bundle contains an unsupported device node: {}.",
+            relative.display()
+          ))
+        })?;
+        Some((relative, target))
+      } else {
+        None
+      };
     unpacked_bytes = unpacked_bytes.saturating_add(entry.size());
     if unpacked_bytes > MAX_RUNTIME_BYTES.saturating_mul(4) {
       return Err(RuntimeError(
         "Runtime bundle expands beyond the extraction size limit.".to_owned(),
       ));
+    }
+    if device_link.is_some() {
+      // Recognized legacy character devices are omitted as well; do not
+      // create host devices or circular links in the extracted guest root.
+      continue;
     }
     let unpacked = entry
       .unpack_in(destination)
@@ -939,8 +1015,48 @@ fn unpack_tar_zstd(archive_path: &Path, destination: &Path) -> Result<(), Runtim
         "Runtime bundle contains an unsafe archive path.".to_owned(),
       ));
     }
+
   }
   Ok(())
+}
+
+fn archive_relative_path(path: &Path) -> Result<PathBuf, RuntimeError> {
+  let mut relative = PathBuf::new();
+  for component in path.components() {
+    match component {
+      Component::Prefix(_) | Component::RootDir | Component::CurDir => {}
+      Component::ParentDir => {
+        return Err(RuntimeError(
+          "Runtime bundle contains an unsafe archive path.".to_owned(),
+        ));
+      }
+      Component::Normal(name) => relative.push(name),
+    }
+  }
+  if relative.as_os_str().is_empty() {
+    return Err(RuntimeError(
+      "Runtime bundle contains an empty archive path.".to_owned(),
+    ));
+  }
+  Ok(relative)
+}
+
+fn runtime_device_target(path: &Path) -> Option<&'static str> {
+  let parent = path.parent()?;
+  if parent != Path::new("fex/rootfs/dev") && parent != Path::new("native-arm64/rootfs/dev") {
+    return None;
+  }
+  match path.file_name()?.to_str()? {
+    "full" => Some("/dev/full"),
+    "ptmx" => Some("/dev/ptmx"),
+    "console" => Some("/dev/console"),
+    "null" => Some("/dev/null"),
+    "urandom" => Some("/dev/urandom"),
+    "tty" => Some("/dev/tty"),
+    "zero" => Some("/dev/zero"),
+    "random" => Some("/dev/random"),
+    _ => None,
+  }
 }
 
 fn validate_command_paths(command: &[String]) -> Result<(), RuntimeError> {
@@ -1011,14 +1127,24 @@ mod tests {
     }
   }
 
+  fn add_rootfs_device_directories(runtime_dir: &Path) {
+    for rootfs in ["fex/rootfs", "native-arm64/rootfs"] {
+      let dev = runtime_dir.join(rootfs).join("dev");
+      std::fs::create_dir_all(&dev).unwrap();
+
+    }
+  }
+
   #[tokio::test]
   async fn validates_bundled_arm64_runtime_layout() {
     let root = std::env::temp_dir().join(format!("wintone-arm64-layout-{}", Uuid::new_v4()));
     let runtime_dir = root.join("runtime");
     for directory in [
       "fex/rootfs/usr/bin",
+      "fex/rootfs/usr/lib/wine",
       "fex/bin",
       "native-arm64/rootfs/usr/lib/wine",
+      "native-arm64/rootfs/usr/lib/aarch64-linux-gnu",
       "native-arm64/bin",
     ] {
       std::fs::create_dir_all(runtime_dir.join(directory)).unwrap();
@@ -1026,12 +1152,20 @@ mod tests {
     for file in [
       "fex/rootfs/usr/bin/wine",
       "fex/rootfs/usr/bin/wineboot",
+      "fex/rootfs/usr/lib/wine/wine64-preloader",
+      "fex/rootfs/usr/lib/wine/wine-preloader",
+      "fex/bin/FEX",
+      "fex/bin/FEXBash",
+      "fex/bin/FEXServer",
       "fex/bin/wintone-session-launch",
       "native-arm64/rootfs/usr/lib/wine/wine64",
+      "native-arm64/rootfs/usr/lib/wine/wine64-preloader",
+      "native-arm64/rootfs/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
       "native-arm64/bin/wintone-native-session-launch",
     ] {
       std::fs::write(runtime_dir.join(file), "runtime fixture").unwrap();
     }
+    add_rootfs_device_directories(&runtime_dir);
 
     let manager = RuntimeManager::new(root.join("data"), PathBuf::from("catalog"));
     manager
@@ -1039,6 +1173,136 @@ mod tests {
       .await
       .unwrap();
 
+    let _ = std::fs::remove_dir_all(root);
+  }
+
+  #[tokio::test]
+  async fn rejects_arm64_runtime_missing_fex_server() {
+    let root = std::env::temp_dir().join(format!("wintone-fex-server-{}", Uuid::new_v4()));
+    let runtime_dir = root.join("runtime");
+    for directory in [
+      "fex/rootfs/usr/bin",
+      "fex/rootfs/usr/lib/wine",
+      "fex/bin",
+      "native-arm64/rootfs/usr/lib/wine",
+      "native-arm64/rootfs/usr/lib/aarch64-linux-gnu",
+      "native-arm64/bin",
+    ] {
+      std::fs::create_dir_all(runtime_dir.join(directory)).unwrap();
+    }
+    for file in [
+      "fex/rootfs/usr/bin/wine",
+      "fex/rootfs/usr/bin/wineboot",
+      "fex/rootfs/usr/lib/wine/wine64-preloader",
+      "fex/rootfs/usr/lib/wine/wine-preloader",
+      "fex/bin/FEX",
+      "fex/bin/FEXBash",
+      "fex/bin/wintone-session-launch",
+      "native-arm64/rootfs/usr/lib/wine/wine64",
+      "native-arm64/rootfs/usr/lib/wine/wine64-preloader",
+      "native-arm64/rootfs/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1",
+      "native-arm64/bin/wintone-native-session-launch",
+    ] {
+      std::fs::write(runtime_dir.join(file), "runtime fixture").unwrap();
+    }
+    add_rootfs_device_directories(&runtime_dir);
+
+    let manager = RuntimeManager::new(root.join("data"), PathBuf::from("catalog"));
+    let error = manager
+      .validate_layout(&arm64_runtime(), &runtime_dir)
+      .await
+      .unwrap_err();
+    assert!(error.0.contains("fex/bin/FEXServer"));
+
+    let _ = std::fs::remove_dir_all(root);
+  }
+
+  #[tokio::test]
+  async fn rejects_legacy_device_self_links() {
+    let root = std::env::temp_dir().join(format!("wintone-self-device-{}", Uuid::new_v4()));
+    std::fs::create_dir_all(root.join("dev")).unwrap();
+    let manager = RuntimeManager::new(root.join("data"), PathBuf::from("catalog"));
+    manager.validate_rootfs_devices(&root).await.unwrap();
+    std::os::unix::fs::symlink("/dev/null", root.join("dev/null")).unwrap();
+    assert!(manager.validate_rootfs_devices(&root).await.unwrap_err().0.contains("must be omitted"));
+    std::fs::remove_dir_all(root).unwrap();
+  }
+
+  #[test]
+  fn extraction_omits_rootfs_character_devices_for_sandbox_fallback() {
+    let root = std::env::temp_dir().join(format!("wintone-device-unpack-{}", Uuid::new_v4()));
+    let archive_path = root.join("runtime.tar.zst");
+    let destination = root.join("runtime");
+    std::fs::create_dir_all(&root).unwrap();
+    let output = File::create(&archive_path).unwrap();
+    let encoder = zstd::stream::write::Encoder::new(output, 0).unwrap();
+    let mut archive = tar::Builder::new(encoder);
+    let mut header = tar::Header::new_gnu();
+    header.set_entry_type(tar::EntryType::character_special());
+    header.set_mode(0o666);
+    header.set_uid(0);
+    header.set_gid(0);
+    header.set_size(0);
+    header.set_device_major(1).unwrap();
+    header.set_device_minor(3).unwrap();
+    header.set_cksum();
+    archive
+      .append_data(&mut header, "./fex/rootfs/dev/null", std::io::empty())
+      .unwrap();
+    let mut file_header = tar::Header::new_gnu();
+    file_header.set_mode(0o644);
+    file_header.set_size(12);
+    file_header.set_cksum();
+    archive
+      .append_data(
+        &mut file_header,
+        "./fex/rootfs/etc/wintone-test",
+        &b"runtime file"[..],
+      )
+      .unwrap();
+    archive.into_inner().unwrap().finish().unwrap();
+
+    unpack_tar_zstd(&archive_path, &destination).unwrap();
+    assert!(std::fs::symlink_metadata(destination.join("fex/rootfs/dev/null")).is_err());
+    assert_eq!(
+      std::fs::read(destination.join("fex/rootfs/etc/wintone-test")).unwrap(),
+      b"runtime file"
+    );
+    let _ = std::fs::remove_dir_all(root);
+  }
+
+  #[test]
+  fn rejects_character_devices_outside_the_expected_rootfs_device_set() {
+    let root = std::env::temp_dir().join(format!("wintone-unsafe-device-{}", Uuid::new_v4()));
+    let archive_path = root.join("runtime.tar.zst");
+    let destination = root.join("runtime");
+    std::fs::create_dir_all(&root).unwrap();
+    let output = File::create(&archive_path).unwrap();
+    let encoder = zstd::stream::write::Encoder::new(output, 0).unwrap();
+    let mut archive = tar::Builder::new(encoder);
+    let mut header = tar::Header::new_gnu();
+    header.set_entry_type(tar::EntryType::character_special());
+    header.set_mode(0o666);
+    header.set_uid(0);
+    header.set_gid(0);
+    header.set_size(0);
+    header.set_device_major(1).unwrap();
+    header.set_device_minor(3).unwrap();
+    header.set_cksum();
+    archive
+      .append_data(
+        &mut header,
+        "./fex/rootfs/etc/unexpected-device",
+        std::io::empty(),
+      )
+      .unwrap();
+    archive.into_inner().unwrap().finish().unwrap();
+
+    let error = unpack_tar_zstd(&archive_path, &destination).unwrap_err();
+    assert!(error.0.contains("unsupported device node"));
+    assert!(!destination
+      .join("fex/rootfs/etc/unexpected-device")
+      .exists());
     let _ = std::fs::remove_dir_all(root);
   }
 

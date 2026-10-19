@@ -1,4 +1,4 @@
-//! Read-only observations and proposed trusted platform context. No host provisioning.
+//! Host observations and trusted platform context. Privileged actions go through AgentOS.
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::{
@@ -12,22 +12,16 @@ use std::{
 use std::os::unix::io::FromRawFd;
 
 pub enum AdministrativeOperation {
-  InstallRuntime,
-  InitializeImages,
-  StartContainer,
   StopContainer,
   StopApplication,
 }
 impl AdministrativeOperation {
   pub fn platform_dependency(&self) -> String {
     let operation = match self {
-      Self::InstallRuntime => "install-runtime",
-      Self::InitializeImages => "initialize-images",
-      Self::StartContainer => "start-container",
       Self::StopContainer => "stop-container",
       Self::StopApplication => "stop-application",
     };
-    format!("platform-dependency: AgentOS 当前的通用系统部署动作尚未覆盖 Android 运行环境的 {operation}：需要受限的 Binderfs 设备准备以及 LXC 容器初始化和生命周期管理。普通 Provider 保持 no-new-privs，不直接提权。")
+    format!("platform-dependency: AndroidTone 的 {operation} 尚无完整、可审查的 AgentOS 通用部署操作声明；当前不会从 no-new-privs Provider 直接提权，也不会提交部分宿主变更。")
   }
 }
 
@@ -162,6 +156,44 @@ pub fn private_wayland_environment(session: &SessionContext) -> Result<(String, 
   check_socket(&Path::new(&runtime_dir).join(&display), session.uid)?;
   Ok((runtime_dir, display))
 }
+
+/// Return the PulseAudio runtime directory only when the trusted desktop
+/// session owns the expected Unix socket at `pulse/native`.
+pub fn pulse_runtime_path(session: &SessionContext) -> Result<PathBuf, String> {
+  let runtime_dir = Path::new(&session.runtime_dir);
+  if !runtime_dir.is_absolute() {
+    return Err("platform-dependency: AgentOS 可信会话的 runtime 目录无效。".into());
+  }
+  let pulse_dir = runtime_dir.join("pulse");
+  let socket_path = pulse_dir.join("native");
+  let metadata = fs::symlink_metadata(&socket_path).map_err(|error| {
+    if error.kind() == std::io::ErrorKind::NotFound {
+      format!(
+        "platform-dependency: 当前桌面会话缺少 PulseAudio Unix socket（{}）；请先启动桌面音频会话后重试。",
+        socket_path.display()
+      )
+    } else {
+      format!(
+        "platform-dependency: 无法检查当前桌面会话的 PulseAudio socket（{}）。",
+        socket_path.display()
+      )
+    }
+  })?;
+  if !metadata.file_type().is_socket() {
+    return Err(format!(
+      "platform-dependency: 当前桌面会话的 PulseAudio 路径不是 Unix socket（{}）。",
+      socket_path.display()
+    ));
+  }
+  if metadata.uid() != session.uid {
+    return Err(format!(
+      "platform-dependency: 当前桌面会话的 PulseAudio socket 所有者不匹配（{}）。",
+      socket_path.display()
+    ));
+  }
+  Ok(pulse_dir)
+}
+
 fn check_runtime(path: &str, uid: u32) -> Result<(), String> {
   let metadata =
     fs::metadata(path).map_err(|_| "platform-dependency: 平台 runtime 目录不存在。".to_owned())?;
@@ -296,6 +328,26 @@ fn memfd_probe() -> Value {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use std::os::unix::net::UnixListener;
+  use uuid::Uuid;
+
+  fn test_runtime_dir() -> PathBuf {
+    let path = PathBuf::from(format!("/tmp/at-pulse-{}", Uuid::new_v4()));
+    fs::create_dir_all(path.join("pulse")).unwrap();
+    path
+  }
+
+  fn test_session(runtime_dir: &Path, uid: u32) -> SessionContext {
+    SessionContext {
+      session_id: "test-session".into(),
+      uid,
+      gid: unsafe { libc::getegid() },
+      home: std::env::temp_dir().display().to_string(),
+      runtime_dir: runtime_dir.display().to_string(),
+      dbus_session_bus_address: String::new(),
+    }
+  }
+
   #[test]
   fn administrator_parameters_do_not_accept_commands() {
     assert!(validate_runtime_params(&json!({})).is_ok());
@@ -323,19 +375,54 @@ mod tests {
   }
   #[test]
   fn admin_operations_fail_closed_and_are_scoped() {
-    for op in [
-      AdministrativeOperation::InstallRuntime,
-      AdministrativeOperation::InitializeImages,
-      AdministrativeOperation::StartContainer,
-      AdministrativeOperation::StopContainer,
-    ] {
+    for op in [AdministrativeOperation::StopContainer] {
       assert!(op.platform_dependency().starts_with("platform-dependency:"));
-      assert!(op.platform_dependency().contains("通用系统部署动作"));
+      assert!(op
+        .platform_dependency()
+        .contains("完整、可审查的 AgentOS 通用部署操作声明"));
+      assert!(op.platform_dependency().contains("不会提交部分宿主变更"));
     }
   }
   #[test]
   fn desktop_session_requires_the_platform_to_mark_it_available() {
     let value = json!({"available": false, "state": "unavailable", "reason": "no-active-session"});
     assert!(SessionContext::from_provider(&value).is_err());
+  }
+
+  #[test]
+  fn pulse_runtime_path_accepts_session_owned_unix_socket() {
+    let runtime_dir = test_runtime_dir();
+    let socket_path = runtime_dir.join("pulse/native");
+    let _socket = UnixListener::bind(&socket_path).unwrap();
+    let session = test_session(&runtime_dir, unsafe { libc::geteuid() });
+
+    assert_eq!(
+      pulse_runtime_path(&session).unwrap(),
+      runtime_dir.join("pulse")
+    );
+    fs::remove_dir_all(runtime_dir).unwrap();
+  }
+
+  #[test]
+  fn pulse_runtime_path_reports_missing_socket_immediately() {
+    let runtime_dir = test_runtime_dir();
+    let session = test_session(&runtime_dir, unsafe { libc::geteuid() });
+
+    let error = pulse_runtime_path(&session).unwrap_err();
+    assert!(error.contains("缺少 PulseAudio Unix socket"));
+    assert!(error.contains("pulse/native"));
+    fs::remove_dir_all(runtime_dir).unwrap();
+  }
+
+  #[test]
+  fn pulse_runtime_path_rejects_socket_owned_by_another_uid() {
+    let runtime_dir = test_runtime_dir();
+    let _socket = UnixListener::bind(runtime_dir.join("pulse/native")).unwrap();
+    let owner_uid = unsafe { libc::geteuid() };
+    let session = test_session(&runtime_dir, owner_uid.wrapping_add(1));
+
+    let error = pulse_runtime_path(&session).unwrap_err();
+    assert!(error.contains("PulseAudio socket 所有者不匹配"));
+    fs::remove_dir_all(runtime_dir).unwrap();
   }
 }

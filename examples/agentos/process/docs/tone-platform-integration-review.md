@@ -10,7 +10,7 @@
 | AndroidTone | Waydroid 用户态组件安装计划、初始化/镜像计划、APK 和应用生命周期；通过平台申请受限管理员操作 |
 | WinTone | Wine/FEX 及 RootFS 管理、prefix、安装程序、Windows 应用生命周期 |
 
-AndroidTone 已移除直接 `pkexec` 调用和包内 root 安装脚本，保留普通 Provider 的权限边界。管理员操作契约尚未实现，因此安装、初始化、容器启动/停止和需 Android shell 的应用停止请求明确返回 `platform-dependency`，不回退 sudo、任意 root 命令或宿主脚本。APK 导入和任务持久化可独立使用。
+AndroidTone 已移除直接 `pkexec` 调用和包内 root 安装脚本，保留普通 Provider 的权限边界。AgentOS 通用 system-deployment broker 已可报告平台能力；AndroidTone 0.1.6 只声明 `capabilities.get` 并读取这份只读报告，不请求 privileged deployment permission 或创建授权任务。安装、初始化、容器启动/停止和需 Android shell 的应用停止请求仍明确返回 `platform-dependency`，不回退 sudo、任意 root 命令或宿主脚本。APK 导入和任务持久化可独立使用。
 
 只读内核状态始终返回（即使 Waydroid 尚未安装）：配置、模块安装、模块加载、binderfs 挂载、设备分配分别记录。不可读配置标记 unknown；未观察到设备不能推出内核 disabled。memfd 通过 Linux syscall 实测，不再从内核版本推断。Provider 的挂载命名空间可能不等于宿主全局命名空间，结果必须带观察范围；权威宿主清单是平台依赖。
 
@@ -40,7 +40,7 @@ WinTone 的两个运行时启动脚本要求平台注入的 Wayland 地址及可
 
 ### 管理员操作
 
-需要独立于 no-new-privs Provider 的系统授权 broker，普通 Provider 只能提交声明式请求：已安装应用身份、平台批准的 operation ID、版本、按 schema 限制的参数、可信会话引用和请求 ID。禁止传入可执行路径、任意 argv、shell 字符串或任意环境变量；拒绝任意包内脚本以 root 运行。
+AgentOS 已实现独立于 no-new-privs Provider 的版本化系统授权 broker。无部署声明的 App 只可把 `org.agentos.system-deployment/capabilities.get` 用于只读探测；普通 Provider 不能提交管理员操作。获准的操作仍须声明已安装应用身份、平台批准的 operation ID、版本、按 schema 限制的参数、可信会话引用和请求 ID。禁止传入可执行路径、任意 argv、shell 字符串或任意环境变量；拒绝任意包内脚本以 root 运行。
 
 平台可提供软件包事务、受限仓库来源、服务生命周期和经过审查的操作模板注册机制。应用拥有安装/初始化计划，平台校验计划并授权执行；不得由通用 broker 内置 Waydroid/Wine 业务分支。具体操作描述、可信模板来源、下载源/摘要验证及 manifest 声明 schema 仍需平台确定，应用不会把未经批准的字段塞入 manifest。
 
@@ -53,7 +53,7 @@ AndroidTone 需要注册以下应用操作标识（当前仅作为需求记录�
 | start-container.v1 / stop-container.v1 | 空参数；仅应用运行环境的受限服务实例 |
 | stop-application.v1 | 经 schema 校验的 Android package ID；固定 force-stop 模板，禁止任意 Android shell |
 
-响应需要区分未提供、未注册、拒绝、用户取消、超时、执行失败和完成，提供进度、取消、审计与幂等语义。服务实例所有权由平台绑定调用应用和可信会话；stop 不得影响其它会话。平台是否支持这些注册模板尚待落实，因此当前应用拒绝执行。
+响应需要区分未提供、未注册、拒绝、用户取消、超时、执行失败和完成，提供进度、取消、审计与幂等语义。服务实例所有权由平台绑定调用应用和可信会话；stop 不得影响其它会话。当前 AgentOS v1 已提供固定动作集，但其 LXC/action schema 还不能完整表达 AndroidTone 运行 Waydroid 所需的镜像/会话挂载、网络、批准设备/capability 与容器内 APK 操作；AndroidTone 因而尚未声明上述操作并保持拒绝执行。
 
 ### 内核与窗口证据
 

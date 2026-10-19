@@ -33,6 +33,8 @@ pub struct InstallTask {
   pub id: String,
   pub file_name: String,
   pub extension: String,
+  #[serde(default = "installer_task_kind")]
+  pub kind: String,
   pub bytes: u64,
   pub sha256: String,
   pub added_at: u128,
@@ -46,6 +48,10 @@ pub struct InstallTask {
   pub message: String,
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub session_id: Option<String>,
+}
+
+fn installer_task_kind() -> String {
+  "installer".to_owned()
 }
 
 fn waiting_runtime() -> String {

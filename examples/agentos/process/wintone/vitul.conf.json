@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "productName": "WinTone",
-  "version": "0.1.6",
+  "version": "0.1.18",
   "identifier": "com.agentos.wintone",
   "backend": {
     "type": "opentool",
@@ -15,6 +15,16 @@
     "type": "process",
     "targets": ["agentos/arm64", "agentos/x64"],
     "buildImage": "rust:1.90-bookworm",
+    "execution": {
+      "mode": "native",
+      "native": {
+        "version": 1,
+        "identity": "desktop-user",
+        "scope": "agentos-account",
+        "lastWindowClose": "background",
+        "stopGracePeriodMs": 5000
+      }
+    },
     "nameZh": "温易通",
     "description": "Manage Windows application installers and installations on AgentOS.",
     "descriptionZh": "在 AgentOS 上管理 Windows 应用安装包与已安装应用。",
@@ -24,7 +34,8 @@
       "native.external-wayland.network",
       "native.external-wayland.gpu",
       "native.external-wayland.clipboard.read",
-      "native.external-wayland.clipboard.write"
+      "native.external-wayland.clipboard.write",
+      "native.tray"
     ],
     "open": {
       "mode": "window",
@@ -37,7 +48,7 @@
     "run": {
       "command": "./start.sh",
       "args": [],
-      "port": 3000,
+      "port": 28641,
       "healthCheck": "/health",
       "readyTimeout": 60,
       "frontendEntry": "/apps/wintone/",

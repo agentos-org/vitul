@@ -74,6 +74,8 @@ the root `vitul.conf.json`. Set `agentos.port` in the same file to
 choose the backend's container-internal port from 1 to 65535; it defaults to 9627.
 Set `bundle.icon` in the root `vitul.conf.json` to a PNG or SVG asset to
 include it in the AgentOS package as `icon.png` or `icon.svg`.
+Running `vitul icon app-icon.png` also generates the macOS ICNS. Use
+`--macos-mode passthrough` for an image that already has its macOS layout.
 
 ## Application APIs
 

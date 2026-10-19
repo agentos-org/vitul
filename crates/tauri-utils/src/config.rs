@@ -4976,6 +4976,12 @@ mod build {
   impl ToTokens for Config {
     fn to_tokens(&self, tokens: &mut TokenStream) {
       let schema = quote!(None);
+      // These fields belong to the unified Vitul project config and are removed
+      // before the runtime config is projected. Keep generated Tauri contexts
+      // independent from that build-time metadata.
+      let schema_version = quote!(None);
+      let backend = quote!(None);
+      let agentos = quote!(None);
       let product_name = opt_str_lit(self.product_name.as_ref());
       let main_binary_name = opt_str_lit(self.main_binary_name.as_ref());
       let version = opt_str_lit(self.version.as_ref());
@@ -4989,6 +4995,9 @@ mod build {
         tokens,
         ::tauri::utils::config::Config,
         schema,
+        schema_version,
+        backend,
+        agentos,
         product_name,
         main_binary_name,
         version,

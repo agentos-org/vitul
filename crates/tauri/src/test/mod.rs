@@ -110,6 +110,9 @@ pub fn mock_context<R: Runtime, A: Assets<R>>(assets: A) -> crate::Context<R> {
   Context {
     config: Config {
       schema: None,
+      schema_version: None,
+      backend: None,
+      agentos: None,
       product_name: Default::default(),
       main_binary_name: Default::default(),
       version: Default::default(),

@@ -2,6 +2,7 @@ mod agentos;
 mod agentos_config;
 mod dev;
 mod init;
+mod macos_icon;
 mod project_config;
 
 use anyhow::Context;

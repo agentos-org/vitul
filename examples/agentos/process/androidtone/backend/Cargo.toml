@@ -1,6 +1,6 @@
 [package]
 name = "androidtone-server"
-version = "0.1.4"
+version = "0.1.24"
 edition = "2021"
 
 [workspace]
@@ -21,6 +21,7 @@ opentool-rust = { git = "https://github.com/opentool-hub/opentool-rust", version
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"] }
 tower-http = { version = "0.5", features = ["cors", "fs"] }
 uuid = { version = "1", features = ["v4"] }
+zip = { version = "2.4.2", default-features = false, features = ["deflate"] }

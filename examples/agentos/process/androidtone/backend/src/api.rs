@@ -15,7 +15,11 @@ use sha2::{Digest, Sha256};
 use tokio::{fs, io::AsyncWriteExt};
 use uuid::Uuid;
 
-use crate::{model::InstallTask, provider::unavailable_status, AppState};
+use crate::{
+  model::InstallTask,
+  provider::{unavailable_status, ProviderError},
+  AppState,
+};
 
 const MAX_APK_BYTES: usize = 1024 * 1024 * 1024;
 
@@ -30,6 +34,8 @@ pub fn router(state: AppState) -> Router {
     .route("/api/apps/:id/stop", post(stop_app))
     .route("/api/apps/:id", delete(uninstall_app))
     .route("/api/runtime/start", post(start_runtime))
+    .route("/api/runtime/recover", post(recover_runtime))
+    .route("/api/runtime/reauthorize", post(reauthorize_runtime))
     .route("/api/runtime/stop", post(stop_runtime))
     .route("/api/runtime/install", post(install_runtime))
     .route("/api/runtime/initialize", post(initialize_runtime))
@@ -52,7 +58,7 @@ async fn status(State(state): State<AppState>) -> Json<Value> {
 async fn apps(State(state): State<AppState>) -> Json<Value> {
   match state.provider.apps().await {
     Ok(value) => Json(value),
-    Err(error) => Json(json!({"available": false, "error": error.0, "apps": []})),
+    Err(error) => Json(json!({"available": false, "error": error.as_value(), "apps": []})),
   }
 }
 
@@ -143,6 +149,7 @@ async fn import_apk(
       added_at: now,
       status: "waiting-provider".into(),
       message: "APK 已保存。等待 AgentOS Android Provider 接入后安装。".into(),
+      diagnostic: None,
     };
     state
       .repository
@@ -194,7 +201,7 @@ async fn import_apk(
         }
         Err(error) => {
           task.status = "failed".into();
-          task.message = error.0.clone();
+          task.message = error.message.clone();
           state
             .repository
             .update_status(&task.id, &task.status, &task.message)
@@ -202,7 +209,7 @@ async fn import_apk(
             .map_err(ApiError::internal)?;
           Ok((
             StatusCode::ACCEPTED,
-            Json(json!({"task": task, "provider": result, "installError": error.0})),
+            Json(json!({"task": task, "provider": result, "installError": error.message})),
           ))
         }
       }
@@ -248,7 +255,7 @@ async fn install_task(
     Err(error) => {
       state
         .repository
-        .update_status(&id, "failed", &error.0)
+        .update_status(&id, "failed", &error.message)
         .await
         .map_err(ApiError::internal)?;
       return Err(ApiError::unavailable(error));
@@ -319,6 +326,12 @@ async fn uninstall_app(
   )
   .await
 }
+async fn recover_runtime(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+  proxy_app_action(&state, "runtime.recover", json!({})).await
+}
+async fn reauthorize_runtime(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
+  proxy_app_action(&state, "runtime.reauthorize", json!({})).await
+}
 async fn start_runtime(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
   proxy_app_action(&state, "runtime.start", json!({})).await
 }
@@ -359,13 +372,21 @@ fn safe_id(value: &str) -> Result<&str, ApiError> {
 
 struct ApiError {
   status: StatusCode,
-  message: String,
+  error: Value,
 }
 impl ApiError {
   fn new(status: StatusCode, message: impl Into<String>) -> Self {
     Self {
       status,
-      message: message.into(),
+      error: json!({
+        "code": match status {
+          StatusCode::BAD_REQUEST => "bad-request",
+          StatusCode::NOT_FOUND => "not-found",
+          StatusCode::SERVICE_UNAVAILABLE => "service-unavailable",
+          _ => "request-failed",
+        },
+        "message": message.into()
+      }),
     }
   }
   fn bad_request(error: impl std::fmt::Display) -> Self {
@@ -374,12 +395,79 @@ impl ApiError {
   fn internal(error: impl std::fmt::Display) -> Self {
     Self::new(StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
   }
-  fn unavailable(error: impl std::fmt::Display) -> Self {
-    Self::new(StatusCode::SERVICE_UNAVAILABLE, error.to_string())
+  fn unavailable(error: ProviderError) -> Self {
+    Self {
+      status: StatusCode::SERVICE_UNAVAILABLE,
+      error: error.as_value(),
+    }
   }
 }
 impl IntoResponse for ApiError {
   fn into_response(self) -> Response {
-    (self.status, Json(json!({"error": self.message}))).into_response()
+    (self.status, Json(json!({"error": self.error}))).into_response()
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[tokio::test]
+  async fn provider_error_envelope_preserves_agentos_code_and_message() {
+    let error = ProviderError {
+      code: "external-wayland-session-unavailable".into(),
+      message: "The private Wayland display session could not be created.".into(),
+      provider_id: Some("org.agentos.external-wayland".into()),
+      details: None,
+      data: None,
+      diagnostics: None,
+      response: None,
+    };
+    let response = ApiError::unavailable(error).into_response();
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+      .await
+      .unwrap();
+    let value: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(
+      value["error"]["code"],
+      "external-wayland-session-unavailable"
+    );
+    assert_eq!(
+      value["error"]["message"],
+      "The private Wayland display session could not be created."
+    );
+    assert_eq!(value["error"]["providerId"], "org.agentos.external-wayland");
+  }
+
+  #[tokio::test]
+  async fn provider_error_response_keeps_structured_diagnostics() {
+    let error = ProviderError {
+      code: "preflight-blocked".into(),
+      message: "The operation did not pass host preflight.".into(),
+      provider_id: Some("org.agentos.system-deployment".into()),
+      details: Some(
+        serde_json::json!([{"code":"package-version-conflict","package":"androidtone-waydroid-images"}]),
+      ),
+      data: Some(
+        serde_json::json!({"details":[{"code":"package-version-conflict","package":"androidtone-waydroid-images"}]}),
+      ),
+      diagnostics: Some(serde_json::json!({"phase":"preflight"})),
+      response: None,
+    };
+    let response = ApiError::unavailable(error).into_response();
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+      .await
+      .unwrap();
+    let value: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(
+      value["error"]["details"][0]["package"],
+      "androidtone-waydroid-images"
+    );
+    assert_eq!(
+      value["error"]["data"]["details"][0]["code"],
+      "package-version-conflict"
+    );
+    assert_eq!(value["error"]["diagnostics"]["phase"], "preflight");
   }
 }

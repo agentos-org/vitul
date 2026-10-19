@@ -8,6 +8,7 @@ mod prefixes;
 mod runtime;
 mod shortcuts;
 mod storage;
+mod tray;
 
 use std::{
   collections::HashSet,
@@ -96,6 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let address: SocketAddr = format!("{host}:{port}").parse()?;
   let listener = TcpListener::bind(address).await?;
   eprintln!("WinTone {SERVICE_VERSION} listening on {address}");
+  tokio::spawn(tray::run());
   let startup_state = state.clone();
   tokio::spawn(async move {
     if let Err(error) = startup_state.runtime_manager.prepare().await {

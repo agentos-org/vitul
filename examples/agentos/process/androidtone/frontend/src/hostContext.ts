@@ -57,7 +57,9 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
     theme: value.theme === 'light' || value.theme === 'dark' ? value.theme : current.theme,
   });
 });
-media.addEventListener('change', event => { if (!hosted) update({ ...current, theme: event.matches ? 'dark' : 'light' }); });
+media.addEventListener('change', event => {
+  if (!hosted || appearance === 'system') update({ ...current, theme: event.matches ? 'dark' : 'light' });
+});
 window.addEventListener('languagechange', () => { if (!hosted) update({ ...current, locale: localeOf(navigator.language) }); });
 apply();
 export function useHostContext() {

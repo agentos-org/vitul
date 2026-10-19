@@ -76,6 +76,7 @@ log = { version = "0.4.21", features = ["kv", "kv_std"] }
 env_logger = "0.11"
 icns = { package = "tauri-icns", version = "0.1" }
 image = { version = "0.25", default-features = false, features = ["ico"] }
+sha2 = "0.10"
 axum = { version = "0.8", features = ["ws"] }
 tokio = { version = "1", features = ["macros", "sync"] }
 common-path = "1"

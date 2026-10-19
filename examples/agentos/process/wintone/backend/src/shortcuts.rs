@@ -104,12 +104,19 @@ fn parse_registry(text: &str) -> Vec<(String, UninstallEntry)> {
   let mut current = UninstallEntry::default();
   for line in text.lines() {
     let line = line.trim();
-    if line.starts_with('[') && line.ends_with(']') {
+    if line.starts_with('[') {
+      let Some(end) = line.find(']') else {
+        continue;
+      };
+      let timestamp = line[end + 1..].trim();
+      if !timestamp.is_empty() && timestamp.parse::<u64>().is_err() {
+        continue;
+      }
       if let Some(key) = current_key.take() {
         entries.push((key, current));
         current = UninstallEntry::default();
       }
-      let key = decode_escaped(&line[1..line.len() - 1]);
+      let key = decode_escaped(&line[1..end]);
       let lowercase = key.to_ascii_lowercase();
       if lowercase.contains("\\software\\microsoft\\windows\\currentversion\\uninstall\\")
         || lowercase
@@ -375,4 +382,41 @@ fn split_windows_command_line(value: &str) -> Vec<String> {
     args.push(current);
   }
   args
+}
+
+#[cfg(test)]
+mod tests {
+  use super::discover;
+  use std::{fs, path::PathBuf};
+  use uuid::Uuid;
+
+  #[test]
+  fn discovers_apps_from_timestamped_wine_registry_sections() {
+    let prefix: PathBuf =
+      std::env::temp_dir().join(format!("wintone-discovery-{}", Uuid::new_v4()));
+    let app_directory = prefix.join("drive_c/Program Files/Tencent/Weixin");
+    fs::create_dir_all(&app_directory).unwrap();
+    fs::write(app_directory.join("Weixin.exe"), b"test executable").unwrap();
+    fs::write(
+      prefix.join("system.reg"),
+      r#"
+[Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Weixin] 1792027802
+"DisplayIcon"="C:\\Program Files\\Tencent\\Weixin\\Weixin.exe"
+"DisplayName"="WeChat"
+"DisplayVersion"="4.1.15"
+"UninstallString"="C:\\Program Files\\Tencent\\Weixin\\Uninstall.exe"
+"#,
+    )
+    .unwrap();
+
+    let apps = discover(&prefix, "test-installation");
+
+    assert_eq!(apps.len(), 1);
+    assert_eq!(apps[0].name, "WeChat");
+    assert_eq!(
+      apps[0].executable,
+      r"C:\Program Files\Tencent\Weixin\Weixin.exe"
+    );
+    let _ = fs::remove_dir_all(prefix);
+  }
 }

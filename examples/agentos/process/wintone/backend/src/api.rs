@@ -27,12 +27,14 @@ const MAX_REQUEST_BYTES: usize = MAX_UPLOAD_BYTES as usize + 2 * 1024 * 1024;
 pub fn router(state: AppState) -> Router {
   Router::new()
     .route("/api/status", get(status))
+    .route("/api/window-integration", get(window_integration))
     .route("/api/settings", get(get_settings).put(update_settings))
     .route("/api/runtime/prepare", post(prepare_runtime))
     .route(
       "/api/install-tasks",
       get(list_install_tasks).post(import_and_enqueue_install_task),
     )
+    .route("/api/install-tasks/:id/run", post(run_portable_task))
     .route("/api/install-tasks/:id", delete(delete_install_task))
     .route("/api/apps", get(list_apps))
     .route("/api/apps/:id/launch", post(launch_app))
@@ -65,6 +67,14 @@ pub async fn health() -> Json<Value> {
 }
 
 async fn status(State(state): State<AppState>) -> Json<Value> {
+  Json(json!({
+    "service": "wintone",
+    "runtime": state.runtime_manager.status().await,
+    "storage": "ready"
+  }))
+}
+
+async fn window_integration(State(state): State<AppState>) -> Json<Value> {
   let wayland = if state.external_wayland.is_configured() {
     state
       .external_wayland
@@ -82,12 +92,7 @@ async fn status(State(state): State<AppState>) -> Json<Value> {
       "message": "AgentOS external Wayland permission is not enabled for WinTone.",
     })
   };
-  Json(json!({
-      "service": "wintone",
-      "runtime": state.runtime_manager.status().await,
-      "windowIntegration": wayland,
-      "storage": "ready"
-  }))
+  Json(wayland)
 }
 
 async fn prepare_runtime(State(state): State<AppState>) -> Result<Json<Value>, ApiError> {
@@ -139,16 +144,63 @@ async fn uninstall_app(
   Ok((StatusCode::ACCEPTED, Json(json!({ "session": session }))))
 }
 
+async fn run_portable_task(
+  State(state): State<AppState>,
+  RoutePath(id): RoutePath<String>,
+) -> Result<(StatusCode, Json<Value>), ApiError> {
+  if state.install_task_is_active(&id) {
+    return Err(ApiError::new(
+      StatusCode::CONFLICT,
+      "This Windows application is already starting.",
+    ));
+  }
+  let task = state
+    .snapshot()
+    .await?
+    .install_tasks
+    .into_iter()
+    .find(|task| task.id == id)
+    .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "Windows app was not found."))?;
+  if task.kind != "portable" || task.extension != "exe" {
+    return Err(ApiError::new(
+      StatusCode::CONFLICT,
+      "Only directly imported EXE applications can be launched this way.",
+    ));
+  }
+  if task.session_id.is_some() {
+    return Err(ApiError::new(
+      StatusCode::CONFLICT,
+      "This Windows application is already running.",
+    ));
+  }
+  let task_id = task.id.clone();
+  let task_state = state.clone();
+  tokio::spawn(async move {
+    crate::installation::prepare_imported_task(task_state, task_id).await;
+  });
+  Ok((StatusCode::ACCEPTED, Json(json!({ "accepted": true }))))
+}
+
 async fn import_and_enqueue_install_task(
   State(state): State<AppState>,
   mut multipart: Multipart,
 ) -> Result<(StatusCode, Json<Value>), ApiError> {
   let mut record = None;
+  let mut requested_kind = "installer".to_owned();
   while let Some(field) = multipart
     .next_field()
     .await
     .map_err(ApiError::bad_request)?
   {
+    if field.name() == Some("kind") {
+      requested_kind = field
+        .text()
+        .await
+        .map_err(ApiError::bad_request)?
+        .trim()
+        .to_owned();
+      continue;
+    }
     if field.name() != Some("file") {
       continue;
     }
@@ -216,6 +268,7 @@ async fn import_and_enqueue_install_task(
         id,
         file_name,
         extension,
+        kind: "installer".to_owned(),
         bytes,
         sha256: format!("{:x}", hasher.finalize()),
         added_at: SystemTime::now()
@@ -231,8 +284,15 @@ async fn import_and_enqueue_install_task(
     ));
   }
 
-  let Some((path, task)) = record else {
+  let Some((path, mut task)) = record else {
     return Err(ApiError::bad_request("Choose an .exe or .msi file."));
+  };
+  task.kind = match validate_task_kind(&task.extension, &requested_kind) {
+    Ok(kind) => kind.to_owned(),
+    Err(error) => {
+      let _ = fs::remove_file(path).await;
+      return Err(error);
+    }
   };
   if let Err(error) = state.repository.insert_install_task(task.clone()).await {
     let _ = fs::remove_file(path).await;
@@ -244,6 +304,19 @@ async fn import_and_enqueue_install_task(
     crate::installation::prepare_imported_task(task_state, task_id).await;
   });
   Ok((StatusCode::ACCEPTED, Json(json!({ "installTask": task }))))
+}
+
+fn validate_task_kind(extension: &str, kind: &str) -> Result<&'static str, ApiError> {
+  match (kind, extension) {
+    ("installer", "exe" | "msi") => Ok("installer"),
+    ("portable", "exe") => Ok("portable"),
+    ("portable", "msi") => Err(ApiError::bad_request(
+      "Only EXE applications can be run directly.",
+    )),
+    _ => Err(ApiError::bad_request(
+      "Choose whether to install the file or run an EXE directly.",
+    )),
+  }
 }
 
 async fn delete_install_task(
@@ -265,7 +338,7 @@ async fn delete_install_task(
     .is_some_and(|task| {
       matches!(
         task.status.as_str(),
-        "starting-installer" | "awaiting-user" | "discovering-apps"
+        "starting-app" | "starting-installer" | "awaiting-user" | "discovering-apps"
       )
     })
   {
@@ -323,6 +396,21 @@ fn has_expected_signature(extension: &str, signature: &[u8]) -> bool {
     "exe" => signature.starts_with(b"MZ"),
     "msi" => signature.starts_with(&[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
     _ => false,
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::validate_task_kind;
+
+  #[test]
+  fn direct_launch_is_limited_to_exe_files() {
+    assert!(matches!(
+      validate_task_kind("exe", "portable"),
+      Ok("portable")
+    ));
+    assert!(validate_task_kind("msi", "portable").is_err());
+    assert!(validate_task_kind("exe", "unknown").is_err());
   }
 }
 

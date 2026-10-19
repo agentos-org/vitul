@@ -4,6 +4,7 @@ mod model;
 mod platform;
 mod provider;
 mod storage;
+mod tray;
 
 use std::{env, net::SocketAddr, path::PathBuf};
 
@@ -95,6 +96,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   );
   let address: SocketAddr = format!("{host}:{port}").parse()?;
   eprintln!("AndroidTone listening on {address}");
-  axum::serve(TcpListener::bind(address).await?, app).await?;
+  let listener = TcpListener::bind(address).await?;
+  tokio::spawn(tray::run());
+  axum::serve(listener, app).await?;
   Ok(())
 }

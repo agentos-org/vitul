@@ -2,3 +2,5 @@
 !runtime-build/
 !runtime-build/arm64/
 !runtime-build/arm64/session-launch.sh
+!runtime-build/arm64/native-session-launch.sh
+!runtime-build/arm64/native-wineserver.sh

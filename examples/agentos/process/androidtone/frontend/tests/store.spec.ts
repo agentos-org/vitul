@@ -98,16 +98,39 @@ test('HTTP errors are shown without enabling platform actions', async ({ page })
 test('missing platform transport shows a helpful summary and expandable diagnostics', async ({ page }) => {
   const state = await fixture(page, {
     available: false, state: 'provider-unavailable', canInstall: false,
-    message: 'AgentOS 尚未向 AndroidTone 授予 Host Provider。',
-    runtimeBundle: { included: true, waydroidVersion: '1.6.2', androidVersion: '13', packageCount: 260 },
+    message: 'AgentOS 尚未向 AndroidTone 授予 系统服务。',
+    runtimeBundle: { included: true, waydroidVersion: '1.6.2', androidVersion: '13', packageCount: 261 },
   });
   await expect(page.getByText('Android 运行环境准备受阻', { exact: true })).toBeVisible();
-  await expect(page.getByText('需要系统提供安全授权能力。APK 可以先导入保存，系统就绪后会自动准备。')).toBeVisible();
+  await expect(page.getByText('Android 运行环境还需要平台提供底层设备配置和容器管理能力。APK 可以先导入保存，系统就绪后会自动准备。')).toBeVisible();
   await expect(page.locator('details p')).not.toBeVisible();
   await page.getByText('查看连接详情').click();
   await expect(page.locator('details p')).toContainText('Android 13 运行环境');
-  await expect(page.locator('details p')).toContainText('系统服务');
+  await expect(page.locator('details p')).toContainText('AgentOS 尚未向 AndroidTone 授予 系统服务。');
   await expect(page.getByRole('button', { name: '安装 Waydroid' })).toHaveCount(0);
   await page.screenshot({ path: '../agentos-build/verification/android-green-unavailable.png', fullPage: true });
+  expect(state.faults).toEqual([]);
+});
+
+test('an unconfirmed APK is failed with manual retry and collapsed Waydroid diagnostics', async ({ page }) => {
+  const summary = 'APK 安装未能确认；请展开任务详情查看诊断后重试。';
+  const diagnostic = 'Waydroid exited with zero but com.example.chat was not registered. INSTALL_FAILED_TEST';
+  const state = await fixture(page, { available: true, running: true, initialized: true }, [], [
+    { id: 'unconfirmed-apk', fileName: 'chat.apk', status: 'failed', message: summary, diagnostic },
+  ]);
+  const task = page.getByRole('article').filter({ hasText: 'chat.apk' });
+  await expect(task.getByRole('button', { name: '重试', exact: true })).toBeEnabled();
+  await expect(task.getByRole('button', { name: '重新安装', exact: true })).toHaveCount(0);
+  await expect(task.getByText(diagnostic, { exact: true })).not.toBeVisible();
+  expect(state.calls).toHaveLength(0);
+  await task.getByText('查看连接详情').click();
+  await expect(task.getByText(summary, { exact: true })).toBeVisible();
+  await expect(task.getByText(diagnostic, { exact: true })).toBeVisible();
+  await page.route('**/api/install-tasks/unconfirmed-apk/install', route => route.fulfill({
+    status: 503, json: { error: { code: 'apk-install-unconfirmed', message: summary } },
+  }));
+  await task.getByRole('button', { name: '重试', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText(summary);
+  await expect(page.getByRole('status')).not.toContainText('INSTALL_FAILED_TEST');
   expect(state.faults).toEqual([]);
 });

@@ -18,4 +18,6 @@ pub struct InstallTask {
   pub added_at: u128,
   pub status: String,
   pub message: String,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub diagnostic: Option<String>,
 }

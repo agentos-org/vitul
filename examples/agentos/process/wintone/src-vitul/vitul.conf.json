@@ -1,0 +1,10 @@
+{
+  "bundle": {
+    "icon": [
+      "../icon.png"
+    ]
+  },
+  "productName": "WinTone",
+  "version": "0.1.17",
+  "identifier": "com.agentos.wintone"
+}

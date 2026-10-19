@@ -93,8 +93,8 @@ catalog = {
         "sha256": digest,
         "maxBytes": len(bundle),
     },
-    "wineCommand": ["usr/bin/wine"],
-    "winebootCommand": ["usr/bin/wineboot", "-u"],
+    "wineCommand": ["usr/lib/wine/wine64"],
+    "winebootCommand": ["usr/lib/wine/wine64", "wineboot.exe", "-u"],
     "nativeWineCommand": ["native-arm64/rootfs/usr/lib/wine/wine64"],
     "nativeWinebootCommand": [
         "native-arm64/rootfs/usr/lib/wine/wine64",

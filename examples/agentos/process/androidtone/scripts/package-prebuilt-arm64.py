@@ -7,6 +7,8 @@ APP=pathlib.Path(__file__).resolve().parents[1]
 VITUL=APP.parents[3]/'target/debug/vitul'
 def main():
     subprocess.run(['bash',str(APP/'scripts/build-frontend.sh')],cwd=APP,check=True)
+    subprocess.run(['bash',str(APP/'scripts/build-arm64-backend.sh')],cwd=APP,check=True)
+    subprocess.run(['bash',str(APP/'scripts/build-arm64-runtime.sh')],cwd=APP,check=True)
     config=json.loads((APP/'vitul.conf.json').read_text())
     runtime=APP/'agentos-build/androidtone-runtime'
     if not (runtime/'catalog.json').is_file():raise RuntimeError('Complete runtime catalog required')

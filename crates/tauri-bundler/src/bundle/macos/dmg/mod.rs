@@ -44,7 +44,7 @@ pub fn bundle_project(settings: &Settings, bundles: &[Bundle]) -> crate::Result<
     settings.version_string(),
     match settings.binary_arch() {
       Arch::X86_64 => "x64",
-      Arch::AArch64 => "aarch64",
+      Arch::AArch64 => "arm64",
       Arch::Universal => "universal",
       target => {
         return Err(crate::Error::ArchError(format!(

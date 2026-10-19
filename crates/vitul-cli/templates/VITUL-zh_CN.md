@@ -51,6 +51,8 @@ AgentOS/WebShell 启动参数，并监听原生 `agentos:host` 上下文变更�
 AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件设置 `agentos.port`，指定范围为 1–65535 的容器内后端端口；默认值为 `9627`。
 在根目录 `vitul.conf.json` 的 `bundle.icon` 中指定 PNG 或 SVG 文件，即可将其作为
 `icon.png` 或 `icon.svg` 放入 AgentOS 安装包。
+`vitul icon app-icon.png` 也会生成 macOS ICNS。已带 macOS 构图的图片使用
+`--macos-mode passthrough` 保持原样。
 
 ## 应用 API
 

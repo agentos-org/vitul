@@ -19,9 +19,14 @@ struct Catalog {
   waydroid_version: String,
   android_version: String,
   variant: String,
+  image_architecture: String,
+  aarch32_el0_required: bool,
+  image_build: String,
+  image_package_version: String,
   deployment: String,
   packages: Vec<Entry>,
   images: Vec<Entry>,
+  images_package: String,
   supplementary: Vec<Entry>,
 }
 #[derive(Deserialize)]
@@ -99,6 +104,10 @@ fn inspect_at(root: &Path, hash: bool) -> Result<Value, String> {
     || catalog.host.distribution != "ubuntu"
     || catalog.host.version != "24.04"
     || catalog.variant != "VANILLA"
+    || catalog.image_architecture != "arm64_only"
+    || catalog.aarch32_el0_required
+    || catalog.image_build.is_empty()
+    || catalog.image_package_version != "0.1.8-1"
     || catalog.deployment != "platform-authorized-offline-packages"
   {
     return Err("Unsupported runtime bundle profile".into());
@@ -108,6 +117,10 @@ fn inspect_at(root: &Path, hash: bool) -> Result<Value, String> {
     || catalog.images.len() != 2
     || !catalog.packages.iter().any(|e| e.package == "waydroid")
     || !catalog.packages.iter().any(|e| e.package == "lxc")
+    || !catalog
+      .packages
+      .iter()
+      .any(|e| e.package == catalog.images_package)
     || !catalog
       .images
       .iter()
@@ -121,12 +134,18 @@ fn inspect_at(root: &Path, hash: bool) -> Result<Value, String> {
   }
   let mut seen = HashSet::new();
   let mut bytes = 0u64;
-  for e in catalog
-    .packages
-    .iter()
-    .chain(&catalog.images)
-    .chain(&catalog.supplementary)
-  {
+  for e in &catalog.images {
+    if !seen.insert(&e.path)
+      || e.size == 0
+      || e.sha256.len() != 64
+      || !e.sha256.bytes().all(|b| b.is_ascii_hexdigit())
+      || !matches!(e.kind.as_str(), "system" | "vendor")
+    {
+      return Err("Invalid or duplicate Android image metadata".into());
+    }
+    bytes = bytes.checked_add(e.size).ok_or("Runtime size overflow")?;
+  }
+  for e in catalog.packages.iter().chain(&catalog.supplementary) {
     if !seen.insert(&e.path)
       || e.size == 0
       || e.sha256.len() != 64
@@ -167,8 +186,10 @@ fn inspect_at(root: &Path, hash: bool) -> Result<Value, String> {
     "integrity":if hash {"sha256-verified"} else {"sizes-checked"},"id":catalog.id,
     "architecture":catalog.architecture,"host":{"distribution":catalog.host.distribution,"version":catalog.host.version},
     "waydroidVersion":catalog.waydroid_version,"androidVersion":catalog.android_version,"variant":catalog.variant,
+    "imageArchitecture":catalog.image_architecture,"aarch32El0Required":catalog.aarch32_el0_required,
+    "imageBuild":catalog.image_build,"imagePackageVersion":catalog.image_package_version,
     "packageCount":catalog.packages.len(),"imageCount":catalog.images.len(),"bytes":bytes,
-    "deployment":"platform-dependency","requiresAgentOSBundledWaydroid":false}),
+    "deployment":"awaiting-agentos-system-operation","bundledRuntime":"offline-waydroid-packages-and-image-package"}),
   )
 }
 pub fn verify() -> Result<Value, String> {
@@ -211,6 +232,9 @@ mod tests {
     let mut lxc = entry("packages/lxc.deb");
     lxc["package"] = json!("lxc");
     lxc["architecture"] = json!("arm64");
+    let mut image_package = entry("packages/images.deb");
+    image_package["package"] = json!("androidtone-waydroid-images");
+    image_package["architecture"] = json!("all");
     let mut system = entry("images/system.img");
     system["kind"] = json!("system");
     let mut vendor = entry("images/vendor.img");
@@ -218,13 +242,12 @@ mod tests {
     for path in [
       "packages/waydroid.deb",
       "packages/lxc.deb",
-      "images/system.img",
-      "images/vendor.img",
+      "packages/images.deb",
       "NOTICE",
     ] {
       fs::write(p.join(path), b"good").unwrap();
     }
-    let catalog = json!({"schemaVersion":1,"id":"com.agentos.androidtone.runtime.noble-arm64","architecture":"arm64","host":{"os":"linux","distribution":"ubuntu","version":"24.04"},"waydroidVersion":"test","androidVersion":"13","variant":"VANILLA","deployment":"platform-authorized-offline-packages","packages":[waydroid,lxc],"images":[system,vendor],"supplementary":[entry("NOTICE")]});
+    let catalog = json!({"schemaVersion":1,"id":"com.agentos.androidtone.runtime.noble-arm64","architecture":"arm64","host":{"os":"linux","distribution":"ubuntu","version":"24.04"},"waydroidVersion":"test","androidVersion":"13","variant":"VANILLA","imageArchitecture":"arm64_only","aarch32El0Required":false,"imageBuild":"20260927","imagePackageVersion":"0.1.8-1","deployment":"platform-authorized-offline-packages","packages":[waydroid,lxc,image_package],"imagesPackage":"androidtone-waydroid-images","images":[system,vendor],"supplementary":[entry("NOTICE")]});
     fs::write(
       p.join("catalog.json"),
       serde_json::to_vec(&catalog).unwrap(),
@@ -234,12 +257,12 @@ mod tests {
       inspect_at(&p, true).unwrap()["integrity"],
       "sha256-verified"
     );
-    fs::write(p.join("images/system.img"), b"evil").unwrap();
+    fs::write(p.join("packages/images.deb"), b"evil").unwrap();
     assert!(inspect_at(&p, false).is_ok()); // metadata check explicitly does not claim SHA verification
     assert!(inspect_at(&p, true)
       .unwrap_err()
       .contains("checksum mismatch"));
-    fs::remove_file(p.join("images/vendor.img")).unwrap();
+    fs::remove_file(p.join("packages/images.deb")).unwrap();
     assert!(inspect_at(&p, false).is_err());
     fs::remove_dir_all(p).unwrap();
   }

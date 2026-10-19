@@ -33,6 +33,7 @@ use clap::{ArgAction, CommandFactory, FromArgMatches, Parser, Subcommand, ValueE
 use env_logger::Builder;
 use env_logger::fmt::style::{AnsiColor, Style};
 pub use error::{Error, ErrorExt, Result};
+pub use icon::{MacOSIconOptions, MacOSKind, MacOSMode, generate_macos_icon};
 use log::Level;
 use serde::{Deserialize, Serialize};
 use std::io::{BufReader, Write};

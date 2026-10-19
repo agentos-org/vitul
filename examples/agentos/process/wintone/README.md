@@ -1,6 +1,6 @@
 # WinTone
 
-WinTone is an AgentOS process app configured with the root `vitul.conf.json`. On first launch, it prepares the shared Windows runtime in the background. Dropping an `.exe` or `.msi` installer then creates a per-installation prefix and opens the installer in an AgentOS Wayland session. After setup, WinTone discovers installed apps and offers launch and uninstall actions.
+WinTone is an AgentOS desktop-user Native process app configured with the root `vitul.conf.json`. Its backend listens on the manifest port 28641 and remains available from the AgentOS tray after its window closes. On first launch, it prepares the shared Windows runtime in the background. Dropping an `.exe` or `.msi` installer then creates a per-installation prefix and opens the installer in an AgentOS Wayland session. After setup, WinTone discovers installed apps and offers launch and uninstall actions.
 
 ## Implemented
 
@@ -8,10 +8,12 @@ WinTone is an AgentOS process app configured with the root `vitul.conf.json`. On
 - The ARM64 `.agt` contains two runtime paths: x86/x64 apps use an x86-64 Ubuntu RootFS through FEX, and ARM64 PE files use the native ARM64 runtime. On first WinTone launch, it verifies and extracts the shared runtime in the background; each installation gets a private prefix.
 - EXE imports are classified from their PE machine field and routed to the matching runtime. ARM64EC/ARM64X are not supported yet; MSI imports currently use the x86/x64 path.
 - Uses AgentOS `native.external-wayland` sessions to start installers and apps. ARM64 Windows PE files launch directly through native ARM64 Wine; FEX is used only for x86/x64 Wine.
+- Import can install a setup program or run a portable EXE directly. Portable apps remain runnable from their task after the first session exits; the checked-in GUI samples should use direct-run mode.
 - Discovers launch and uninstall entries from the Wine prefix registry and tracks session state across WinTone restarts.
 - Provides app launch and uninstall controls in the UI.
 - The UI is built with React, TypeScript, Tailwind CSS, Vite, and pnpm. It supports Simplified Chinese and English, with system, light, and dark themes using a Windows blue accent. Preferences are stored in the local browser.
 - Provides runtime preparation, task, app-list, and status APIs plus `runtime.status`, `installations.list`, and `apps.list` OpenTool methods.
+- Registers the WinTone icon with AgentOS Shell through the process tray socket, so the Shell can reopen or exit WinTone from its tray menu while the window is closed.
 - Migrates existing staged-installer records and displays task status in the management UI.
 - Targets AgentOS ARM64 and x64; Vitul builds the Rust backend for the selected target with Docker.
 

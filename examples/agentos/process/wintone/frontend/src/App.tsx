@@ -34,6 +34,7 @@ type InstallTask = {
   id: string
   fileName: string
   extension: string
+  kind?: 'installer' | 'portable'
   bytes: number
   addedAt: number | string
   windowsArchitecture: string
@@ -83,6 +84,7 @@ const ACTIVE_TASKS = new Set([
   'preparing-prefix',
   'waiting-runtime',
   'waiting-window-session',
+  'starting-app',
   'starting-installer',
   'awaiting-user',
   'discovering-apps'
@@ -91,6 +93,7 @@ const ACTIVE_TASKS = new Set([
 const BUSY_TASKS = new Set([
   'preparing-runtime',
   'preparing-prefix',
+  'starting-app',
   'starting-installer',
   'awaiting-user',
   'discovering-apps'
@@ -212,7 +215,13 @@ function localizeBackendMessage(
       'uninstallStillPresentMessage',
     'The shared Wine/FEX runtime is not installed.': 'runtimeRepairMessage',
     'Preparing the shared Wine/FEX runtime.': 'runtimePreparingMessage',
-    'Preparing the Windows runtime.': 'runtimePreparingMessage'
+    'Preparing the Windows runtime.': 'runtimePreparingMessage',
+    'Starting the Windows app in an AgentOS Wayland session.':
+      'portableStartingMessage',
+    'The Windows app is running in an AgentOS Wayland session.':
+      'portableRunningMessage',
+    'The Windows app closed. You can launch it again from this task.':
+      'portableClosedMessage'
   }
   const knownKey = known[message]
   if (knownKey) return t(knownKey)
@@ -236,6 +245,7 @@ function taskStatusLabel(
     'preparing-runtime': 'preparingRuntime',
     'preparing-prefix': 'preparingPrefix',
     'waiting-window-session': 'waitingWindow',
+    'starting-app': 'startingApp',
     'starting-installer': 'startingInstaller',
     'awaiting-user': 'awaitingUser',
     'discovering-apps': 'discoveringApps',
@@ -260,9 +270,12 @@ export default function App() {
     useState<SessionPreferences>(INITIAL_PREFERENCES)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [uploadKind, setUploadKind] = useState<'installer' | 'portable'>('installer')
   const fileInput = useRef<HTMLInputElement>(null)
   const contentScroll = useRef<HTMLDivElement>(null)
   const installedSection = useRef<HTMLDivElement>(null)
+  const integrationProbeAt = useRef(0)
+  const integrationProbePending = useRef<Promise<void> | null>(null)
   const installersSection = useRef<HTMLElement>(null)
   const [activeSection, setActiveSection] = useState<DashboardSection>('installed')
   const noticeTimer = useRef<number | undefined>(undefined)
@@ -318,41 +331,83 @@ export default function App() {
     []
   )
 
+  const loadWindowIntegration = useCallback(
+    (preferencesConfigured: boolean) => {
+      if (integrationProbePending.current) return integrationProbePending.current
+      if (Date.now() - integrationProbeAt.current < 10_000) {
+        return Promise.resolve()
+      }
+      integrationProbeAt.current = Date.now()
+
+      const probe = (async () => {
+        try {
+          const loadCapabilities = () =>
+            apiRequest<WindowIntegration>('/window-integration')
+          let capabilities = await loadCapabilities()
+          if (
+            capabilities.message ===
+            'AgentOS Wayland API request timed out.'
+          ) {
+            await new Promise((resolve) => window.setTimeout(resolve, 500))
+            capabilities = await loadCapabilities()
+          }
+          setWindowIntegration(capabilities)
+          if (!preferencesConfigured) {
+            setSessionPreferences({
+              gpu: capabilities.gpu?.available === true,
+              clipboardRead: capabilities.clipboard?.available === true,
+              clipboardWrite: capabilities.clipboard?.available === true
+            })
+          }
+        } catch (error) {
+          setWindowIntegration({
+            available: false,
+            message: getErrorMessage(error)
+          })
+          if (!preferencesConfigured) {
+            setSessionPreferences(INITIAL_PREFERENCES)
+          }
+        }
+      })()
+      integrationProbePending.current = probe
+      void probe.finally(() => {
+        if (integrationProbePending.current === probe) {
+          integrationProbePending.current = null
+        }
+      })
+      return probe
+    },
+    [apiRequest]
+  )
+
   const loadState = useCallback(async () => {
     try {
-      const [status, tasks, installed, settings] = await Promise.all([
-        apiRequest<{
-          runtime?: RuntimeStatus
-          windowIntegration?: WindowIntegration
-        }>('/status'),
+      const [tasks, installed, settings, status] = await Promise.all([
         apiRequest<{ installTasks?: InstallTask[] }>('/install-tasks'),
         apiRequest<{ apps?: InstalledApp[] }>('/apps'),
         apiRequest<{
           sessionPreferences?: SessionPreferences
           sessionPreferencesConfigured?: boolean
-        }>('/settings')
+        }>('/settings'),
+        apiRequest<{ runtime?: RuntimeStatus }>('/status')
       ])
-      setRuntime(status.runtime ?? null)
-      setWindowIntegration(status.windowIntegration ?? null)
       setInstallTasks(tasks.installTasks || [])
       setApps(installed.apps || [])
-      const capabilities = status.windowIntegration
-      setSessionPreferences(
-        settings.sessionPreferencesConfigured
-          ? settings.sessionPreferences || INITIAL_PREFERENCES
-          : {
-              gpu: capabilities?.gpu?.available === true,
-              clipboardRead: capabilities?.clipboard?.available === true,
-              clipboardWrite: capabilities?.clipboard?.available === true
-            }
-      )
+      setRuntime(status.runtime ?? null)
+      const preferencesConfigured = settings.sessionPreferencesConfigured === true
+      if (preferencesConfigured) {
+        setSessionPreferences(settings.sessionPreferences || INITIAL_PREFERENCES)
+      }
+      // This probe talks to AgentOS over Wayland and can time out while its
+      // service starts. Keep it separate so the app and task list stay usable.
+      void loadWindowIntegration(preferencesConfigured)
     } catch (error) {
       showNotice(
         t('serviceUnavailable', { message: getErrorMessage(error) }),
         'error'
       )
     }
-  }, [apiRequest, showNotice, t])
+  }, [apiRequest, loadWindowIntegration, showNotice, t])
 
   useEffect(() => {
     void loadState()
@@ -459,10 +514,14 @@ export default function App() {
   const chooseFiles = useCallback(() => fileInput.current?.click(), [])
 
   const uploadFile = useCallback(
-    async (file: File) => {
+    async (file: File, kind: 'installer' | 'portable' = uploadKind) => {
       const extension = file.name.split('.').at(-1)?.toLowerCase()
       if (!extension || !['exe', 'msi'].includes(extension)) {
         showNotice(t('onlyInstallers'), 'error')
+        return
+      }
+      if (kind === 'portable' && extension !== 'exe') {
+        showNotice(t('directLaunchExeOnly'), 'error')
         return
       }
       if (file.size > MAX_INSTALLER_BYTES) {
@@ -470,12 +529,18 @@ export default function App() {
         return
       }
       const form = new FormData()
+      form.append('kind', kind)
       form.append('file', file, file.name)
       showNotice(t('importingFile', { name: file.name }))
       try {
         await apiRequest('/install-tasks', { method: 'POST', body: form })
         await loadState()
-        showNotice(t('importedFile', { name: file.name }), 'success')
+        showNotice(
+          kind === 'portable'
+            ? t('importedPortable', { name: file.name })
+            : t('importedFile', { name: file.name }),
+          'success'
+        )
       } catch (error) {
         showNotice(
           t('importFailed', { message: getErrorMessage(error) }),
@@ -483,7 +548,7 @@ export default function App() {
         )
       }
     },
-    [apiRequest, loadState, showNotice, t]
+    [apiRequest, loadState, showNotice, t, uploadKind]
   )
 
   const onFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -559,6 +624,21 @@ export default function App() {
     } catch (error) {
       showNotice(
         t('taskRemoveFailed', { message: getErrorMessage(error) }),
+        'error'
+      )
+    }
+  }
+
+  const runPortableTask = async (task: InstallTask) => {
+    try {
+      await apiRequest(`/install-tasks/${encodeURIComponent(task.id)}/run`, {
+        method: 'POST'
+      })
+      await loadState()
+      showNotice(t('portableLaunchStarted', { name: task.fileName }), 'success')
+    } catch (error) {
+      showNotice(
+        t('portableLaunchFailed', { message: getErrorMessage(error) }),
         'error'
       )
     }
@@ -776,11 +856,31 @@ export default function App() {
             }}
             onDrop={(event) => void onDrop(event)}
           >
+            <div className="import-kind" role="group" aria-label={t('importKind')}>
+              <button
+                className={uploadKind === 'installer' ? 'selected' : ''}
+                type="button"
+                aria-pressed={uploadKind === 'installer'}
+                onClick={() => setUploadKind('installer')}
+              >
+                {t('installMode')}
+              </button>
+              <button
+                className={uploadKind === 'portable' ? 'selected' : ''}
+                type="button"
+                aria-pressed={uploadKind === 'portable'}
+                onClick={() => setUploadKind('portable')}
+              >
+                {t('directRunMode')}
+              </button>
+            </div>
             <input
               ref={fileInput}
               className="visually-hidden"
               type="file"
-              accept=".exe,.msi,application/vnd.microsoft.portable-executable,application/x-msi"
+              accept={uploadKind === 'portable'
+                ? '.exe,application/vnd.microsoft.portable-executable'
+                : '.exe,.msi,application/vnd.microsoft.portable-executable,application/x-msi'}
               multiple
               onChange={(event) => void onFileChange(event)}
             />
@@ -790,7 +890,12 @@ export default function App() {
             <div className="drop-copy">
               <h2>{t('addWindowsApp')}</h2>
               <p>
-                {t('dropHelp')} <b>.exe</b> {t('and')} <b>.msi</b>
+                {uploadKind === 'portable' ? t('directRunHelp') : t('dropHelp')}{' '}
+                {uploadKind === 'portable' ? (
+                  <b>.exe</b>
+                ) : (
+                  <><b>.exe</b> {t('and')} <b>.msi</b></>
+                )}
               </p>
             </div>
             <button
@@ -799,7 +904,7 @@ export default function App() {
               onClick={chooseFiles}
             >
               <Plus aria-hidden="true" />
-              <span>{t('chooseInstaller')}</span>
+              <span>{uploadKind === 'portable' ? t('chooseExe') : t('chooseInstaller')}</span>
             </button>
             <div className="drop-foot">
               <ShieldCheck className="shield-icon" aria-hidden="true" />
@@ -897,7 +1002,8 @@ export default function App() {
                   type="button"
                   onClick={chooseFiles}
                 >
-                  {t('importFirstInstaller')} <ArrowRight aria-hidden="true" />
+                  <span>{t('importFirstInstaller')}</span>
+                  <ArrowRight className="text-button-arrow" aria-hidden="true" />
                 </button>
               </div>
             ) : (
@@ -968,6 +1074,7 @@ export default function App() {
               ) : (
                 installTasks.map((task) => {
                   const busy = BUSY_TASKS.has(task.status)
+                  const portable = task.kind === 'portable'
                   const backendMessage = localizeBackendMessage(
                     task.message,
                     locale,
@@ -996,13 +1103,28 @@ export default function App() {
                       </div>
                       <span className="task-badge" title={backendMessage}>
                         <i />
-                        {taskStatusLabel(task.status, t)}
+                        {portable && task.status === 'awaiting-user'
+                          ? t('appRunning')
+                          : portable && task.status === 'completed'
+                            ? t('appReady')
+                            : portable && task.status === 'failed'
+                              ? t('appRunFailed')
+                            : taskStatusLabel(task.status, t)}
                       </span>
+                      {portable && !busy && (
+                        <button
+                          className="app-action primary"
+                          type="button"
+                          onClick={() => void runPortableTask(task)}
+                        >
+                          {t('runAgain')}
+                        </button>
+                      )}
                       <button
                         className="remove-button"
                         type="button"
                         aria-label={t('removeTask')}
-                        title={busy ? t('installerRunning') : t('remove')}
+                        title={busy ? (portable ? t('appRunning') : t('installerRunning')) : t('remove')}
                         disabled={busy}
                         onClick={() => void removeTask(task)}
                       >
