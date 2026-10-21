@@ -241,7 +241,7 @@ importers:
         version: link:../../../packages/api/dist
     devDependencies:
       '@litevar/vitul-cli':
-        specifier: ^3.4.0
+        specifier: ^3.5.0
         version: link:../../../packages/cli
       typescript:
         specifier: ~6.0.3
@@ -361,13 +361,13 @@ importers:
   packages/create-vitul-app:
     dependencies:
       '@litevar/vitul-cli':
-        specifier: ^3.4.0
+        specifier: ^3.5.0
         version: link:../cli
 
   packages/vitul:
     dependencies:
       '@litevar/vitul-cli':
-        specifier: ^3.4.0
+        specifier: ^3.5.0
         version: link:../cli
 
   tests/fixtures/desktop-api:
@@ -383,7 +383,7 @@ importers:
         specifier: ^1.2.2
         version: 1.2.2
       '@litevar/vitul-cli':
-        specifier: ^3.4.0
+        specifier: ^3.5.0
         version: link:../../../packages/cli
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.2.0

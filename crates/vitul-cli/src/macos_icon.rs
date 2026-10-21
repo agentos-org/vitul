@@ -59,6 +59,14 @@ pub(crate) fn prepare_projection(root: &Path, config: &mut Value) -> Result<()> 
     .and_then(Value::as_str)
     .map(|path| root.join(path))
     .or_else(|| {
+      tracked
+        .as_ref()
+        .and_then(|(_, _, metadata)| metadata.get("source"))
+        .and_then(Value::as_str)
+        .map(|path| root.join(path))
+        .filter(|path| path.is_file())
+    })
+    .or_else(|| {
       icon_paths
         .iter()
         .find(|path| has_extension(path, "png") || has_extension(path, "svg"))
@@ -297,6 +305,40 @@ mod tests {
     let metadata: Value = read_metadata(&generated.with_file_name(SIDECAR)).unwrap();
     assert_eq!(metadata["kind"], "logo");
     assert_eq!(metadata["logoScale"], 62);
+  }
+
+  #[test]
+  fn tracked_icns_keeps_its_original_master_instead_of_a_bundle_thumbnail() {
+    let root = tempfile::tempdir().unwrap();
+    let source = root.path().join("app-icon.png");
+    fs::copy(fixture_icon(), &source).unwrap();
+    let icons = root.path().join("src-vitul/icons");
+    vitul_desktop_cli::generate_macos_icon(&source, &icons, &MacOSIconOptions::default()).unwrap();
+    fs::copy(
+      Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../create-vitul-app/templates/_base_/src-tauri/icons/32x32.png"),
+      icons.join("32x32.png"),
+    )
+    .unwrap();
+    let config = json!({
+      "bundle": { "icon": ["src-vitul/icons/32x32.png", "src-vitul/icons/icon.icns"] }
+    });
+    let first = fs::read(icons.join("icon.icns")).unwrap();
+    prepare_projection(root.path(), &mut config.clone()).unwrap();
+    assert_eq!(fs::read(icons.join("icon.icns")).unwrap(), first);
+
+    fs::copy(icons.join("32x32.png"), &source).unwrap();
+    prepare_projection(root.path(), &mut config.clone()).unwrap();
+    assert_ne!(fs::read(icons.join("icon.icns")).unwrap(), first);
+    let metadata = read_metadata(&icons.join(SIDECAR)).unwrap();
+    assert_eq!(
+      metadata["source"].as_str(),
+      source.canonicalize().unwrap().to_str()
+    );
+    assert_eq!(
+      metadata["sourceSha256"],
+      format!("{:x}", Sha256::digest(fs::read(&source).unwrap()))
+    );
   }
 
   #[test]

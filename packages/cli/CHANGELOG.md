@@ -1,5 +1,32 @@
 # Changelog
 
+## [3.5.0]
+
+### New Features
+
+- Generate a separate macOS icon master, a complete multi-resolution ICNS, and source metadata from PNG/SVG artwork. Configure square artwork or a foreground logo with an independently sized baseplate.
+- Add `bundle.macosIcon` and macOS icon command options for automatic adaptation or passthrough. Preserve custom ICNS files by default and rebuild derived icons when their source or settings change.
+- Include an editable `app-icon.png` master in generated projects and document how to regenerate platform icons.
+
+### Bug Fixes
+
+- Apply macOS transparent margins and a rounded silhouette to the complete square artwork, including its background, without changing other platform icon outputs.
+- Project root icon paths correctly into the generated desktop host configuration.
+- Adapt newly generated projects from their editable master even when the template contains an ICNS, and retain the original source recorded for managed icons instead of selecting a bundle thumbnail.
+
+### Changes and Migration
+
+- Name Apple Silicon macOS disk images `<productName>_<version>_arm64.dmg` instead of using the `aarch64` suffix. Update release scripts that match the old filename; Rust compilation targets remain `aarch64-apple-darwin`.
+- PNG/SVG-only projects automatically generate a macOS icon during desktop configuration projection. For artwork already prepared for macOS, select `passthrough`; existing custom ICNS files remain directly usable. See `docs/MACOS-ICONS-zh_CN.md` for configuration and migration examples.
+- Generated projects use Vitul CLI `^3.5.0`; the command wrapper and project creator advance independently to `0.5.0`.
+- Generate new projects with `agentos-sdk-ts` `^2.2.0`.
+
+### Examples and Maintenance
+
+- Update AndroidTone native deployment, explicit reauthorization, deployment diagnostics, offline runtime packaging, and system tray integration.
+- Update WinTone native runtime and Wayland sessions, installation and shortcut handling, system tray integration, and ARM64 compatibility components.
+- Add icon-generation, configuration-projection, and example runtime regression coverage and supporting documentation.
+
 ## [3.4.0]
 
 ### New Features

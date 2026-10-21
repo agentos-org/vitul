@@ -4,6 +4,7 @@
 
 import { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -80,8 +81,8 @@ describe('[CLI] @litevar/vitul-cli', () => {
         expect(projectConfig.agentos.targets).toContain('agentos/arm64')
         expect(packageJson.name).not.toBe('vitul-app')
         expect(packageJson.name).toMatch(/^[a-z][a-z0-9_-]*$/)
-        expect(packageJson.dependencies['agentos-sdk-ts']).toBe('^2.1.0')
-        expect(packageJson.devDependencies['@litevar/vitul-cli']).toBe('^3.4.0')
+        expect(packageJson.dependencies['agentos-sdk-ts']).toBe('^2.2.0')
+        expect(packageJson.devDependencies['@litevar/vitul-cli']).toBe('^3.5.0')
         expect(packageJson.dependencies.react).toBe('^19.1.0')
         expect(packageJson.devDependencies['@vitejs/plugin-react']).toBe(
           '^6.0.2'
@@ -121,6 +122,41 @@ describe('[CLI] @litevar/vitul-cli', () => {
         expect(backendMain).toContain(
           'development_opentool_rpc_and_cors_work_on_http'
         )
+
+        // A fresh template includes an ICNS, but its macOS build must still
+        // derive the managed icon from the editable master rather than keep
+        // the old ICNS or select the first low-resolution bundle thumbnail.
+        const master = readFileSync(resolve(projectRoot, 'app-icon.png'))
+        const windowsIconPath = resolve(projectRoot, 'src-vitul/icons/icon.ico')
+        const windowsIcon = readFileSync(windowsIconPath)
+        // The desktop CLI's help handling exits its process, so run that
+        // projection trigger in a child rather than the Vitest worker.
+        const projection = spawnSync(
+          process.execPath,
+          [resolve(__dirname, '../vitul.js'), 'info', '--help'],
+          { cwd: projectRoot, stdio: 'inherit' }
+        )
+        if (projection.error) throw projection.error
+        expect(projection.status).toBe(0)
+        const runtimeConfig = JSON.parse(
+          readFileSync(
+            resolve(projectRoot, 'src-vitul/vitul.conf.json'),
+            'utf8'
+          )
+        )
+        const iconMetadata = JSON.parse(
+          readFileSync(
+            resolve(projectRoot, 'src-vitul/icons/macos/icon.icns.vitul.json'),
+            'utf8'
+          )
+        )
+        expect(runtimeConfig.bundle.icon).toContain('icons/macos/icon.icns')
+        expect(runtimeConfig.bundle.icon).not.toContain('icons/icon.icns')
+        expect(runtimeConfig.bundle.macosIcon).toBeUndefined()
+        expect(iconMetadata.sourceSha256).toBe(
+          createHash('sha256').update(master).digest('hex')
+        )
+        expect(readFileSync(windowsIconPath)).toEqual(windowsIcon)
       } finally {
         process.chdir(cwd)
         rmSync(testRoot, { recursive: true, force: true })

@@ -371,6 +371,12 @@ fn scaffold(
   config["productName"] = serde_json::Value::String(product_name.to_owned());
   config["bundle"]["iOS"]["minimumSystemVersion"] =
     serde_json::Value::String(PRESET_IOS_MINIMUM_VERSION.into());
+  // Vitul-only icon sources are relative to the project root, including while
+  // this temporary desktop config is converted into the unified root config.
+  config["bundle"]["macosIcon"] = serde_json::json!({
+    "mode": "auto",
+    "source": "app-icon.png"
+  });
   if let Some(title) = config
     .get_mut("app")
     .and_then(|app| app.get_mut("windows"))
@@ -540,7 +546,7 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
       dependency.to_owned(),
       serde_json::Value::String(
         if dependency == "agentos-sdk-ts" {
-          "^2.1.0"
+          "^2.2.0"
         } else {
           "^2"
         }
@@ -569,7 +575,7 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
   dependencies.remove("@tauri-apps/cli");
   dependencies.insert(
     "@litevar/vitul-cli".to_owned(),
-    serde_json::Value::String("^3.4.0".into()),
+    serde_json::Value::String("^3.5.0".into()),
   );
   package["packageManager"] = serde_json::Value::String("pnpm@12.4.2".into());
   package["engines"] = serde_json::json!({ "node": ">=22.13.0", "pnpm": ">=12.4.2" });
@@ -627,11 +633,11 @@ mod tests {
     let package: serde_json::Value =
       serde_json::from_slice(&fs::read(project.path().join("package.json")).unwrap()).unwrap();
     assert!(package["devDependencies"].get("@tauri-apps/cli").is_none());
-    assert_eq!(package["devDependencies"]["@litevar/vitul-cli"], "^3.4.0");
+    assert_eq!(package["devDependencies"]["@litevar/vitul-cli"], "^3.5.0");
     assert_eq!(package["scripts"]["vitul"], "vitul");
     assert_eq!(package["scripts"]["check"], "tsc -b --pretty false");
     assert!(package["scripts"].get("tauri").is_none());
-    assert_eq!(package["dependencies"]["agentos-sdk-ts"], "^2.1.0");
+    assert_eq!(package["dependencies"]["agentos-sdk-ts"], "^2.2.0");
     assert_eq!(package["devDependencies"]["tailwindcss"], "^4.3.3");
     assert_eq!(package["devDependencies"]["@tailwindcss/vite"], "^4.3.3");
     assert!(package["devDependencies"].get("postcss").is_none());
