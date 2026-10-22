@@ -71,6 +71,11 @@ jobs:
           test ! -f src-vitul/tauri.conf.json
           test -f backend/Cargo.toml
           test -f src/opentool.ts
+          cmp AGENTS.md "$GITHUB_WORKSPACE/crates/vitul-cli/templates/AGENTS.md"
+          cmp VITUL.md "$GITHUB_WORKSPACE/crates/vitul-cli/templates/VITUL.md"
+          cmp VITUL-zh_CN.md "$GITHUB_WORKSPACE/crates/vitul-cli/templates/VITUL-zh_CN.md"
+          test "$(jq -r '.agentos.run.port' vitul.conf.json)" = 9627
+          test "$(jq -r '.agentos | has("port")' vitul.conf.json)" = false
           pnpm remove -D @litevar/vitul-cli
           pnpm pkg set "scripts.vitul=$GITHUB_WORKSPACE/target/debug/vitul"
           pnpm install

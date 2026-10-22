@@ -84,3 +84,23 @@ or in the repository About section.
 These are GitHub repository settings; files in the source tree cannot enable
 them. `CODEOWNERS` assigns `@LiteVar`; grant that account the required repository
 permissions before enabling owner-based review rules.
+
+## Documentation ownership and feature completeness
+
+Keep one owner for each class of fact: root README routes user questions, SUPPORT
+owns platform/capability limits, ARCHITECTURE owns responsibility and call paths,
+configuration docs own fields/defaults/combinations, project templates own local
+workflows, and examples own concrete implementation/run instructions. Link to the
+owner rather than duplicating the complete rules in several places.
+
+For any new or changed capability, document observable behavior, applicable
+platform/mode/version, configuration, permission/authorization, code and call
+sites, resources/executables, package mapping, startup/shutdown, data, acceptance,
+and common omissions in the owning document. Explain inapplicable steps. Distinguish
+root fragments, runnable projects, and generated manifests.
+
+Update both languages and generated project templates in the same change. Review
+from the perspective of a developer with only a generated project: can they find
+the entry point, choose support, complete dependencies, and verify user outcomes?
+For field or support changes, check generated configuration, validation errors,
+and inspect output too. Separate automated evidence from remaining host acceptance.

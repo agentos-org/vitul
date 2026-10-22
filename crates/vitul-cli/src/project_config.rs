@@ -74,7 +74,6 @@ pub fn create_project_config(root: &Path) -> Result<()> {
       "targets": ["agentos/arm64", "agentos/x64"],
       "buildImage": "rust:1.90-bookworm",
       "permissions": ["native.window-control"],
-      "port": 9627,
       "open": {
         "mode": "window",
         "titleBar": "system",
@@ -255,12 +254,38 @@ pub fn package_config(root: &Path) -> Result<Config> {
     json!("static"),
   );
 
+  // Keep the documented legacy alias usable, but never silently ignore a conflict.
+  let mut run = agentos.get("run").cloned().unwrap_or_else(|| json!({}));
+  if let Some(legacy_port) = agentos.get("port") {
+    if !legacy_port
+      .as_u64()
+      .is_some_and(|port| (1..=65535).contains(&port))
+    {
+      bail!("agentos.port must be an integer from 1 to 65535; use agentos.run.port instead");
+    }
+    let run_object = run
+      .as_object_mut()
+      .context("agentos.run must be an object")?;
+    if let Some(port) = run_object.get("port") {
+      if port != legacy_port {
+        bail!(
+          "agentos.port conflicts with agentos.run.port; remove agentos.port and keep the intended port in agentos.run.port"
+        );
+      }
+    } else {
+      run_object.insert("port".into(), legacy_port.clone());
+    }
+    eprintln!(
+      "Warning: agentos.port is deprecated; use agentos.run.port and remove agentos.port. The backend listener must use the same port."
+    );
+  }
+
   let package_config = json!({
     "schemaVersion": 1,
     "targets": targets,
     "app": Value::Object(app),
     "build": agentos.get("build").cloned().unwrap_or_else(|| json!({})),
-    "run": agentos.get("run").cloned().unwrap_or_else(|| json!({})),
+    "run": run,
     "web": agentos.get("web").cloned().unwrap_or_else(|| json!({})),
     "agentos": Value::Object(package_agentos),
     "data": agentos.get("data").cloned().unwrap_or_else(|| json!({}))

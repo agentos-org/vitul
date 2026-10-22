@@ -6,6 +6,65 @@ Vitul uses the system WebView on macOS, Windows, Android, and iOS. The AgentOS
 target packages the same web build with its Rust OpenTool process and displays
 it in an embedded WebView based on Chromium.
 
+## Implement a user requirement
+
+For each requirement, identify the target platform and observable outcomes before
+editing code or configuration. Check support against the project's installed CLI,
+API, and host versions. A shared feature name may need different implementations
+on desktop, mobile, and AgentOS.
+
+1. **Describe behavior:** who does what under which conditions; include success,
+   failure, restart, and exit outcomes.
+2. **Choose the capability:** frontend, OpenTool backend, host API, or AgentOS
+   Gateway. On AgentOS also choose process/remote-web and container/native based
+   on the whole requirement, not a single configuration field.
+3. **Trace dependencies:** root fields, permissions and authorization, code,
+   resources/binaries, artifact collection, startup, data paths, and cleanup.
+   Explain inapplicable items; do not omit unconfirmed dependencies.
+4. **Verify outcomes:** distinguish code checks, config validation, package
+   inspection, and target-host acceptance. Browser preview, desktop development,
+   and an installed AgentOS package do not substitute for one another.
+
+| Requirement | Project entry point | Complete and verify together |
+| --- | --- | --- |
+| Business operations, data processing, long tasks | `backend/src/tools/`, `src/opentool.ts` | Backend implementation, frontend calls, errors/progress; use backend tasks when work must outlive the page |
+| Save and restore data across launches | Backend data paths; AgentOS `agentos.data.persistent` | Declare persistence and actually use `DATA_DIR`; test restart; do not write into package files |
+| Windows, file dialogs, clipboard, notifications, links | `src/host.ts`, `src/desktop-host.ts` | Host implementation, permissions, denial/unavailable handling; do not invent HostProvider methods |
+| AgentOS Gateway | `src/lib/agentos.ts` | SDK calls, address, authentication; app business operations still use OpenTool |
+| Language and appearance | `src/host-context.ts`, `src/messages.ts`, `src/styles.css` | Initial context, live changes, translations/styles, retained business state |
+| Branding and window appearance | `vitul.conf.json`, `app-icon.png`, sections below | Source assets, regenerated assets, target config, rebuilt app acceptance |
+| External programs | `bundle.externalBin`, `host.sidecar`, or backend process code | Target binary, artifact collection, permissions, actual spawn and stop |
+| Window closure, background tasks, system integration | Platform host/backend; AgentOS `agentos.execution`, `permissions`, `providers`, etc. | Support, protocol integration, lifecycle, cleanup, host acceptance |
+| AgentOS service and distribution | `agentos.run`, `build`, `targets`, `rpc` | Listener, health check, path mapping, target architecture, packaged output |
+
+## Configuration and diagnosis
+
+Edit `vitul.conf.json`. Root `schemaVersion: 2`, package `manifestVersion: 1`, and
+OpenTool `rpc.version: 2` are independent. Do not paste a packaged `app.json` into
+root configuration. Runtime configuration under `src-vitul/` is regenerated;
+change root settings and source assets instead.
+
+After AgentOS configuration changes, run `pnpm vitul agentos validate` and
+`pnpm vitul agentos inspect`. Check the effective port, execution mode,
+permissions, and persistence. Use `agentos.run.port` and align the actual backend
+listener and any `agentos.run.env.PORT` it uses. Build-time project paths differ
+from runtime package paths: `build.artifacts.from` is a project path, `to` is a
+package path, and runtime commands, arguments, and resource reads use the latter.
+
+For a setting that appears ineffective, check in order:
+
+1. Does this command/target read the field? Is it supported by this version or
+   overridden by another field or by the host?
+2. Does code implement and invoke the capability? Has the host granted permission?
+3. Did the build produce and package the assets and binaries for the target?
+4. Does the entry point start the component with matching listener, paths, data,
+   and environment?
+5. Does the installed app pass the user workflow, failure, restart, and exit checks?
+
+Report each requirement's implementation, configuration/dependencies, checks run,
+and unverified items. State unsupported behavior or missing host prerequisites;
+do not silently substitute a similar feature and claim completion.
+
 ## App icon
 
 `app-icon.png` is the full-bleed square source for the default app icon. Replace
@@ -70,7 +129,7 @@ Shell title bar. The default is `system`. This preference is written to the
 generated AgentOS `app.json`; the host reports the mode it actually applies.
 Shell-managed windows keep Shell-owned controls above App content.
 The AgentOS `bundleId` comes from `identifier` in
-the root `vitul.conf.json`. Set `agentos.port` in the same file to
+the root `vitul.conf.json`. Set `agentos.run.port` in the same file to
 choose the backend's container-internal port from 1 to 65535; it defaults to 9627.
 Set `bundle.icon` in the root `vitul.conf.json` to a PNG or SVG asset to
 include it in the AgentOS package as `icon.png` or `icon.svg`.
@@ -94,7 +153,7 @@ talks to the host's `window.agentos.host` bridge. The starter demonstrates
 minimizing over host IPC and requests only `native.window-control` for AgentOS. Add other
 `native.*` permissions in `vitul.conf.json` only when your app needs them.
 AgentOS starts the packaged backend with `HOST=0.0.0.0` and `PORT` set to
-`agentos.port`, then maps an assigned loopback host port to that container port.
+`agentos.run.port`, then maps an assigned loopback host port to that container port.
 The frontend is served at `/`; OpenTool RPC uses `/opentool` on the same origin.
 Windows for one installed App share its backend and host port. When AgentOS
 WebShell hosts the App at `/apps/{appId}/`, the generated client uses that proxy
@@ -122,7 +181,7 @@ per business operation.
 
 Declare sidecars through the compatible `bundle.externalBin` setting in the
 root `vitul.conf.json`. Desktop builds keep the expected target-suffixed
-sidecar files. The AgentOS ARM64 builder collects the matching ARM64 Linux
+sidecar files. The AgentOS builder collects the matching target-architecture Linux
 binaries into the `.agt` archive's `sidecars/` directory. AgentOS sidecar names
 come from each configured path's basename and must match
 `[a-z][a-z0-9-]{0,31}`; for example, `binaries/worker` is exposed as `worker`.

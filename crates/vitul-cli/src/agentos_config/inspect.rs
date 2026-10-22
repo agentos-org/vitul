@@ -28,6 +28,11 @@ pub fn run(args: &[OsString]) -> Result<()> {
         "Run command: {}",
         config.run.command.as_deref().unwrap_or("")
       );
+      println!("Backend port: {}", config.run.port);
+      println!("Health check: {}", config.run.health_check);
+      println!("Frontend entry: {}", config.run.frontend_entry);
+      println!("Auto start: {}", config.run.auto_start);
+      println!("Permissions: {}", config.agentos.permissions.join(", "));
       println!("Build steps: {}", config.build.steps.len());
       println!("Artifacts: {}", config.build.artifacts.len());
       println!("Execution mode: {}", config.agentos.execution_mode_name());
@@ -44,6 +49,9 @@ pub fn run(args: &[OsString]) -> Result<()> {
         println!("Last window close: {}", native.last_window_close);
         println!("Stop grace period: {} ms", native.stop_grace_period_ms);
       }
+      println!(
+        "Runtime behavior: not verified; test the requested behavior and permission handling on the target host"
+      );
       println!("OpenTool discovery: {}", config.agentos.rpc_discovery);
       println!("Persistent data: {}", config.data.persistent);
       if let Some(network) = &config.agentos.network {

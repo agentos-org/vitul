@@ -38,3 +38,12 @@ the [maintenance policy](../docs/MAINTENANCE.md) for review and release rules.
 The compatibility runtime includes code derived from other projects. Keep its
 copyright headers and license files intact, and do not attribute inherited code
 to Vitul authors.
+
+## Documentation changes
+
+Follow [documentation ownership](../docs/MAINTENANCE.md#documentation-ownership-and-feature-completeness).
+Review a capability as a complete user outcome across configuration, code,
+artifacts, startup, authorization, data, cleanup, and verification. Update the
+owning reference, English/Chinese entry points, and generated project instructions
+when affected. Reuse existing documentation structure; a reported example should
+lead to checking the general failure mode across related capabilities.

@@ -6,6 +6,25 @@
 
 Vitul 是一套以 OpenTool 为核心的应用开发工具链。macOS、Windows、Android 和 iOS 应用使用系统 WebView；AgentOS 应用使用基于 Chromium 的嵌入式 WebView。
 
+## 从用户需求开始
+
+先把需求写成目标平台上可观察的行为，再选择运行方式、API 和配置。
+每个功能都要串起“支持条件 → 配置 → 实现代码 → 打包产物 → 启动与退出 → 验收”；
+其中不需要的环节也应说明原因。字段存在、权限已声明或构建通过，不能单独证明功能完成。
+
+| 你现在要解决的问题 | 阅读入口 | 应得到的结果 |
+| --- | --- | --- |
+| 判断需求能否在目标平台实现 | [支持范围](docs/SUPPORT-zh_CN.md) | 平台、运行模式、限制及宿主前提 |
+| 决定功能放在前端、业务后端还是宿主 | [架构](ARCHITECTURE-zh_CN.md) | 实现责任和调用路径 |
+| 新建应用并实现功能 | 下文创建流程；生成项目的 `VITUL-zh_CN.md` 与 `AGENTS.md` | 项目内的需求分解、文件定位和验证步骤 |
+| 配置或打包 AgentOS 应用 | [AgentOS 配置说明](crates/vitul-cli/src/agentos_config/README-zh_CN.md) | 根配置字段、关联依赖和包内结果 |
+| 参考已有实现 | [示例索引](examples/README-zh_CN.md) | 与运行模式匹配的代码、构建和启动流程 |
+| 排查“配了但没生效” | 配置说明中的检查流程，以及对应能力的实现入口 | 区分配置、产物、授权和运行时问题 |
+
+仓库文档描述当前源码。接入已发布的 CLI 时，先记录项目实际使用的 CLI、API 和宿主版本，
+再核对[版本对应关系](docs/MAINTENANCE-zh_CN.md)。现有项目以其依赖和生成配置为起点，
+不要把其他版本的示例或包内 manifest 直接覆盖到根配置。
+
 ## 运行目标
 
 | 目标平台         | UI 运行时                      | 系统 API      | 应用后端                                                               |
@@ -102,8 +121,9 @@ AgentOS process 应用在 `agentos.build` 和 `agentos.run` 中声明构建步�
 
 process 应用默认在容器中运行。Vitul 的 native 模式要求使用 AgentOS native process profile v1，
 在 `agentos.execution` 中同时设置 `mode: "native"` 和 `native` 对象；旧的仅含 `mode: "native"`
-配置会被拒绝。Native 仅适用于 process 应用，要求持久数据，不能与 deployment、Host Provider
-或 `native.external-wayland` 同用，也不支持开机自启。详见
+配置会被拒绝。Native 仅适用于 process 应用，要求持久数据，不支持开机或登录自启。
+它支持按权限声明的 Host Provider、External Wayland 和部分 system-deployment 操作；
+容器设备映射、bind mount 和 LXC 操作仍仅适用于容器。详见
 [AgentOS 配置说明](crates/vitul-cli/src/agentos_config/README-zh_CN.md)。
 
 OpenTool 的 `rpc.version: 2` 是独立的 API 绑定版本。相关命令不会构建 Ubuntu 24 系统镜像或

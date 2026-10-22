@@ -14,11 +14,38 @@ compatibility or automatically import existing Tauri projects.
 | Android         | Android System WebView and Vitul host APIs                   | OpenTool router linked into the app process and called over native IPC; streams use a native channel | `.apk` or `.aab`                                                 | Existing mobile workflows exercise some runtime code. Validate app-specific OpenTool behavior on a device or emulator.                                                                              |
 | iOS             | WKWebView and Vitul host APIs                                | OpenTool router linked into the app process and called over native IPC; streams use a native channel | `.ipa`                                                           | Existing mobile workflows exercise some runtime code. Validate app-specific OpenTool behavior on a device or simulator.                                                                             |
 | AgentOS ARM64   | AgentOS Shell's embedded Chromium-based WebView and host IPC | App process over HTTP/JSON-RPC on a Shell-assigned loopback port                                     | `.agt` using manifest v1                                         | Vitul CI builds the OpenTool example into a real ARM64 `.agt` and validates its manifest and contents. Host window, permission, and installation behavior also requires an AgentOS Shell smoke test. |
-| AgentOS x64     | Same AgentOS runtime contract                                | Same AgentOS runtime contract                                                                        | `.agt` using manifest v1                                         | The packager supports x64 builds; automated package validation currently covers ARM64.                                                                                                             |
+| AgentOS x64     | Same AgentOS runtime contract                                | Same AgentOS runtime contract                                                                        | `.agt` using manifest v1                                         | CLI fixture tests cover x64 package manifests; the full application package smoke job runs on ARM64.                                                                                                             |
 
 Linux desktop is not currently part of Vitul's documented target matrix. The
 Tauri-derived source may have capabilities beyond the targets listed here;
 those capabilities are not a Vitul support commitment.
+
+## Choose capabilities by requirement
+
+The platform matrix identifies targets; this table identifies the layers needed
+for a feature. [AgentOS configuration](../crates/vitul-cli/src/agentos_config/README.md)
+owns field details; [Architecture](../ARCHITECTURE.md) explains ownership.
+Verify cross-platform requirements on each target.
+
+| Requirement | Support conditions and dependencies | Evidence of completion |
+| --- | --- | --- |
+| Business logic and data | OpenTool backend; AgentOS persistence requires both declaration and persistent paths | Correct calls and expected data after restart |
+| System interaction | Host API, target implementation, permissions; browser preview has partial fallbacks | Success on the target host plus denial/unavailable handling |
+| Language and appearance | Initial host context, change subscriptions, translations, semantic styles | Correct initial state and live updates without losing business state |
+| Window and process lifecycle | Execution mode, close policy, backend implementation, host management | Expected close, reopen, exit, and child cleanup |
+| External programs or sidecars | Target binary, bundle declaration, permissions, spawn and stop code | Complete installed files and successful start/stop |
+| Providers, deployment, networking | AgentOS protocol, declarations, methods, permissions, host services | Valid declarations plus real execution, failure handling, and recovery |
+| Distribution | Platform tools, artifact format, signing, host version | Installation and user workflow on the target environment |
+
+Process apps default to containers. Evaluate native profiles when host access is
+required and check their restrictions. Remote-web packages have no local process
+and cannot satisfy requirements needing a packaged backend. An inherited Tauri
+module, a permission named `native.*`, or a working example does not establish
+support across targets.
+
+Configuration validation, package inspection, and host acceptance are distinct
+evidence. The CI scope below covers only the checks explicitly listed, not all
+application behavior.
 
 ## API boundary
 

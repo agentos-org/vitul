@@ -7,6 +7,28 @@ Business calls use the OpenTool message format; the transport depends on the
 runtime. System operations use the host's IPC bridge, where permissions and
 platform behavior can be enforced.
 
+## Ownership from requirement to implementation
+
+| Requested behavior | Main implementation | Check together |
+| --- | --- | --- |
+| Screens, interactions, language, appearance | `src/` and host context adapter | Initial state, host changes, translations, style tokens |
+| Business operations, data, long-running tasks | `backend/src/tools/` through OpenTool | Data paths, task lifecycle, errors, progress |
+| Windows, dialogs, clipboard, notifications, external links | `src/host.ts` and the host implementation | Platform support, permissions, denial, unavailable behavior |
+| AgentOS Gateway access | `src/lib/agentos.ts` and SDK | Gateway address and authentication; separate from app OpenTool calls |
+| External processes and system integration | Backend or host facility for that protocol | Executables, architecture, permissions, startup, cleanup |
+
+Configuration declares intent, app code implements business logic and protocol
+integration, the packager collects artifacts, and the host authorizes and executes
+platform behavior. These responsibilities do not substitute for one another.
+If a feature is absent from `HostProvider`, check the platform protocol and existing
+implementation before inventing an API call. The same feature name does not
+promise the same implementation across desktop, mobile, and AgentOS.
+
+Edit root `vitul.conf.json`; runtime configuration under `src-vitul/` and packaged
+`app.json` are projections or build output. Trace failures through root fields,
+generated fields/files, startup entry points, and host effects, then edit the
+source responsible for the failing step.
+
 ## Runtime targets
 
 ### macOS and Windows
@@ -50,18 +72,23 @@ messages; host IPC is a separate channel for system actions.
   upstream `create-tauri-app` project and customized into an OpenTool-first
   project by the Vitul generator.
 - `crates/tauri-*` contain the compatible desktop runtime, CLI, build support,
-  and bundler. Vitul keeps their established names and interfaces for existing
-  projects and plugins.
+  and bundler. Vitul keeps their established names; shared source does not imply existing
+  Tauri projects or plugins work unchanged.
 - `packages/` contains compatible frontend APIs and CLI packages.
 
 ## AgentOS package contract
 
-An installable `.agt` package uses `manifestVersion: 2` and an explicit
-`architecture` (`arm64` or `x64`). Process Apps use port `0`, Shell-managed
-startup, a frontend entry, and an OpenTool RPC declaration. The package also
-declares the supported `native.*` host capabilities it may request. The
-manifest supports both AgentOS architectures; the current Vitul packager emits
-ARM64 packages.
+The root `vitul.conf.json` uses `schemaVersion: 2`; generated `.agt` packages
+use `manifestVersion: 1`. Process packages declare `architecture` as `arm64`
+or `x64`, and the packager supports both. Remote-web packages use `any`.
+These versions are independent of the OpenTool binding's `rpc.version: 2`.
+
+For process apps, `agentos.run.port` (default `9627`) becomes manifest `run.port`
+and must match the backend listener. In container mode, Shell maps an assigned
+loopback host port to the container port. Packages declare a frontend entry,
+optional OpenTool RPC binding, and requested `native.*` capabilities. Developers
+edit the root config; packaged `app.json` is generated output.
+
 
 ## Compatibility and attribution
 

@@ -4,6 +4,56 @@ Vitul 将桌面、移动和 AgentOS 项目设置统一保存在根目录的
 `vitul.conf.json`。在已有项目中运行 `vitul agentos init` 可生成此文件；
 通过 `vitul create` 新建的项目则直接编辑自动生成的 `agentos` 配置。
 
+## 先把需求映射到配置与实现
+
+本文维护 AgentOS 根配置的字段和关联约束。跨平台支持先看
+[支持范围](../../../../docs/SUPPORT-zh_CN.md)，前端、后端与宿主的责任见
+[架构](../../../../ARCHITECTURE-zh_CN.md)。先选择应用类型与运行模式，再配置单项能力。
+
+| 需求/选择 | 根配置入口 | 必须同时完成 | 如何确认 |
+| --- | --- | --- | --- |
+| 打开已托管网站 | `agentos.type: "remote-web"`、`agentos.web.url` | HTTPS 网站；不打包本地进程、构建步骤和资源 | 包为 `any`，在目标 Shell 打开正确网站 |
+| 打包本地服务 | `agentos.type: "process"`、`build`、`run` | 编译、收集、启动、监听、健康检查、前端入口 | 包内有服务与页面；安装后就绪并能调用业务 |
+| 容器或直接宿主执行 | `agentos.execution` | 默认 container；native 需完整 profile 和持久数据；按宿主访问与隔离要求选择 | inspect 模式正确，能力与宿主环境匹配 |
+| 保存数据 | `agentos.data.persistent` | 代码实际写入宿主提供的 `DATA_DIR`，配置、数据库和缓存路径按需求安排 | 重启后保留需要的数据 |
+| 窗口布局 | `agentos.open` | `mode`、标题栏与窗口尺寸；宿主可能报告实际生效布局 | 多窗口、缩放和标题栏交互正确 |
+| 关闭窗口后的行为 | native profile 的 `lastWindowClose`；其他模式按宿主协议实现 | 后台工作在后端、宿主入口、停止策略和子进程清理；不是开机自启 | 关闭最后窗口、重新打开及退出符合需求 |
+| 系统 API | `agentos.permissions`、对应宿主调用 | 声明能力并实际调用；实现授权拒绝和不可用处理 | 获准、拒绝和缺少宿主能力时均符合预期 |
+| 外部程序 | 根 `bundle.externalBin` 或 `agentos.build.artifacts` | 前者通过 host sidecar 使用时需要 `native.sidecars`；都要有正确架构文件、调用和停止逻辑 | 包含正确二进制，实际启动及退出成功 |
+| Host Provider/部署 | `agentos.providers`、`deployment`、关联权限 | 协议方法、运行时接入或实现、宿主授权及服务；内置 Provider 不需要包内 executable | 校验声明，在宿主验证调用、错误与清理 |
+| 系统代理/TUN | `agentos.network`、native profile、关联权限 | 可执行文件、配置快照、宿主网络服务和恢复逻辑，见下文 | 包摘要正确；实际网络效果及停止恢复正确 |
+| OpenTool 接入 | `agentos.rpc`、后端路由 | 路径、发现方式、方法实现与前端调用一致 | 安装后实际调用成功 |
+
+语言、主题和业务 UI 也需要代码接入，不能通过上述字段自动实现。入口见
+[WebApp 语言与主题说明](../../../../examples/agentos/process/docs/webapp-localization-theme-zh_CN.md)。
+表中的配置入口用于定位，不能把一行当作完整配置示例。
+
+## 配置层级和路径
+
+根 `schemaVersion: 2`、包内 `manifestVersion: 1` 和 OpenTool `rpc.version: 2`
+分别定义不同格式。开发者编辑根 `vitul.conf.json`，不要把内部投影或示例的 `app.json` 原样复制进来。
+以下字段均在根配置 `agentos` 下，除非明确标注为根字段。
+
+| 配置组 | 关联规则 |
+| --- | --- |
+| `targets`、`buildImage` | 声明 `agentos/arm64` 或 `agentos/x64`，产物与运行时依赖需匹配所选目标；镜像不会自动使任意二进制跨架构 |
+| `build.steps` | 在项目中生成产物；每步的命令、参数、工作目录和环境应完整。步骤存在不代表它一定生成了所有文件 |
+| `build.artifacts` | `from` 是项目相对路径，`to` 是包内相对路径；可按 `targets` 选择架构产物 |
+| `run.command`、`args` | 使用包内布局；包含路径的 command 必须由 artifacts 覆盖，参数指向的脚本和资源也必须实际打包；目标运行环境须有解释器和动态库 |
+| `run.port`、`healthCheck`、`readyTimeout` | 后端监听与端口一致，健康检查对应真实路由，在超时内就绪；`frontendEntry` 对应实际前端路由 |
+| `run.env` | 后端实际使用的变量与启动参数一致；native profile 禁止覆盖保留的宿主变量 |
+| `permissions`、`providers`、`deployment`、`network` | 声明、授权、协议实现和宿主服务是不同依赖；具体约束见下文 |
+| `data.persistent`、`execution` | 持久化与进程生命周期分别决定，开启持久化不会自动让进程在窗口关闭后运行 |
+
+端口统一使用 `agentos.run.port`（默认 `9627`）。旧 `agentos.port` 仅在缺少
+`run.port` 时回退使用并提示迁移，两个字段不同会报错。后端若使用 `run.env.PORT`，
+也需同步修改；CLI 不会根据应用代码推断监听方式。
+
+## Process 最小结构
+
+下例演示字段布局：项目应提供 `dist/`、`service/server.js` 和 `/health` 路由，
+并保证目标运行环境提供 Node.js；它不是包含服务源码的即用项目。
+
 Process 应用在 `agentos` 下声明构建和启动配置：
 
 ```json
@@ -18,17 +68,22 @@ Process 应用在 `agentos` 下声明构建和启动配置：
     "execution": { "mode": "container" },
     "build": {
       "steps": [],
-      "artifacts": [{ "from": "dist", "to": "web" }]
+      "artifacts": [
+        { "from": "dist", "to": "web" },
+        { "from": "service", "to": "service" }
+      ]
     },
     "run": {
       "command": "node",
-      "args": ["server.js"],
+      "args": ["service/server.js"],
       "port": 9627,
       "healthCheck": "/health"
     }
   }
 }
 ```
+
+## 执行模式与 Native profile
 
 省略 `agentos.execution`、将 `mode` 留空或设为 `container`，都会使用默认容器运行方式。
 Vitul 只支持 AgentOS native process profile v1。设置 `mode: "native"` 时必须同时提供
@@ -151,3 +206,17 @@ resolver、策略规则、DNS 路由域以及到每个固定 IPv4 endpoint 的�
 remote-web 包会在 AgentOS 内嵌 CEF 窗口中打开网站，不会打包本地进程。
 
 构建前运行 `vitul agentos validate`。使用 `vitul agentos inspect` 查看应用类型和 AgentOS 构建目标。
+
+
+## 从配置到验收
+
+1. `pnpm vitul agentos validate`：检查声明和部分源文件约束；错误应修改根配置或源文件。
+2. `pnpm vitul agentos inspect`：核对最终应用类型、目标、执行模式、端口、权限和持久化；不启动应用。
+3. `pnpm vitul build --target agentos`：执行构建并收集所选架构；检查 `.agt` 内 `app.json`、
+   启动入口、脚本参数指向的文件、资源和二进制。打包存在不等于代码实际调用。
+4. 在目标 Shell 安装并按需求验收成功、授权拒绝、资源缺失、重启和退出等相关场景。
+
+如果只在浏览器或桌面开发环境运行过，不能据此宣称 AgentOS 安装包可用。
+排错按“当前命令是否读取字段 → 生成结果是否正确 → 文件是否入包 → 组件是否启动 →
+宿主是否支持及授权 → 用户可观察结果”逐层定位。完成报告应逐项注明已验证和未验证，
+不以配置合法或构建成功代替功能验收。

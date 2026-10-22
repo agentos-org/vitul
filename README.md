@@ -8,6 +8,28 @@ Vitul is an OpenTool-first app development toolchain. Apps on macOS, Windows,
 Android, and iOS use their system WebView; AgentOS apps use an embedded WebView
 based on Chromium.
 
+## Start with the user requirement
+
+Describe observable behavior on the target platform before choosing a runtime,
+API, or configuration. Trace each feature through support conditions,
+configuration, implementation, packaged artifacts, startup/shutdown, and acceptance.
+Explain any inapplicable step. A field, permission declaration, or successful build
+alone does not prove that a feature works.
+
+| Question | Entry point | Expected outcome |
+| --- | --- | --- |
+| Can the target platform support the requirement? | [Support](docs/SUPPORT.md) | Platform, execution mode, limits, and host prerequisites |
+| Where should the implementation live? | [Architecture](ARCHITECTURE.md) | Frontend, business backend, or host ownership and call path |
+| How do I implement a new app feature? | Creation flow below; generated `VITUL.md` and `AGENTS.md` | Project-local dependency and verification steps |
+| How do I configure or package AgentOS? | [AgentOS configuration](crates/vitul-cli/src/agentos_config/README.md) | Root fields, dependencies, and package output |
+| Which implementation can I reuse? | [Examples](examples/README.md) | Code, build, and startup flow matching the runtime |
+| Why did a setting have no effect? | Configuration checks and the relevant implementation entry point | Separate config, artifact, authorization, and runtime failures |
+
+Repository documentation describes current source. For a released CLI, record the
+project's CLI, API, and host versions and check the [version map](docs/MAINTENANCE.md).
+Start from the existing project's dependencies and generated configuration; do not
+replace root config with another version's example or a packaged manifest.
+
 ## Runtime targets
 
 | Target            | UI runtime                      | System APIs       | App backend                                                         |
@@ -126,9 +148,10 @@ and produce an architecture-independent URL package.
 Process apps run in a container by default. Vitul native execution requires the
 AgentOS native process profile v1, with both `mode: "native"` and a `native`
 object under `agentos.execution`; mode-only legacy configs are rejected. Native
-profile is limited to process apps, requires persistent data, cannot be combined
-with deployment, Host Providers, or `native.external-wayland`, and does not
-enable autostart. See the
+profile is limited to process apps and requires persistent data. It supports
+authorized Host Providers, External Wayland, and supported system-deployment
+operations. Device assignment, bind mounts, and LXC operations remain container-only.
+Boot and login autostart cannot be enabled. See the
 [AgentOS config guide](crates/vitul-cli/src/agentos_config/README.md) and its
 [Chinese version](crates/vitul-cli/src/agentos_config/README-zh_CN.md).
 

@@ -11,6 +11,9 @@ pub fn run(args: &[OsString]) -> Result<()> {
     .with_context(|| format!("could not resolve project directory {}", root.display()))?;
   let config = crate::project_config::package_config(&root)?;
   println!("AgentOS config is valid for {}", config.target_summary());
+  println!(
+    "Configuration validation only; packaged artifacts and AgentOS Shell behavior require separate verification."
+  );
   Ok(())
 }
 

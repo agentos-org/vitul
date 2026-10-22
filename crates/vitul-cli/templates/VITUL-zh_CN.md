@@ -4,6 +4,54 @@
 
 Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS 目标会将相同的 Web 前端和 Rust OpenTool 后端打包，并通过基于 Chromium 的嵌入式 WebView 显示页面。
 
+## 实现一个用户需求
+
+每项需求先明确目标平台和可观察的结果，再修改代码或配置。使用项目实际安装的 CLI、API
+和宿主版本核对支持范围；相同名称的桌面、移动和 AgentOS 能力可能需要不同实现。
+
+1. **描述行为**：谁在什么条件下做什么，成功、失败、重启和退出后应看到什么。
+2. **选择能力**：判断由页面、OpenTool 后端、宿主 API 还是 AgentOS Gateway 承担；
+   AgentOS 还要确定 process/remote-web 和 container/native，不根据单个字段随意切换。
+3. **串起依赖**：逐项核对根配置、权限与授权、实现代码、资源/二进制、构建收集、
+   启动入口、数据目录和退出清理。无需某一项时说明原因，不能省略未确认项。
+4. **验证结果**：分别记录代码检查、配置校验、包内容检查和目标宿主上的行为验收。
+   浏览器预览、桌面开发环境与安装后的 AgentOS 包不能互相代替。
+
+| 用户需求 | 本项目的实现入口 | 要一起完成和验证的内容 |
+| --- | --- | --- |
+| 新增业务操作、处理数据或长任务 | `backend/src/tools/`、`src/opentool.ts` | 后端实现、前端调用、错误/进度；关闭页面后的任务需求由后端承担 |
+| 保存并在下次启动恢复数据 | 后端数据读写；AgentOS 的 `agentos.data.persistent` | 声明持久化并实际使用 `DATA_DIR`，重启验收；不要写入包内目录 |
+| 控制窗口、选择文件、剪贴板、通知、打开链接 | `src/host.ts`、`src/desktop-host.ts` | 对应宿主实现、权限、授权拒绝和不可用处理；不要虚构 HostProvider 方法 |
+| 接入 AgentOS Gateway | `src/lib/agentos.ts` | SDK 调用、地址和认证；应用自身业务仍通过 OpenTool |
+| 跟随语言或主题 | `src/host-context.ts`、`src/messages.ts`、`src/styles.css` | 初始值、运行时变化、文案和样式，切换时保留业务状态 |
+| 修改名称、图标或窗口外观 | `vitul.conf.json`、`app-icon.png`、下文图标与命令说明 | 源资源、生成资源、目标平台配置；重新构建后验收 |
+| 运行外部程序 | `bundle.externalBin`、`host.sidecar` 或后端启动逻辑 | 目标架构二进制、包收集、权限、实际启动与停止 |
+| 改变关闭窗口后的行为、后台任务或系统集成 | 对应平台宿主能力和后端；AgentOS 的 `agentos.execution`、`permissions`、`providers` 等 | 支持范围、协议接入、进程生命周期、资源清理和宿主验收 |
+| 修改 AgentOS 服务或发布配置 | `agentos.run`、`build`、`targets`、`rpc` | 后端监听、健康检查、路径映射、目标架构和包内结果 |
+
+## 配置与排错
+
+`vitul.conf.json` 是编辑入口。根 `schemaVersion: 2`、包内 `manifestVersion: 1`
+和 OpenTool `rpc.version: 2` 是不同版本；不要把包内 `app.json` 当根配置复制。
+`src-vitul/` 下的运行时配置会重新生成，应修改根配置和源资源。
+
+AgentOS 配置更改后运行 `pnpm vitul agentos validate` 和 `pnpm vitul agentos inspect`，
+检查最终端口、运行模式、权限和持久化状态。端口使用 `agentos.run.port`，
+并与实际后端监听及其使用的 `agentos.run.env.PORT` 一致。
+构建步骤中的项目路径和运行时包内路径不同：`build.artifacts` 的 `from` 是项目路径，
+`to` 是包内路径，启动命令、参数和资源读取必须对应后者。
+
+遇到“设置了但没生效”，按顺序定位：
+
+1. 配置是否由当前命令和目标平台读取，字段是否属于当前版本，是否被另一字段或宿主覆盖？
+2. 代码是否实现并调用了该能力，声明的权限是否在目标宿主获准？
+3. 构建步骤是否生成目标资源，产物是否进入安装包，二进制是否匹配目标架构？
+4. 启动入口是否实际启动相应组件，监听、路径、数据目录和环境是否一致？
+5. 安装后的目标宿主是否执行了完整用户流程，包括失败、重启和退出？
+
+完成报告按需求列出“实现入口、配置与依赖、已执行验证、未验证项”。
+不支持或缺少宿主条件时明确说明，不能用相近功能替代用户要求并宣称完成。
+
 ## 应用图标
 
 `app-icon.png` 是默认图标的铺满式方形源文件。设计新 Logo 时替换此文件，
@@ -48,7 +96,7 @@ AgentOS/WebShell 启动参数，并监听原生 `agentos:host` 上下文变更�
 
 在根目录 `vitul.conf.json` 的 `agentos.open.titleBar` 中设置 `system` 或 `overlay`，选择 AgentOS App 内容相对于 Shell 标题栏的布局，默认值为 `system`。该设置会写入生成的 AgentOS `app.json`；宿主会报告实际生效的模式。Shell 管理的窗口会继续由 Shell 管理并绘制窗口控件。
 
-AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件设置 `agentos.port`，指定范围为 1–65535 的容器内后端端口；默认值为 `9627`。
+AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件设置 `agentos.run.port`，指定范围为 1–65535 的容器内后端端口；默认值为 `9627`。
 在根目录 `vitul.conf.json` 的 `bundle.icon` 中指定 PNG 或 SVG 文件，即可将其作为
 `icon.png` 或 `icon.svg` 放入 AgentOS 安装包。
 `vitul icon app-icon.png` 也会生成 macOS ICNS。已带 macOS 构图的图片使用
@@ -60,7 +108,7 @@ AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件�
 
 项目已预置 `agentos-sdk-ts`。需要调用 AgentOS Gateway 时，从 `src/lib/agentos.ts` 导入 `createAgentOSClient()`；客户端只会在函数调用时创建。可将 `.env.example` 复制为 `.env`，设置 `VITE_AGENTOS_GATEWAY_URL` 指定网关地址。该地址会打包进前端，不能在 `VITE_*` 变量中存放密钥或其他机密。业务操作继续通过 OpenTool 后端实现。
 
-`src/host.ts` 定义系统 API 边界；`src/desktop-host.ts` 将其映射到桌面和移动原生运行时，AgentOS provider 则调用宿主提供的 `window.agentos.host` 桥接接口。脚手架示例通过宿主 IPC 演示最小化窗口，AgentOS 仅请求 `native.window-control` 权限。只有应用确实需要时，才在 `vitul.conf.json` 中添加其他 `native.*` 权限。AgentOS 使用 `HOST=0.0.0.0` 和 `agentos.port` 启动容器内后端，并将分配的 loopback 宿主端口映射到该端口；同一个已安装 App 的多个窗口共享后端和宿主端口。前端在 `/` 提供，OpenTool RPC 在同一来源的 `/opentool` 提供。由 AgentOS WebShell 通过 `/apps/{appId}/` 托管时，生成的客户端会使用该代理前缀访问同一 App 后端。AgentOS App 的 OpenTool 请求体上限为 1 MiB；生成的 Rust 后端只在 AgentOS 环境应用此限制，其他宿主保留 OpenTool SDK 的 16 MiB 默认值。
+`src/host.ts` 定义系统 API 边界；`src/desktop-host.ts` 将其映射到桌面和移动原生运行时，AgentOS provider 则调用宿主提供的 `window.agentos.host` 桥接接口。脚手架示例通过宿主 IPC 演示最小化窗口，AgentOS 仅请求 `native.window-control` 权限。只有应用确实需要时，才在 `vitul.conf.json` 中添加其他 `native.*` 权限。AgentOS 使用 `HOST=0.0.0.0` 和 `agentos.run.port` 启动容器内后端，并将分配的 loopback 宿主端口映射到该端口；同一个已安装 App 的多个窗口共享后端和宿主端口。前端在 `/` 提供，OpenTool RPC 在同一来源的 `/opentool` 提供。由 AgentOS WebShell 通过 `/apps/{appId}/` 托管时，生成的客户端会使用该代理前缀访问同一 App 后端。AgentOS App 的 OpenTool 请求体上限为 1 MiB；生成的 Rust 后端只在 AgentOS 环境应用此限制，其他宿主保留 OpenTool SDK 的 16 MiB 默认值。
 
 Android 和 iOS 通过原生 IPC 调用嵌入 App 原生进程的 OpenTool 路由。请求继续使用 OpenTool JSON-RPC 消息格式，`streamCall` 事件通过原生事件通道传递；移动端不会启动 HTTP 服务。后端通过 `backend/` 链接进移动 App。桌面应用仍通过 HTTP 调用独立运行的 OpenTool 后端，桌面 IPC 处理器只向前端提供后端地址。
 

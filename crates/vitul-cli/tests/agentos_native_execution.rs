@@ -1294,3 +1294,74 @@ fn missing_network_files_and_non_executable_binaries_fail_builds() {
     );
   }
 }
+
+#[test]
+fn legacy_port_alias_is_used_in_inspection_and_packaging() {
+  let (root, mut config) = project();
+  config["agentos"]["run"]
+    .as_object_mut()
+    .unwrap()
+    .remove("port");
+  config["agentos"]["port"] = json!(12345);
+  write_config(root.path(), &config);
+  let inspect = invoke(root.path(), &["agentos", "inspect"]);
+  assert!(inspect.status.success());
+  assert!(String::from_utf8_lossy(&inspect.stdout).contains("Backend port: 12345"));
+  assert!(String::from_utf8_lossy(&inspect.stderr).contains("agentos.port is deprecated"));
+  assert_cli_success(
+    invoke(root.path(), &["build", "--target", "agentos/arm64"]),
+    "legacy port should build",
+  );
+  assert_eq!(package_manifest(root.path(), "arm64")["run"]["port"], 12345);
+}
+
+#[test]
+fn conflicting_and_invalid_legacy_ports_fail_before_packaging() {
+  for port in [
+    json!(12345),
+    json!(0),
+    json!(65536),
+    json!("18420"),
+    Value::Null,
+  ] {
+    let (root, mut config) = project();
+    config["agentos"]["port"] = port;
+    write_config(root.path(), &config);
+    for args in [
+      vec!["agentos", "validate"],
+      vec!["agentos", "inspect"],
+      vec!["build", "--target", "agentos/arm64"],
+    ] {
+      let output = invoke(root.path(), &args);
+      assert!(!output.status.success());
+      assert!(String::from_utf8_lossy(&output.stderr).contains("agentos.port"));
+    }
+  }
+  let (root, mut config) = project();
+  config["agentos"]["port"] = config["agentos"]["run"]["port"].clone();
+  write_config(root.path(), &config);
+  assert_cli_success(
+    invoke(root.path(), &["agentos", "validate"]),
+    "matching aliases remain compatible",
+  );
+}
+
+#[test]
+fn inspect_reports_effective_configuration_without_claiming_runtime_verification() {
+  let (root, mut config) = project();
+  config["agentos"]["permissions"] = json!(["native.clipboard"]);
+  write_config(root.path(), &config);
+  let output = invoke(root.path(), &["agentos", "inspect"]);
+  assert!(output.status.success());
+  let stdout = String::from_utf8_lossy(&output.stdout);
+  for expected in [
+    "Backend port: 18420",
+    "Auto start: false",
+    "Permissions: native.clipboard",
+    "Execution mode: container",
+    "Persistent data: false",
+    "Runtime behavior: not verified",
+  ] {
+    assert!(stdout.contains(expected), "missing {expected} in {stdout}");
+  }
+}
