@@ -1,8 +1,0 @@
-/backend/target/
-/bin/
-/dist/
-/runtime/
-/agentos-build/
-/frontend/node_modules/
-/frontend/dist/
-/frontend/.vite/

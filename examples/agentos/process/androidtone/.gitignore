@@ -1,8 +1,0 @@
-/agentos-build/
-/dist/
-/backend/target/
-**/__pycache__/
-/frontend/node_modules/
-/frontend/test-results/
-/frontend/playwright-report/
-/public/

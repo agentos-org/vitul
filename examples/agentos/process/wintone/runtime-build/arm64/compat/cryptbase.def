@@ -1,3 +1,0 @@
-LIBRARY cryptbase
-EXPORTS
-SystemFunction036=advapi32.SystemFunction036
