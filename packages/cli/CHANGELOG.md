@@ -19,7 +19,8 @@
 - Name Apple Silicon macOS disk images `<productName>_<version>_arm64.dmg` instead of using the `aarch64` suffix. Update release scripts that match the old filename; Rust compilation targets remain `aarch64-apple-darwin`.
 - PNG/SVG-only projects automatically generate a macOS icon during desktop configuration projection. For artwork already prepared for macOS, select `passthrough`; existing custom ICNS files remain directly usable. See `docs/MACOS-ICONS-zh_CN.md` for configuration and migration examples.
 - Generated projects use Vitul CLI `^3.5.0`; the command wrapper and project creator advance independently to `0.5.0`.
-- Generate new projects with `agentos-sdk-ts` `^2.2.0`.
+- Generate new projects with `agentos-sdk-ts` `^2.4.0`, including NotifyKit
+  notifications and HarnessKit tool policies.
 
 ### Examples and Maintenance
 

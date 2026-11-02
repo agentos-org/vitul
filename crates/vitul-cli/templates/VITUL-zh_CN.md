@@ -108,6 +108,8 @@ AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件�
 
 项目已预置 `agentos-sdk-ts`。需要调用 AgentOS Gateway 时，从 `src/lib/agentos.ts` 导入 `createAgentOSClient()`；客户端只会在函数调用时创建。可将 `.env.example` 复制为 `.env`，设置 `VITE_AGENTOS_GATEWAY_URL` 指定网关地址。该地址会打包进前端，不能在 `VITE_*` 变量中存放密钥或其他机密。业务操作继续通过 OpenTool 后端实现。
 
+生成项目使用 `agentos-sdk-ts ^2.4.0`。先通过 `sdk.agentos.registerBundle({ bundleId })` 注册应用，再用 `sdk.notifykit.publish()` 发布应用通知。用户打开通知时，AppKit 会发送 `notification.activated`；可用 `isNotificationActivatedEvent()` 收窄事件类型。HarnessKit 的 run 和 turn 请求也支持 `toolPolicy`，用于设置工具允许/拒绝规则和审批策略。
+
 `src/host.ts` 定义系统 API 边界；`src/desktop-host.ts` 将其映射到桌面和移动原生运行时，AgentOS provider 则调用宿主提供的 `window.agentos.host` 桥接接口。脚手架示例通过宿主 IPC 演示最小化窗口，AgentOS 仅请求 `native.window-control` 权限。只有应用确实需要时，才在 `vitul.conf.json` 中添加其他 `native.*` 权限。AgentOS 使用 `HOST=0.0.0.0` 和 `agentos.run.port` 启动容器内后端，并将分配的 loopback 宿主端口映射到该端口；同一个已安装 App 的多个窗口共享后端和宿主端口。前端在 `/` 提供，OpenTool RPC 在同一来源的 `/opentool` 提供。由 AgentOS WebShell 通过 `/apps/{appId}/` 托管时，生成的客户端会使用该代理前缀访问同一 App 后端。AgentOS App 的 OpenTool 请求体上限为 1 MiB；生成的 Rust 后端只在 AgentOS 环境应用此限制，其他宿主保留 OpenTool SDK 的 16 MiB 默认值。
 
 Android 和 iOS 通过原生 IPC 调用嵌入 App 原生进程的 OpenTool 路由。请求继续使用 OpenTool JSON-RPC 消息格式，`streamCall` 事件通过原生事件通道传递；移动端不会启动 HTTP 服务。后端通过 `backend/` 链接进移动 App。桌面应用仍通过 HTTP 调用独立运行的 OpenTool 后端，桌面 IPC 处理器只向前端提供后端地址。

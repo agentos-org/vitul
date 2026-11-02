@@ -81,7 +81,7 @@ describe('[CLI] @litevar/vitul-cli', () => {
         expect(projectConfig.agentos.targets).toContain('agentos/arm64')
         expect(packageJson.name).not.toBe('vitul-app')
         expect(packageJson.name).toMatch(/^[a-z][a-z0-9_-]*$/)
-        expect(packageJson.dependencies['agentos-sdk-ts']).toBe('^2.2.0')
+        expect(packageJson.dependencies['agentos-sdk-ts']).toBe('^2.4.0')
         expect(packageJson.devDependencies['@litevar/vitul-cli']).toBe('^3.5.0')
         expect(packageJson.dependencies.react).toBe('^19.1.0')
         expect(packageJson.devDependencies['@vitejs/plugin-react']).toBe(

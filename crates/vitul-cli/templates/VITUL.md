@@ -147,6 +147,12 @@ client only when called. Copy `.env.example` to `.env` and set
 `VITE_AGENTOS_GATEWAY_URL` to override the Gateway address. This value is
 bundled into the frontend, so never put keys or other secrets in `VITE_*`
 variables. Keep app business operations in the OpenTool backend.
+The generated dependency is `agentos-sdk-ts` `^2.4.0`. After registering the
+app with `sdk.agentos.registerBundle({ bundleId })`, use
+`sdk.notifykit.publish()` to publish an app notification. AppKit delivers
+`notification.activated` when a user opens one; narrow it with
+`isNotificationActivatedEvent()`. HarnessKit run and turn requests also accept
+`toolPolicy` for tool allow/deny rules and approval behavior.
 `src/host.ts` defines the system API boundary; `src/desktop-host.ts` maps it to
 the compatible native runtime on desktop and mobile, while the AgentOS provider
 talks to the host's `window.agentos.host` bridge. The starter demonstrates

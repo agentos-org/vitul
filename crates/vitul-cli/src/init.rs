@@ -546,7 +546,7 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
       dependency.to_owned(),
       serde_json::Value::String(
         if dependency == "agentos-sdk-ts" {
-          "^2.2.0"
+          "^2.4.0"
         } else {
           "^2"
         }
@@ -637,7 +637,7 @@ mod tests {
     assert_eq!(package["scripts"]["vitul"], "vitul");
     assert_eq!(package["scripts"]["check"], "tsc -b --pretty false");
     assert!(package["scripts"].get("tauri").is_none());
-    assert_eq!(package["dependencies"]["agentos-sdk-ts"], "^2.2.0");
+    assert_eq!(package["dependencies"]["agentos-sdk-ts"], "^2.4.0");
     assert_eq!(package["devDependencies"]["tailwindcss"], "^4.3.3");
     assert_eq!(package["devDependencies"]["@tailwindcss/vite"], "^4.3.3");
     assert!(package["devDependencies"].get("postcss").is_none());

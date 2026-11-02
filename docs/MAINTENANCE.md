@@ -36,6 +36,7 @@ The project maintainer is [@LiteVar](https://github.com/LiteVar).
 | JavaScript CLI binding (`@litevar/vitul-cli`)                               | `3.5.0`        | Native CLI package; its version tracks the CLI binding release.            |
 | Global npm command (`@litevar/vitul`)                                       | `0.5.0`        | Wrapper package for the `vitul` executable.                                |
 | npm project creator (`create-vitul-app`)                                    | `0.5.0`        | Wrapper package for `npm create vitul-app`.                                |
+| AgentOS TypeScript SDK (`agentos-sdk-ts`)                                   | `^2.4.0`       | Minimum SDK version used by generated app templates.                      |
 | Generated app and backend defaults                                          | `0.1.0`        | Starter app versions, independent of the Vitul CLI version.                |
 | AgentOS app manifest                                                        | `1`            | Manifest schema version, independent of the Vitul release version.         |
 
