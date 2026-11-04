@@ -361,7 +361,7 @@ importers:
   packages/create-vitul-app:
     dependencies:
       '@litevar/vitul-cli':
-        specifier: ^3.5.0
+        specifier: ^3.5.1
         version: link:../cli
 
   packages/vitul:
