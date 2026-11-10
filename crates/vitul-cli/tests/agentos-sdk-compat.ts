@@ -5,9 +5,13 @@
 // This fixture is copied into a generated app for its TypeScript and build checks.
 import {
   isHarnessKitSubagentModelSelectedEvent,
+  type AppModel,
+  type AppModelRegistration,
+  type AppModelUpdate,
   type HarnessKitDecisionModelConfig,
   type HarnessKitRunRequest,
-  type HarnessKitSkillSelection
+  type HarnessKitSkillSelection,
+  type ModelInfo
 } from 'agentos-sdk-ts'
 import { createAgentOSClient } from './lib/agentos'
 
@@ -55,6 +59,37 @@ export async function checkHostOnlyHarnessKitTypes() {
   const workspaces = await sdk.harnesskit.listWorkspaces()
   return { settings, workspaces }
 }
+
+export async function checkModelKitOutputTokenTypes() {
+  const sdk = createAgentOSClient()
+  const registration: AppModelRegistration = {
+    name: 'chat-model',
+    contextWindowSize: 32768,
+    maxOutputTokens: 4096
+  }
+  const update: AppModelUpdate = { maxOutputTokens: 2048 }
+  const registered = await sdk.modelkit.registerAppModel({
+    request: registration
+  })
+  if (registered.id) {
+    await sdk.modelkit.updateAppModel({
+      modelId: registered.id,
+      request: update
+    })
+  }
+  const models: ModelInfo[] = await sdk.modelkit.listModels()
+  const appModels: AppModel[] = await sdk.modelkit.listAppModels()
+  const modelLimit: number | undefined = models[0]?.maxOutputTokens
+  const appModelLimit: number | undefined = appModels[0]?.maxOutputTokens
+  return { modelLimit, appModelLimit }
+}
+
+const invalidModel: AppModelRegistration = {
+  name: 'chat-model',
+  // @ts-expect-error The output-token limit must be a number.
+  maxOutputTokens: '4096'
+}
+void invalidModel
 
 const invalidDecision: HarnessKitDecisionModelConfig = {
   modelId: 'decision-model',

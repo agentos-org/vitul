@@ -77,7 +77,7 @@ jobs:
           test "$(jq -r '.agentos.run.port' vitul.conf.json)" = 9627
           test "$(jq -r '.agentos | has("port")' vitul.conf.json)" = false
           # Test the minimum supported SDK version, not just the latest ^2 release.
-          pnpm pkg set 'dependencies.agentos-sdk-ts=2.5.0'
+          pnpm pkg set 'dependencies.agentos-sdk-ts=2.5.1'
           pnpm remove -D @litevar/vitul-cli
           pnpm pkg set "scripts.vitul=$GITHUB_WORKSPACE/target/debug/vitul"
           pnpm install

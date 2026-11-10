@@ -147,12 +147,18 @@ client only when called. Copy `.env.example` to `.env` and set
 `VITE_AGENTOS_GATEWAY_URL` to override the Gateway address. This value is
 bundled into the frontend, so never put keys or other secrets in `VITE_*`
 variables. Keep app business operations in the OpenTool backend.
-The generated dependency is `agentos-sdk-ts` `^2.5.0`. After registering the
+The generated dependency is `agentos-sdk-ts` `^2.5.1`. After registering the
 app with `sdk.agentos.registerBundle({ bundleId })`, use
 `sdk.notifykit.publish()` to publish an app notification. AppKit delivers
 `notification.activated` when a user opens one; narrow it with
 `isNotificationActivatedEvent()`. HarnessKit run and turn requests also accept
 `toolPolicy` for tool allow/deny rules and approval behavior.
+
+ModelKit 2.5.1 exposes the optional `maxOutputTokens` response-generation
+limit on `ModelInfo` and `AppModel`. `AppModelRegistration` and
+`AppModelUpdate` can set this separate field alongside `contextWindowSize`. The
+SDK reads the value supplied by the Gateway and does not fill in missing values;
+older Gateways may omit it.
 
 HarnessKit 2.5 adds skill discovery with `listSkills()`, `skillSelection` and
 `skillPolicy` on run and turn requests, and `forkThread()` for an app's own

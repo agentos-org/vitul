@@ -108,7 +108,9 @@ AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件�
 
 项目已预置 `agentos-sdk-ts`。需要调用 AgentOS Gateway 时，从 `src/lib/agentos.ts` 导入 `createAgentOSClient()`；客户端只会在函数调用时创建。可将 `.env.example` 复制为 `.env`，设置 `VITE_AGENTOS_GATEWAY_URL` 指定网关地址。该地址会打包进前端，不能在 `VITE_*` 变量中存放密钥或其他机密。业务操作继续通过 OpenTool 后端实现。
 
-生成项目使用 `agentos-sdk-ts ^2.5.0`。先通过 `sdk.agentos.registerBundle({ bundleId })` 注册应用，再用 `sdk.notifykit.publish()` 发布应用通知。用户打开通知时，AppKit 会发送 `notification.activated`；可用 `isNotificationActivatedEvent()` 收窄事件类型。HarnessKit 的 run 和 turn 请求也支持 `toolPolicy`，用于设置工具允许/拒绝规则和审批策略。
+生成项目使用 `agentos-sdk-ts ^2.5.1`。先通过 `sdk.agentos.registerBundle({ bundleId })` 注册应用，再用 `sdk.notifykit.publish()` 发布应用通知。用户打开通知时，AppKit 会发送 `notification.activated`；可用 `isNotificationActivatedEvent()` 收窄事件类型。HarnessKit 的 run 和 turn 请求也支持 `toolPolicy`，用于设置工具允许/拒绝规则和审批策略。
+
+ModelKit 2.5.1 在 `ModelInfo` 和 `AppModel` 中提供可选的 `maxOutputTokens`，表示单次响应可生成的 token 上限；`AppModelRegistration` 和 `AppModelUpdate` 可以设置该字段，它与 `contextWindowSize` 是不同的字段。SDK 使用 Gateway 返回的值，不会自行补全缺失值；较旧的 Gateway 可能不提供此字段。
 
 HarnessKit 2.5 新增 `listSkills()` 技能发现、run 和 turn 请求中的 `skillSelection` 与 `skillPolicy`，以及用于分支本应用会话的 `forkThread()`。可用 `isHarnessKitSubagentModelSelectedEvent()` 识别子任务模型选择事件。决策模型配置支持 `toolSelectionEnabled` 和 `contextWindowSize`；`directCallConfidence` 已弃用，当前 Harness 不再使用。技能库设置和工作区管理仅供内置 Harness 应用使用；会话分支隔离和宿主权限限制需要更新后的 Gateway。详见 [SDK HarnessKit 参考](https://github.com/agentos-org/agentos-sdk-ts#harnesskitmodule-sdkharnesskit)。
 

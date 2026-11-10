@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.3]
+
+### Dependencies
+
+- Generate new apps with `agentos-sdk-ts` `^2.5.1`, including ModelKit's
+  optional `maxOutputTokens` field for model metadata and app-model writes.
+
 ## [3.5.2]
 
 ### Dependencies
