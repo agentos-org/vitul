@@ -2,7 +2,9 @@
 
 The following issues remained in the workspace audit on 2026-11-10. Re-run
 `pnpm audit` and `cargo audit` before a release and update or remove these notes
-when compatible upstream fixes become available.
+when compatible upstream fixes become available. The create-vitul-app workspace
+and the toney-music example have separate pnpm lockfiles, so audit them from
+their own directories as well; pass `--ignore-workspace` for toney-music.
 
 - `extract-zip` 2.0.1 is a development dependency of WebdriverIO's browser
   downloader. Two unpatched symlink traversal advisories,

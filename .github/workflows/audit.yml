@@ -15,6 +15,7 @@ on:
       - '**/Cargo.toml'
       - '**/package.json'
       - '**/pnpm-lock.yaml'
+      - '**/pnpm-workspace.yaml'
   push:
     branches:
       - main
@@ -25,6 +26,7 @@ on:
       - '**/Cargo.toml'
       - '**/package.json'
       - '**/pnpm-lock.yaml'
+      - '**/pnpm-workspace.yaml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -46,11 +48,26 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   audit-js:
+    name: audit-js (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: workspace
+            directory: .
+            options: ''
+          - name: create-vitul-app
+            directory: crates/create-vitul-app
+            options: ''
+          - name: toney-music
+            directory: examples/agentos/process/toney-music
+            options: --ignore-workspace
     steps:
       - uses: actions/checkout@v7
       - run: npm i -g --force corepack
       - uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
-      - run: pnpm audit
+      - run: pnpm audit ${{ matrix.options }}
+        working-directory: ${{ matrix.directory }}

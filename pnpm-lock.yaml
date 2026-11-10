@@ -238,7 +238,7 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
       vite:
-        specifier: ^8.1.6
+        specifier: ^8.3.3
         version: 8.3.7(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0)
 
   examples/starter/vitul-demo:
@@ -254,7 +254,7 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
       vite:
-        specifier: ^8.1.6
+        specifier: ^8.3.3
         version: 8.3.7(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0)
 
   packages/api:
@@ -411,7 +411,7 @@ importers:
         specifier: ^66.7.5
         version: 66.7.5(vite@8.3.7(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0))
       vite:
-        specifier: ^8.1.6
+        specifier: ^8.3.3
         version: 8.3.7(@types/node@24.11.0)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.46.0)(tsx@4.23.0)(yaml@2.9.0)
 
 packages:
