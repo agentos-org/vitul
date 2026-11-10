@@ -188,12 +188,36 @@ pub fn extract_zip(data: &[u8], path: &Path) -> crate::Result<()> {
 
 #[cfg(test)]
 mod tests {
-  use super::generate_github_mirror_url_from_template;
-  use std::env;
+  use super::{extract_zip, generate_github_mirror_url_from_template};
+  use std::{
+    env,
+    io::{Cursor, Write},
+  };
 
   const GITHUB_ASSET_URL: &str =
     "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip";
   const NON_GITHUB_ASSET_URL: &str = "https://someotherwebsite.com/somefile.zip";
+
+  #[test]
+  fn extract_zip_skips_entries_outside_the_destination() {
+    let mut archive = zip::ZipWriter::new(Cursor::new(Vec::new()));
+    let options = zip::write::SimpleFileOptions::default();
+    archive.start_file("nested/tool.txt", options).unwrap();
+    archive.write_all(b"tool contents").unwrap();
+    archive.start_file("../outside.txt", options).unwrap();
+    archive.write_all(b"outside contents").unwrap();
+    let data = archive.finish().unwrap().into_inner();
+
+    let temp = tempfile::tempdir().unwrap();
+    let destination = temp.path().join("tools");
+    extract_zip(&data, &destination).unwrap();
+
+    assert_eq!(
+      std::fs::read(destination.join("nested/tool.txt")).unwrap(),
+      b"tool contents"
+    );
+    assert!(!temp.path().join("outside.txt").exists());
+  }
 
   #[test]
   #[serial_test::serial]

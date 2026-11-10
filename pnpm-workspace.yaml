@@ -26,24 +26,33 @@ allowBuilds:
 
 overrides:
   devalue@<5.9.3: ^5.9.3
-  undici@>=7.0.0 <7.29.1: ^7.29.1
+  undici@>=6.0.0 <6.29.1: ^6.29.1
+  undici@>=7.0.0 <7.30.1: ^7.30.1
   ip-address@<10.7.1: ^10.7.1
   brace-expansion@>=1.0.0 <2.0.0: ^1.1.21
   brace-expansion@>=2.0.0 <3.0.0: ^2.1.7
   brace-expansion@>=5.0.0 <5.0.12: ^5.0.12
   axios@>=1.0.0 <1.20.0: ^1.20.0
+  follow-redirects@>=1.16.0 <1.16.2: ^1.16.2
+  body-parser@>=2.0.0 <2.4.0: ^2.4.0
+  fast-uri@>=3.0.0 <3.1.9: ^3.1.9
+  qs@>=6.7.0 <6.16.1: ^6.16.1
+  # Keep development tools on the releases that fix traversal and pattern DoS.
+  glob@>=9.0.0 <14.0.2: ^14.0.2
+  minimatch@>=7.0.0 <11.0.1: ^11.0.1
   basic-ftp@<6.2.1: ^6.2.1
   source-map-js@<1.2.2: ^1.2.2
   sharp@<0.35.5: ^0.35.5
   shell-quote@<1.11.0: ^1.11.0
   morgan@<1.12.0: ^1.12.0
-  serialize-javascript@<7.0.5: ^7.0.5
+  serialize-javascript@<7.1.3: ^7.1.3
 
 auditConfig:
   ignoreGhsas:
     # extract-zip symlink path traversal; no patched release exists (latest is
-    # still 2.0.1). Reached via @wdio/utils > @puppeteer/browsers, which only
-    # unpacks the browser drivers we never download (see allowBuilds above)
+    # still 2.0.1). Reached via @wdio/utils > @puppeteer/browsers. Automatic
+    # browser-driver postinstalls are disabled above, but manually downloading
+    # and extracting browsers can still exercise this dependency.
     - GHSA-jmr9-qjv8-65gv
     - GHSA-7pqw-9j4j-h8q3
 
