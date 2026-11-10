@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.2]
+
+### Dependencies
+
+- Generate new apps with `agentos-sdk-ts` `^2.5.0`, including the latest
+  HarnessKit skill, thread-forking, and model-selection APIs.
+
 ## [3.5.1]
 
 ### New Features

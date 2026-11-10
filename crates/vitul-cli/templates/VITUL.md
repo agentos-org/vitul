@@ -25,17 +25,17 @@ on desktop, mobile, and AgentOS.
    inspection, and target-host acceptance. Browser preview, desktop development,
    and an installed AgentOS package do not substitute for one another.
 
-| Requirement | Project entry point | Complete and verify together |
-| --- | --- | --- |
-| Business operations, data processing, long tasks | `backend/src/tools/`, `src/opentool.ts` | Backend implementation, frontend calls, errors/progress; use backend tasks when work must outlive the page |
-| Save and restore data across launches | Backend data paths; AgentOS `agentos.data.persistent` | Declare persistence and actually use `DATA_DIR`; test restart; do not write into package files |
-| Windows, file dialogs, clipboard, notifications, links | `src/host.ts`, `src/desktop-host.ts` | Host implementation, permissions, denial/unavailable handling; do not invent HostProvider methods |
-| AgentOS Gateway | `src/lib/agentos.ts` | SDK calls, address, authentication; app business operations still use OpenTool |
-| Language and appearance | `src/host-context.ts`, `src/messages.ts`, `src/styles.css` | Initial context, live changes, translations/styles, retained business state |
-| Branding and window appearance | `vitul.conf.json`, `app-icon.png`, sections below | Source assets, regenerated assets, target config, rebuilt app acceptance |
-| External programs | `bundle.externalBin`, `host.sidecar`, or backend process code | Target binary, artifact collection, permissions, actual spawn and stop |
-| Window closure, background tasks, system integration | Platform host/backend; AgentOS `agentos.execution`, `permissions`, `providers`, etc. | Support, protocol integration, lifecycle, cleanup, host acceptance |
-| AgentOS service and distribution | `agentos.run`, `build`, `targets`, `rpc` | Listener, health check, path mapping, target architecture, packaged output |
+| Requirement                                            | Project entry point                                                                  | Complete and verify together                                                                               |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Business operations, data processing, long tasks       | `backend/src/tools/`, `src/opentool.ts`                                              | Backend implementation, frontend calls, errors/progress; use backend tasks when work must outlive the page |
+| Save and restore data across launches                  | Backend data paths; AgentOS `agentos.data.persistent`                                | Declare persistence and actually use `DATA_DIR`; test restart; do not write into package files             |
+| Windows, file dialogs, clipboard, notifications, links | `src/host.ts`, `src/desktop-host.ts`                                                 | Host implementation, permissions, denial/unavailable handling; do not invent HostProvider methods          |
+| AgentOS Gateway                                        | `src/lib/agentos.ts`                                                                 | SDK calls, address, authentication; app business operations still use OpenTool                             |
+| Language and appearance                                | `src/host-context.ts`, `src/messages.ts`, `src/styles.css`                           | Initial context, live changes, translations/styles, retained business state                                |
+| Branding and window appearance                         | `vitul.conf.json`, `app-icon.png`, sections below                                    | Source assets, regenerated assets, target config, rebuilt app acceptance                                   |
+| External programs                                      | `bundle.externalBin`, `host.sidecar`, or backend process code                        | Target binary, artifact collection, permissions, actual spawn and stop                                     |
+| Window closure, background tasks, system integration   | Platform host/backend; AgentOS `agentos.execution`, `permissions`, `providers`, etc. | Support, protocol integration, lifecycle, cleanup, host acceptance                                         |
+| AgentOS service and distribution                       | `agentos.run`, `build`, `targets`, `rpc`                                             | Listener, health check, path mapping, target architecture, packaged output                                 |
 
 ## Configuration and diagnosis
 
@@ -147,12 +147,24 @@ client only when called. Copy `.env.example` to `.env` and set
 `VITE_AGENTOS_GATEWAY_URL` to override the Gateway address. This value is
 bundled into the frontend, so never put keys or other secrets in `VITE_*`
 variables. Keep app business operations in the OpenTool backend.
-The generated dependency is `agentos-sdk-ts` `^2.4.0`. After registering the
+The generated dependency is `agentos-sdk-ts` `^2.5.0`. After registering the
 app with `sdk.agentos.registerBundle({ bundleId })`, use
 `sdk.notifykit.publish()` to publish an app notification. AppKit delivers
 `notification.activated` when a user opens one; narrow it with
 `isNotificationActivatedEvent()`. HarnessKit run and turn requests also accept
 `toolPolicy` for tool allow/deny rules and approval behavior.
+
+HarnessKit 2.5 adds skill discovery with `listSkills()`, `skillSelection` and
+`skillPolicy` on run and turn requests, and `forkThread()` for an app's own
+threads. Use `isHarnessKitSubagentModelSelectedEvent()` to identify subagent
+model-selection events. Decision-model configuration supports
+`toolSelectionEnabled` and `contextWindowSize`; `directCallConfidence` is
+deprecated and ignored by current Harness versions. Skill-library settings and
+workspace management are restricted to the built-in Harness app. Scoped
+forking and host-only restrictions require an updated Gateway. See the
+[SDK HarnessKit reference](https://github.com/agentos-org/agentos-sdk-ts#harnesskitmodule-sdkharnesskit)
+for details.
+
 `src/host.ts` defines the system API boundary; `src/desktop-host.ts` maps it to
 the compatible native runtime on desktop and mobile, while the AgentOS provider
 talks to the host's `window.agentos.host` bridge. The starter demonstrates

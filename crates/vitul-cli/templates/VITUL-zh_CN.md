@@ -17,17 +17,17 @@ Vitul 在 macOS、Windows、Android 和 iOS 上使用系统 WebView。AgentOS �
 4. **验证结果**：分别记录代码检查、配置校验、包内容检查和目标宿主上的行为验收。
    浏览器预览、桌面开发环境与安装后的 AgentOS 包不能互相代替。
 
-| 用户需求 | 本项目的实现入口 | 要一起完成和验证的内容 |
-| --- | --- | --- |
-| 新增业务操作、处理数据或长任务 | `backend/src/tools/`、`src/opentool.ts` | 后端实现、前端调用、错误/进度；关闭页面后的任务需求由后端承担 |
-| 保存并在下次启动恢复数据 | 后端数据读写；AgentOS 的 `agentos.data.persistent` | 声明持久化并实际使用 `DATA_DIR`，重启验收；不要写入包内目录 |
-| 控制窗口、选择文件、剪贴板、通知、打开链接 | `src/host.ts`、`src/desktop-host.ts` | 对应宿主实现、权限、授权拒绝和不可用处理；不要虚构 HostProvider 方法 |
-| 接入 AgentOS Gateway | `src/lib/agentos.ts` | SDK 调用、地址和认证；应用自身业务仍通过 OpenTool |
-| 跟随语言或主题 | `src/host-context.ts`、`src/messages.ts`、`src/styles.css` | 初始值、运行时变化、文案和样式，切换时保留业务状态 |
-| 修改名称、图标或窗口外观 | `vitul.conf.json`、`app-icon.png`、下文图标与命令说明 | 源资源、生成资源、目标平台配置；重新构建后验收 |
-| 运行外部程序 | `bundle.externalBin`、`host.sidecar` 或后端启动逻辑 | 目标架构二进制、包收集、权限、实际启动与停止 |
-| 改变关闭窗口后的行为、后台任务或系统集成 | 对应平台宿主能力和后端；AgentOS 的 `agentos.execution`、`permissions`、`providers` 等 | 支持范围、协议接入、进程生命周期、资源清理和宿主验收 |
-| 修改 AgentOS 服务或发布配置 | `agentos.run`、`build`、`targets`、`rpc` | 后端监听、健康检查、路径映射、目标架构和包内结果 |
+| 用户需求                                   | 本项目的实现入口                                                                      | 要一起完成和验证的内容                                               |
+| ------------------------------------------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 新增业务操作、处理数据或长任务             | `backend/src/tools/`、`src/opentool.ts`                                               | 后端实现、前端调用、错误/进度；关闭页面后的任务需求由后端承担        |
+| 保存并在下次启动恢复数据                   | 后端数据读写；AgentOS 的 `agentos.data.persistent`                                    | 声明持久化并实际使用 `DATA_DIR`，重启验收；不要写入包内目录          |
+| 控制窗口、选择文件、剪贴板、通知、打开链接 | `src/host.ts`、`src/desktop-host.ts`                                                  | 对应宿主实现、权限、授权拒绝和不可用处理；不要虚构 HostProvider 方法 |
+| 接入 AgentOS Gateway                       | `src/lib/agentos.ts`                                                                  | SDK 调用、地址和认证；应用自身业务仍通过 OpenTool                    |
+| 跟随语言或主题                             | `src/host-context.ts`、`src/messages.ts`、`src/styles.css`                            | 初始值、运行时变化、文案和样式，切换时保留业务状态                   |
+| 修改名称、图标或窗口外观                   | `vitul.conf.json`、`app-icon.png`、下文图标与命令说明                                 | 源资源、生成资源、目标平台配置；重新构建后验收                       |
+| 运行外部程序                               | `bundle.externalBin`、`host.sidecar` 或后端启动逻辑                                   | 目标架构二进制、包收集、权限、实际启动与停止                         |
+| 改变关闭窗口后的行为、后台任务或系统集成   | 对应平台宿主能力和后端；AgentOS 的 `agentos.execution`、`permissions`、`providers` 等 | 支持范围、协议接入、进程生命周期、资源清理和宿主验收                 |
+| 修改 AgentOS 服务或发布配置                | `agentos.run`、`build`、`targets`、`rpc`                                              | 后端监听、健康检查、路径映射、目标架构和包内结果                     |
 
 ## 配置与排错
 
@@ -108,7 +108,9 @@ AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件�
 
 项目已预置 `agentos-sdk-ts`。需要调用 AgentOS Gateway 时，从 `src/lib/agentos.ts` 导入 `createAgentOSClient()`；客户端只会在函数调用时创建。可将 `.env.example` 复制为 `.env`，设置 `VITE_AGENTOS_GATEWAY_URL` 指定网关地址。该地址会打包进前端，不能在 `VITE_*` 变量中存放密钥或其他机密。业务操作继续通过 OpenTool 后端实现。
 
-生成项目使用 `agentos-sdk-ts ^2.4.0`。先通过 `sdk.agentos.registerBundle({ bundleId })` 注册应用，再用 `sdk.notifykit.publish()` 发布应用通知。用户打开通知时，AppKit 会发送 `notification.activated`；可用 `isNotificationActivatedEvent()` 收窄事件类型。HarnessKit 的 run 和 turn 请求也支持 `toolPolicy`，用于设置工具允许/拒绝规则和审批策略。
+生成项目使用 `agentos-sdk-ts ^2.5.0`。先通过 `sdk.agentos.registerBundle({ bundleId })` 注册应用，再用 `sdk.notifykit.publish()` 发布应用通知。用户打开通知时，AppKit 会发送 `notification.activated`；可用 `isNotificationActivatedEvent()` 收窄事件类型。HarnessKit 的 run 和 turn 请求也支持 `toolPolicy`，用于设置工具允许/拒绝规则和审批策略。
+
+HarnessKit 2.5 新增 `listSkills()` 技能发现、run 和 turn 请求中的 `skillSelection` 与 `skillPolicy`，以及用于分支本应用会话的 `forkThread()`。可用 `isHarnessKitSubagentModelSelectedEvent()` 识别子任务模型选择事件。决策模型配置支持 `toolSelectionEnabled` 和 `contextWindowSize`；`directCallConfidence` 已弃用，当前 Harness 不再使用。技能库设置和工作区管理仅供内置 Harness 应用使用；会话分支隔离和宿主权限限制需要更新后的 Gateway。详见 [SDK HarnessKit 参考](https://github.com/agentos-org/agentos-sdk-ts#harnesskitmodule-sdkharnesskit)。
 
 `src/host.ts` 定义系统 API 边界；`src/desktop-host.ts` 将其映射到桌面和移动原生运行时，AgentOS provider 则调用宿主提供的 `window.agentos.host` 桥接接口。脚手架示例通过宿主 IPC 演示最小化窗口，AgentOS 仅请求 `native.window-control` 权限。只有应用确实需要时，才在 `vitul.conf.json` 中添加其他 `native.*` 权限。AgentOS 使用 `HOST=0.0.0.0` 和 `agentos.run.port` 启动容器内后端，并将分配的 loopback 宿主端口映射到该端口；同一个已安装 App 的多个窗口共享后端和宿主端口。前端在 `/` 提供，OpenTool RPC 在同一来源的 `/opentool` 提供。由 AgentOS WebShell 通过 `/apps/{appId}/` 托管时，生成的客户端会使用该代理前缀访问同一 App 后端。AgentOS App 的 OpenTool 请求体上限为 1 MiB；生成的 Rust 后端只在 AgentOS 环境应用此限制，其他宿主保留 OpenTool SDK 的 16 MiB 默认值。
 

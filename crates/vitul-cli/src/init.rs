@@ -546,7 +546,7 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
       dependency.to_owned(),
       serde_json::Value::String(
         if dependency == "agentos-sdk-ts" {
-          "^2.4.0"
+          "^2.5.0"
         } else {
           "^2"
         }
@@ -575,7 +575,7 @@ fn configure_frontend_dependencies(project_root: &Path) -> Result<()> {
   dependencies.remove("@tauri-apps/cli");
   dependencies.insert(
     "@litevar/vitul-cli".to_owned(),
-    serde_json::Value::String("^3.5.1".into()),
+    serde_json::Value::String("^3.5.2".into()),
   );
   package["packageManager"] = serde_json::Value::String("pnpm@12.4.2".into());
   package["engines"] = serde_json::json!({ "node": ">=22.13.0", "pnpm": ">=12.4.2" });
@@ -633,11 +633,11 @@ mod tests {
     let package: serde_json::Value =
       serde_json::from_slice(&fs::read(project.path().join("package.json")).unwrap()).unwrap();
     assert!(package["devDependencies"].get("@tauri-apps/cli").is_none());
-    assert_eq!(package["devDependencies"]["@litevar/vitul-cli"], "^3.5.1");
+    assert_eq!(package["devDependencies"]["@litevar/vitul-cli"], "^3.5.2");
     assert_eq!(package["scripts"]["vitul"], "vitul");
     assert_eq!(package["scripts"]["check"], "tsc -b --pretty false");
     assert!(package["scripts"].get("tauri").is_none());
-    assert_eq!(package["dependencies"]["agentos-sdk-ts"], "^2.4.0");
+    assert_eq!(package["dependencies"]["agentos-sdk-ts"], "^2.5.0");
     assert_eq!(package["devDependencies"]["tailwindcss"], "^4.3.3");
     assert_eq!(package["devDependencies"]["@tailwindcss/vite"], "^4.3.3");
     assert!(package["devDependencies"].get("postcss").is_none());
