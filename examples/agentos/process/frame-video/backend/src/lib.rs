@@ -50,34 +50,34 @@ const SPEC: &str = r#"{
       "name": "library.list",
       "description": "List videos saved in the Frame Video library.",
       "parameters": [],
-      "returns": { "type": "object", "properties": { "videos": { "type": "array", "items": { "type": "object" } } } }
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "videos": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "key": { "type": "string" }, "name": { "type": "string" }, "size": { "type": "number" }, "addedAt": { "type": "number" }, "favorite": { "type": "boolean" } } } } } } }
     },
     {
       "name": "library.add",
       "description": "Add a local video file to the Frame Video playlist.",
-      "parameters": [{ "name": "path", "type": "string", "required": true }],
-      "returns": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "size": { "type": "number" } } }
+      "parameters": [{ "name": "path", "schema": { "type": "string" }, "required": true }],
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "size": { "type": "number" } } } }
     },
     {
       "name": "library.remove",
       "description": "Remove a video from the Frame Video playlist without deleting its source file.",
-      "parameters": [{ "name": "id", "type": "string", "required": true }],
-      "returns": { "type": "object", "properties": { "removed": { "type": "boolean" } } }
+      "parameters": [{ "name": "id", "schema": { "type": "string" }, "required": true }],
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "removed": { "type": "boolean" } } } }
     },
     {
       "name": "library.setFavorite",
       "description": "Add or remove a video from the watch-later list.",
       "parameters": [
-        { "name": "id", "type": "string", "required": true },
-        { "name": "favorite", "type": "boolean", "required": true }
+        { "name": "id", "schema": { "type": "string" }, "required": true },
+        { "name": "favorite", "schema": { "type": "boolean" }, "required": true }
       ],
-      "returns": { "type": "object", "properties": { "favorite": { "type": "boolean" } } }
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "favorite": { "type": "boolean" } } } }
     },
     {
       "name": "library.clear",
       "description": "Clear the Frame Video playlist without deleting source files.",
       "parameters": [],
-      "returns": { "type": "object", "properties": { "cleared": { "type": "boolean" } } }
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "cleared": { "type": "boolean" } } } }
     }
   ]
 }"#;

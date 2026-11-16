@@ -153,6 +153,40 @@ mod tests {
       serde_json::from_slice(&version_body).unwrap();
     assert_eq!(version_json["version"], "0.1.0");
 
+    // This test runs in the generated backend, so it checks the schema served
+    // by the scaffold instead of a separately maintained example JSON value.
+    let load = app
+      .clone()
+      .oneshot(
+        Request::builder()
+          .method(Method::GET)
+          .uri("/opentool/load")
+          .body(Body::empty())
+          .unwrap(),
+      )
+      .await
+      .unwrap();
+    assert_eq!(load.status(), StatusCode::OK);
+    let load_body = axum::body::to_bytes(load.into_body(), 4096)
+      .await
+      .unwrap();
+    let spec: serde_json::Value = serde_json::from_slice(&load_body).unwrap();
+    assert_eq!(spec["opentool"], "1.0.0");
+    let function = &spec["functions"][0];
+    assert_eq!(function["name"], "greet");
+    assert_eq!(
+      function["parameters"],
+      json!([{ "name": "name", "schema": { "type": "string" }, "required": true }])
+    );
+    assert_eq!(
+      function["return"],
+      json!({
+        "name": "result",
+        "schema": { "type": "object", "properties": { "message": { "type": "string" } } }
+      })
+    );
+    assert!(function.get("returns").is_none());
+
     let greet = app
       .clone()
       .oneshot(

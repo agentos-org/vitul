@@ -8,7 +8,7 @@ pub const SPEC: &str = r#"{
   "functions": [{
     "name": "greet",
     "description": "Return a greeting for a name.",
-    "parameters": [{ "name": "name", "type": "string", "required": true }],
-    "returns": { "type": "object", "properties": { "message": { "type": "string" } } }
+    "parameters": [{ "name": "name", "schema": { "type": "string" }, "required": true }],
+    "return": { "name": "result", "schema": { "type": "object", "properties": { "message": { "type": "string" } } } }
   }]
 }"#;

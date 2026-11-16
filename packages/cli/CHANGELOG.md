@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.5.4]
+
+### Bug Fixes
+
+- Generate OpenTool 1.0.0 parameter and return schemas that AgentOS Desktop
+  can parse, and check the schema served by generated backends.
+- Correct the starter and maintained example schemas while preserving their
+  existing RPC methods and behavior.
+- Update vulnerable build and runtime dependencies and audit standalone projects.
+
 ## [3.5.3]
 
 ### Dependencies

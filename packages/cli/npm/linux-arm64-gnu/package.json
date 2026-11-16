@@ -1,6 +1,6 @@
 {
   "name": "@litevar/vitul-cli-linux-arm64-gnu",
-  "version": "3.5.3",
+  "version": "3.5.4",
   "cpu": [
     "arm64"
   ],

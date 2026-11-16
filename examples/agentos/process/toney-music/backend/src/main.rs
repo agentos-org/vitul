@@ -70,52 +70,52 @@ const OPENTOOL_SPEC: &str = r#"{
       "name": "library.list",
       "description": "List or search the music library. Results contain metadata only, not local file paths. Use a result's id as playback.play.trackId.",
       "parameters": [
-        { "name": "query", "type": "string", "required": false },
-        { "name": "limit", "type": "number", "required": false }
+        { "name": "query", "schema": { "type": "string" }, "required": false },
+        { "name": "limit", "schema": { "type": "number" }, "required": false }
       ],
-      "returns": { "type": "object", "properties": { "tracks": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "trackNumber": { "type": "number" }, "fileName": { "type": "string" }, "title": { "type": "string" }, "artist": { "type": "string" }, "album": { "type": "string" }, "extension": { "type": "string" }, "size": { "type": "number" }, "duration": { "type": "number" }, "tone": { "type": "number" }, "addedAt": { "type": "number" } } } }, "total": { "type": "number" }, "returned": { "type": "number" }, "truncated": { "type": "boolean" } } }
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "tracks": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "trackNumber": { "type": "number" }, "fileName": { "type": "string" }, "title": { "type": "string" }, "artist": { "type": "string" }, "album": { "type": "string" }, "extension": { "type": "string" }, "size": { "type": "number" }, "duration": { "type": "number" }, "tone": { "type": "number" }, "addedAt": { "type": "number" } } } }, "total": { "type": "number" }, "returned": { "type": "number" }, "truncated": { "type": "boolean" } } } }
     },
     {
       "name": "playback.status",
       "description": "Get the current playback state and audio output details.",
       "parameters": [],
-      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } }
+      "return": { "name": "result", "description": "Includes trackId, which is null when no track is selected.", "schema": { "type": "object", "properties": { "state": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } } }
     },
     {
       "name": "playback.play",
       "description": "Play a track from the Toney Music library using the id returned by library.list.",
       "parameters": [
-        { "name": "trackId", "type": "string", "required": true },
-        { "name": "position", "type": "number", "required": false },
-        { "name": "mode", "type": "string", "required": false },
-        { "name": "device", "type": "string", "required": false },
-        { "name": "autoplay", "type": "boolean", "required": false }
+        { "name": "trackId", "schema": { "type": "string" }, "required": true },
+        { "name": "position", "schema": { "type": "number" }, "required": false },
+        { "name": "mode", "schema": { "type": "string" }, "required": false },
+        { "name": "device", "schema": { "type": "string" }, "required": false },
+        { "name": "autoplay", "schema": { "type": "boolean" }, "required": false }
       ],
-      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } }
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } } }
     },
     {
       "name": "playback.pause",
       "description": "Pause the current track.",
       "parameters": [],
-      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" } } }
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" } } } }
     },
     {
       "name": "playback.resume",
       "description": "Resume the current track.",
       "parameters": [],
-      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" } } }
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" } } } }
     },
     {
       "name": "playback.stop",
       "description": "Stop playback.",
       "parameters": [],
-      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" } } }
+      "return": { "name": "result", "description": "Includes trackId, which is null after playback stops.", "schema": { "type": "object", "properties": { "state": { "type": "string" } } } }
     },
     {
       "name": "playback.seek",
       "description": "Seek within the current track to a position in seconds.",
-      "parameters": [{ "name": "position", "type": "number", "required": true }],
-      "returns": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } }
+      "parameters": [{ "name": "position", "schema": { "type": "number" }, "required": true }],
+      "return": { "name": "result", "schema": { "type": "object", "properties": { "state": { "type": "string" }, "trackId": { "type": "string" }, "currentTime": { "type": "number" }, "duration": { "type": "number" } } } }
     }
   ]
 }"#;
