@@ -147,12 +147,17 @@ client only when called. Copy `.env.example` to `.env` and set
 `VITE_AGENTOS_GATEWAY_URL` to override the Gateway address. This value is
 bundled into the frontend, so never put keys or other secrets in `VITE_*`
 variables. Keep app business operations in the OpenTool backend.
-The generated dependency is `agentos-sdk-ts` `^2.5.1`. After registering the
+The generated dependency is `agentos-sdk-ts` `^3.0.0`. After registering the
 app with `sdk.agentos.registerBundle({ bundleId })`, use
 `sdk.notifykit.publish()` to publish an app notification. AppKit delivers
 `notification.activated` when a user opens one; narrow it with
 `isNotificationActivatedEvent()`. HarnessKit run and turn requests also accept
 `toolPolicy` for tool allow/deny rules and approval behavior.
+
+SDK 3.0 discovers nearby devices with `sdk.discoverykit.getPeers()` or
+`streamPeers()`. To send files, pass `targetDeviceId` and `files` to
+`sdk.transferkit.send()`. The receiving device handles incoming files in its
+built-in nearby transfer UI.
 
 ModelKit 2.5.1 exposes the optional `maxOutputTokens` response-generation
 limit on `ModelInfo` and `AppModel`. `AppModelRegistration` and

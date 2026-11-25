@@ -108,7 +108,9 @@ AgentOS 的 `bundleId` 来自根配置的 `identifier`。可以在同一文件�
 
 项目已预置 `agentos-sdk-ts`。需要调用 AgentOS Gateway 时，从 `src/lib/agentos.ts` 导入 `createAgentOSClient()`；客户端只会在函数调用时创建。可将 `.env.example` 复制为 `.env`，设置 `VITE_AGENTOS_GATEWAY_URL` 指定网关地址。该地址会打包进前端，不能在 `VITE_*` 变量中存放密钥或其他机密。业务操作继续通过 OpenTool 后端实现。
 
-生成项目使用 `agentos-sdk-ts ^2.5.1`。先通过 `sdk.agentos.registerBundle({ bundleId })` 注册应用，再用 `sdk.notifykit.publish()` 发布应用通知。用户打开通知时，AppKit 会发送 `notification.activated`；可用 `isNotificationActivatedEvent()` 收窄事件类型。HarnessKit 的 run 和 turn 请求也支持 `toolPolicy`，用于设置工具允许/拒绝规则和审批策略。
+生成项目使用 `agentos-sdk-ts ^3.0.0`。先通过 `sdk.agentos.registerBundle({ bundleId })` 注册应用，再用 `sdk.notifykit.publish()` 发布应用通知。用户打开通知时，AppKit 会发送 `notification.activated`；可用 `isNotificationActivatedEvent()` 收窄事件类型。HarnessKit 的 run 和 turn 请求也支持 `toolPolicy`，用于设置工具允许/拒绝规则和审批策略。
+
+SDK 3.0 可通过 `sdk.discoverykit.getPeers()` 或 `streamPeers()` 发现附近设备。发送文件时，向 `sdk.transferkit.send()` 传入 `targetDeviceId` 和 `files`。接收设备通过内置的附近传输界面处理传入文件。
 
 ModelKit 2.5.1 在 `ModelInfo` 和 `AppModel` 中提供可选的 `maxOutputTokens`，表示单次响应可生成的 token 上限；`AppModelRegistration` 和 `AppModelUpdate` 可以设置该字段，它与 `contextWindowSize` 是不同的字段。SDK 使用 Gateway 返回的值，不会自行补全缺失值；较旧的 Gateway 可能不提供此字段。
 

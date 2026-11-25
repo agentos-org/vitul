@@ -11,7 +11,8 @@ import {
   type HarnessKitDecisionModelConfig,
   type HarnessKitRunRequest,
   type HarnessKitSkillSelection,
-  type ModelInfo
+  type ModelInfo,
+  type TransferFileInfo
 } from 'agentos-sdk-ts'
 import { createAgentOSClient } from './lib/agentos'
 
@@ -97,3 +98,15 @@ const invalidDecision: HarnessKitDecisionModelConfig = {
   toolSelectionEnabled: 'yes'
 }
 void invalidDecision
+
+export async function checkNearbyTransferTypes(files: TransferFileInfo[]) {
+  const sdk = createAgentOSClient()
+  const [peer] = await sdk.discoverykit.getPeers()
+  if (peer) {
+    const transfer = await sdk.transferkit.send({
+      targetDeviceId: peer.deviceId,
+      files
+    })
+    return transfer.targetDeviceId
+  }
+}

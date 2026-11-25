@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.5.6]
+
+### Dependencies
+
+- Generate new apps with `agentos-sdk-ts` `^3.0.0`. DiscoveryKit discovers
+  devices and TransferKit sends files to a device ID.
+
+## [3.5.5]
+
+### Dependencies
+
+- Generate new apps with `agentos-sdk-ts` `^2.5.2`, which adds HarnessKit
+  private tool registration and ModelKit benefit-card and billing metadata.
+
 ## [3.5.4]
 
 ### Bug Fixes
